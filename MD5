@@ -1,4 +1,4 @@
-d8433c24d725ccee95d845a3861a5ac6 *DESCRIPTION
+19f87e3a8679b20dac55aba058fd258d *DESCRIPTION
 b7d40377f4a9e86c98a2700f775ff2c2 *NAMESPACE
 1eaa780b52b81ebc3aa191ea5da0fc2d *R/DefineSpatialClasses.R
 d32c24cdf5fa0723f467993ec6342839 *R/RcppExports.R
@@ -36,7 +36,7 @@ b8408f325bce8894b3e2004e3b76ace8 *inst/doc/RootSystems.Rnw
 0288d7a0434f666899e0eab1e7d1afe7 *inst/doc/RootSystems.pdf
 af1169ec96b44d41d63216bf55f73369 *inst/doc/SoilWaterBalance.R
 64071ac6e68c8259a200d481d00e98ae *inst/doc/SoilWaterBalance.Rnw
-cc973e0695daa7bfcd6b921aa04e0e28 *inst/doc/SoilWaterBalance.pdf
+d1d870148437a0e1e20ce1b68b9e88f3 *inst/doc/SoilWaterBalance.pdf
 0a1b5f2458a8b9cdc949fdb3b447e672 *man/SFM_metric.Rd
 cad2923c57ef09080176e5e1e541eeb3 *man/SpParamsMED.Rd
 5e648accdeb0d986a82656fc2d541001 *man/SpatialGridForest-class.Rd
@@ -70,7 +70,7 @@ d94e554c93c41de780f60edda49a9f7b *man/swb.Rd
 f91b5e89262896a853c6a253f6dcba3e *src/PenmanMonteith.cpp
 d1cb912f9307acce8f368e2ca2caa5d2 *src/PenmanMonteith.h
 867f5321e9eaff0109857bd2d5ff925d *src/RcppExports.cpp
-b9706ce91d832cb6f7ffb16bd08f6b10 *src/firebehaviour.cpp
+501e5af77c0c7bf8f192b6e73cf3969b *src/firebehaviour.cpp
 1754464d794f1dd8fd8eaa6e278e557d *src/fireutils.cpp
 179e3ed1724a684513747249b1e8a4b8 *src/fireutils.h
 00f8f68610c14d133865ea812239e6d4 *src/forestutils.cpp

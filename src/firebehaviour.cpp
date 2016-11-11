@@ -1,6 +1,6 @@
 #include <Rcpp.h>
 #include <numeric>
-#include <Math.h>
+#include <math.h>
 #include "swb.h"
 #include "forestutils.h"
 #include "fuelstructure.h"
