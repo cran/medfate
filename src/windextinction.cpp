@@ -119,8 +119,23 @@ NumericVector windExtinctionProfile(NumericVector z, double wind20H, double LAIc
   return(wp);
 }
 
+NumericVector windExtinctionCohort(NumericVector H, NumericVector CR, double wind20H, double LAIc, double canopyHeight) {
+  int n = H.size();
+  NumericVector wp(n);
+  for(int i =0;i<n;i++) {
+    wp[i] = windSpeedMassmanExtinction(H[i]*(1.0-(1.0-CR[i])/2.0), wind20H, LAIc, canopyHeight);
+  }
+  return(wp);
+}
 
 
-
-
+double aerodynamicResistance(double canopyHeight, double wind) {
+  canopyHeight = canopyHeight/100.0;
+  double d= 2/3*canopyHeight;
+  double zom = 0.123*canopyHeight;
+  double zoh = 0.1*zom;
+  double zm = 2.0+canopyHeight;
+  double zh = zm;
+  return(log((zm-d)/zom)*log((zh-d)/zoh)/(pow(0.41,2.0)*wind));
+}
 

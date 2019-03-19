@@ -1,17 +1,28 @@
 Package: medfate
 Type: Package
 Title: Mediterranean Forest Simulation
-Version: 0.2.2
-Date: 2016-11-10
-Author: Miquel De Caceres
-Maintainer: Miquel De Caceres <miquelcaceres@gmail.com>
-Description: Functions to simulate forest dynamics using cohort-based description of vegetation.
+Version: 0.7.3
+Date: 2019-03-19
+Authors@R: c(
+	person('Miquel', 'De Cáceres', role=c('aut','cre'),
+	email='miquelcaceres@gmail.com'),
+	person('Víctor', 'Granda', role='aut'),
+	person('Antoine', 'Cabon', role='aut'))
+Description: Functions to simulate Mediterranean forest functioning and dynamics using cohort-based description of vegetation [De Caceres et al. (2015) <doi:10.1016/j.agrformet.2015.06.012>].
 License: GPL (>= 2)
+URL: http://vegmod.ctfc.cat/medfateweb
 LazyLoad: yes
-Depends: R (>= 2.10), meteoland, sp, spdep
-Imports: methods, Rcpp (>= 0.11.0)
-LinkingTo: Rcpp
+Depends: R (>= 3.4.0), sp
+Imports: spdep, GSIF, methods, meteoland (>= 0.7.1), Rcpp (>= 0.12.12)
+Suggests: knitr, rmarkdown, rjson
+LinkingTo: Rcpp, meteoland
+Encoding: UTF-8
 NeedsCompilation: yes
-Packaged: 2016-11-10 18:48:09 UTC; miquel.decaceres
+VignetteBuilder: utils, knitr
+Packaged: 2019-03-19 14:15:04 UTC; miquel.decaceres
+Author: Miquel De Cáceres [aut, cre],
+  Víctor Granda [aut],
+  Antoine Cabon [aut]
+Maintainer: Miquel De Cáceres <miquelcaceres@gmail.com>
 Repository: CRAN
-Date/Publication: 2016-11-11 00:19:41
+Date/Publication: 2019-03-19 15:40:03 UTC

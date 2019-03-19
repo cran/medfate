@@ -5,21 +5,24 @@
 #endif
 using namespace Rcpp;
 
-void checkSpeciesParameters(DataFrame SpParams, CharacterVector params);
+int findRowIndex(int sp, DataFrame SpParams);
+
+DataFrame forest2aboveground(List x, DataFrame SpParams, double gdd = NA_REAL);
+NumericMatrix forest2belowground(List x, List soil, DataFrame SpParams);
 
 NumericVector leafDevelopmentStatus(NumericVector Sgdd, double gdd);
 double leafDevelopmentStatus(double Sgdd, double gdd);
 
-NumericVector ldrRS_one(double Z50, double Z95, NumericVector d);
-NumericVector conicRS_one(double Z, double d1, double d2, double d3);
-NumericMatrix conicRS(NumericVector Z, NumericVector d);
-NumericMatrix ldrRS(NumericVector Z50, NumericVector Z95, NumericVector d);
-NumericMatrix ldrProfile(NumericVector Z50, NumericVector Z95, NumericVector d);
-
-NumericVector cohortParameter(List x, DataFrame SpParams, String parName);
+NumericVector cohortNumericParameter(List x, DataFrame SpParams, String parName);
+NumericVector cohortNumericParameter(IntegerVector SP, DataFrame SpParams, String parName);
 CharacterVector cohortCharacterParameter(List x, DataFrame SpParams, String parName);
+CharacterVector cohortCharacterParameter(IntegerVector SP, DataFrame SpParams, String parName);
+
+double leafAreaProportion(double z1, double z2, double zmin, double zmax);
 
 NumericVector cohortHeight(List x);
+
+NumericVector cohortDensity(List x, DataFrame SpParams);
 
 NumericVector treeBasalArea(NumericVector N, NumericVector dbh);
 NumericVector treeCohortBasalArea(List x);
@@ -31,6 +34,11 @@ double forestBasalAreaForMinDBH(List x, double minDBH);
 double treeDensity(List x);
 double minDBHDensity(List x, double minDBH);
 NumericVector dbhClassDensity(List x, NumericVector DBHbreaks);
+
+NumericVector treeCrownRatio(NumericVector N, NumericVector dbh, NumericVector H, 
+                             NumericVector Acw, NumericVector Bcw,
+                             NumericVector Acr, NumericVector B1cr, NumericVector B2cr, NumericVector B3cr,
+                             NumericVector C1cr, NumericVector C2cr);
 
 NumericVector treeFuel(IntegerVector SP, NumericVector N, NumericVector dbh, DataFrame SpParams, double gdd = NA_REAL, bool includeDead = true);
 NumericVector shrubFuel(IntegerVector SP, NumericVector Cover, NumericVector H, DataFrame SpParams, double gdd = NA_REAL, bool includeDead = true);
@@ -51,8 +59,6 @@ NumericMatrix LAIdistribution(NumericVector z, NumericVector LAI, NumericVector 
 NumericMatrix LAIdistribution(NumericVector z, List x, DataFrame SpParams, double gdd = NA_REAL);
 
 double shrubCover(List x, double excludeMinHeight = 0.0);
-
-DataFrame forest2swbInput(List x, DataFrame SpParams, NumericVector d, double gdd = NA_REAL, String petMode = "Input", String hydraulicMode = "Simple");
 
 void deleteTreeCohort(List x, int treeCohort);
 void deleteShrubCohort(List x, int shrubCohort);

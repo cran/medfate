@@ -1,35 +1,11 @@
 #include <Rcpp.h>
-#include "swb.h"
+#include "hydraulics.h"
 #include "forestutils.h"
+#include "tissuemoisture.h"
+#include <meteoland.h>
 using namespace Rcpp;
 
-/**
- * Returns the sunrise and sunset hours in hour angle (radians)
- * FROM: meteoland
- * 
- * L0 - Latitude of actual slope, in radians
- * A - Azimuth of slope, in radians from north
- * I - Inclination of slope, in radians above horizontal
- * delta - Solar declination, in radians
- */
-NumericVector sunRiseSet(double L0, double A, double I, double delta){
-  double L1 = asin(cos(I)*sin(L0)+sin(I)*cos(L0)*cos(A)); //latitude on equivalent slope
-  double den = cos(I)*cos(L0)-sin(I)*sin(L0)*cos(A);
-  double L2;
-  if(den<0) {
-    L2 = atan((sin(I)*sin(A))/den)+PI;
-  } else {
-    L2 = atan((sin(I)*sin(A))/den);
-  }
-  double T = acos(std::max(std::min(-tan(L1)*tan(delta),1.0),-1.0));
-  double T7 = T-L2; //hour angle of sunset on equivalent slope
-  double T6 = -T-L2; //hour angle of sunrise on equivalent slope
-  double T1 = acos(std::max(std::min(-tan(L0)*tan(delta),1.0),-1.0));  //hour angle of sunset on horizontal surface
-  double T0 = - T1; //hour angle of sunrise on horizontal surface
-  double T3 = std::min(T1,T7); //hour angle of sunset on slope
-  double T2 = std::max(T0,T6); //hour angle of sunrise on slope
-  return(NumericVector::create(T2,T3));
-}
+
 
 /**
  * From: Byram & Jemison (1943). See also Viney (1991).
@@ -165,29 +141,78 @@ double coarse100hday(double m0,
 }
 
 
+
 /**
- * Translates soil water balance results to fuel moisture content of plant cohorts.
- * For this, it translates whole-plant conductance to the average 'sensed' soil water potential 
- * of each cohort. Then a linear function is used to scale this water potential to a 
- * moisture content.
- */
-NumericVector cohortFuelMoistureContent(List swbDay, DataFrame swbInput, DataFrame SpParams, int WeibullShape=3) {
-  NumericVector SP = swbInput["SP"];
-  NumericVector Psi_Extract = swbInput["Psi_Extract"];
-  int numCohorts = SP.size();
+* Translates soil water balance results to fuel moisture content of plant cohorts.
+* 
+*   spwb - The output of soil water balance
+*   x - The object of class spwbInput on which simulations were conducted
+*/
+// [[Rcpp::export("fuel.cohortFineFMC")]]
+List cohortFineFuelMoistureContent(List spwb, List x) {
+  //Draw cohort-based variables
+  DataFrame cohorts = Rcpp::as<Rcpp::DataFrame>(x["cohorts"]);
+  DataFrame above = Rcpp::as<Rcpp::DataFrame>(x["above"]);
+  DataFrame paramsAnatomy = Rcpp::as<Rcpp::DataFrame>(x["paramsAnatomy"]);
+  DataFrame paramsTransp = Rcpp::as<Rcpp::DataFrame>(x["paramsTransp"]);
   
-  NumericVector cohortFMC(numCohorts);
-  NumericVector DDS = swbDay["DDS"]; //Daily drought stress
-  NumericVector psi = pmin(0.0, K2Psi(1.0 - DDS,  Psi_Extract, WeibullShape)); //Apparent soil water potential
-  NumericVector psimin = pmin(0.0, K2Psi(NumericVector(numCohorts, 0.1),  Psi_Extract, WeibullShape)); //Soil water potential corresponding to minimum moisture ( = 10% of conductance)
+  //Anatomy parameters
+  NumericVector r635 = Rcpp::as<Rcpp::NumericVector>(paramsAnatomy["r635"]);
+  NumericVector WoodDens = Rcpp::as<Rcpp::NumericVector>(paramsAnatomy["WoodDens"]);
+  NumericVector LeafDens = Rcpp::as<Rcpp::NumericVector>(paramsAnatomy["LeafDens"]);
   
- //Initialize other cohort-based variables
-  NumericVector maxFMCSP = SpParams["maxFMC"];
-  NumericVector minFMCSP = SpParams["minFMC"];
+  //Transpiration parameters
+  NumericVector VCstem_c = Rcpp::as<Rcpp::NumericVector>(paramsTransp["VCstem_c"]);
+  NumericVector VCstem_d = Rcpp::as<Rcpp::NumericVector>(paramsTransp["VCstem_d"]);
+  NumericVector VCleaf_c = Rcpp::as<Rcpp::NumericVector>(paramsTransp["VCleaf_c"]);
+  NumericVector VCleaf_d = Rcpp::as<Rcpp::NumericVector>(paramsTransp["VCleaf_d"]);
+  
+  //Water storage parameters
+  DataFrame paramsWaterStorage = Rcpp::as<Rcpp::DataFrame>(x["paramsWaterStorage"]);
+  NumericVector StemAF = Rcpp::as<Rcpp::NumericVector>(paramsWaterStorage["StemAF"]);
+  NumericVector LeafAF = Rcpp::as<Rcpp::NumericVector>(paramsWaterStorage["LeafAF"]);
+
+
+  NumericMatrix psiapoleaf = Rcpp::as<Rcpp::NumericMatrix>(spwb["LeafPsi"]);
+  NumericMatrix PLCstem = Rcpp::as<Rcpp::NumericMatrix>(spwb["PlantStress"]);
+  NumericMatrix RWCsymleaf = Rcpp::as<Rcpp::NumericMatrix>(spwb["PlantRWCleaf"]);
+  NumericMatrix RWCsymstem = Rcpp::as<Rcpp::NumericMatrix>(spwb["PlantRWCstem"]);
+  List l = psiapoleaf.attr("dimnames");
+  CharacterVector days = l[0];
+  CharacterVector cohNames = l[1];
+  int numDays = psiapoleaf.nrow();
+  int numCohorts = psiapoleaf.ncol();
+
+  NumericMatrix leafFMC(numDays, numCohorts);
+  NumericMatrix twigFMC(numDays, numCohorts);
+  NumericMatrix fineFMC(numDays, numCohorts);
+  leafFMC.attr("dimnames") = l;
+  twigFMC.attr("dimnames") = l;
+  fineFMC.attr("dimnames") = l;
   for(int c=0;c<numCohorts;c++) {
-    cohortFMC[c] = std::max(minFMCSP[SP[c]],maxFMCSP[SP[c]] + psi[c]*((minFMCSP[SP[c]]- maxFMCSP[SP[c]])/psimin[c]));
+    double f_apo_leaf = LeafAF[c];
+    double f_apo_stem = StemAF[c];
+    double density_leaf = LeafDens[c];
+    double density_stem = WoodDens[c];
+    double leafc = VCleaf_c[c];
+    double leafd = VCleaf_d[c];
+    double stemc = VCstem_c[c];
+    double stemd = VCstem_d[c];
+    double p_leaves = 1.0/r635[c];
+    for(int d=0;d<numDays;d++) {
+      double rwc_apo_leaf = apoplasticRelativeWaterContent(psiapoleaf(d,c), leafc, leafd);
+      double rwc_sym_leaf = RWCsymleaf(d,c);
+      double rwc_leaf = rwc_apo_leaf*f_apo_leaf + rwc_sym_leaf*(1.0 - f_apo_leaf);
+      leafFMC(d,c) = tissueFMC(rwc_leaf, density_leaf);
+      double rwc_apo_stem = 1.0-PLCstem(d,c);
+      double rwc_sym_stem = RWCsymstem(d,c);
+      double rwc_stem = rwc_apo_stem*f_apo_stem + rwc_sym_stem*(1.0 - f_apo_stem);
+      twigFMC(d,c) = tissueFMC(rwc_stem, density_stem);
+      
+      fineFMC(d,c)  =leafFMC(d,c)*p_leaves + twigFMC(d,c)*(1.0 - p_leaves);
+    }
   }
-  return(cohortFMC);
+  return(List::create(Named("LeafFMC") = leafFMC, Named("TwigFMC") = twigFMC, Named("FineFMC") = fineFMC));
 }
 
 double layerLiveFuelMoisture(double minHeight, double maxHeight, NumericVector cohortFMC, NumericVector cohortLoading, NumericVector H, NumericVector CR) {

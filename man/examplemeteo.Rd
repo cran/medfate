@@ -11,7 +11,6 @@
 \format{
  A data frame containing daily meteorology of a location in Catalonia (Spain) for year 2001.
    \describe{
-\item{\code{DOY}}{Day of the year (Julian day).}
 \item{\code{MeanTemperature}}{Mean daily temperature (in degrees Celsius).}
 \item{\code{MinTemperature}}{Minimum daily temperature (in degrees Celsius).}
 \item{\code{MaxTemperature}}{Maximum daily temperature (in degrees Celsius).}
@@ -28,7 +27,7 @@
 \source{
 Interpolated from weather station data (Spanish and Catalan meteorology agencies) using package 'meteoland'.
 }
-\seealso{ \code{\link{swb}}}
+\seealso{ \code{\link{spwb}}}
 \examples{
 data(examplemeteo)
 }

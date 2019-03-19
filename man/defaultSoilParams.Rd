@@ -5,46 +5,36 @@
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{Default soil parameters}
 \description{
-Creates a list with default soil parameters for model functions.
+Creates a data frame with default soil physical description for model functions.
 }
 \usage{
-defaultSoilParams() 
+defaultSoilParams(n = 4) 
+}
+\arguments{
+ \item{n}{An integer with the number of soil layers.}
 }
 \details{
-The function returns a list with default parameters. Users can change those that need to be set to other values and use the list as input for function \code{\link{soil}}.
+The function returns a data frame with default physical soil description, with soil layers in rows. Users can change those that need to be set to other values and use the list as input for function \code{\link{soil}}.
 }
 \value{
-A list with the following elements (and default values):
+A data frame with layers in rows and the following columns (and default values):
 \itemize{
-\item{\code{SoilDepth (= 1000)}: Soil depth (accounting for the sum of topsoil and subsoil).}
-\item{\code{RockLayerDepth (= 4000)}: Depth of the rock layer (i.e. total depth).}
-\item{\code{TS_clay (= 25)}: Topsoil clay percentage.}
-\item{\code{TS_silt (= 50)}: Topsoil silt percentage.}
-\item{\code{TS_sand (= 25)}: Topsoil sand percentage.}
-\item{\code{TS_macro (= 0.1)}: Topsoil macroporosity.}
-\item{\code{TS_rfc (= 20)}: Topsoil percentage of rock fragment content.}
-\item{\code{SS_clay (= 25)}: Subsoil clay percentage.}
-\item{\code{SS_silt (= 50)}: Subsoil silt percentage.}
-\item{\code{SS_sand (= 25)}: Subsoil sand percentage.}
-\item{\code{SS_macro (= 0.1)}: Subsoil macroporosity.}
-\item{\code{SS_rfc (= 40)}: Subsoil percentage of rock fragment content.}
-\item{\code{RL_clay (= 25)}: Rock layer clay percentage.}
-\item{\code{RL_silt (= 50)}: Rock layer silt percentage.}
-\item{\code{RL_sand (= 25)}: Rock layer sand percentage.}
-\item{\code{RL_macro (= 0.1)}: Rock layer macroporosity.}
-\item{\code{RL_rfc (= 85)}: Rock layer percentage of rock fragment content.}
-\item{\code{Gsoil (= 0.5)}: Gamma parameter for infiltration.}
-\item{\code{Ksoil (= 0.05)}: Kappa parameter for infiltration.}
+\item{\code{widths (= c(300,700,1000,2000)}: Width of soil layers (in mm).}
+\item{\code{clay (= 25)}: Clay percentage for each layer (in \%).}
+\item{\code{sand (= 25)}: Sand percentage for each layer (in \%).}
+\item{\code{om (= NA)}: Organic matter percentage for each layer (in \%).}
+\item{\code{bd (= 1.5)}: Bulk density for each layer (in g/cm3).}
+\item{\code{rfc (= c(20,40,60,85))}: Percentage of rock fragment content for each layer.}
 }
 }
 \author{
 Miquel De \enc{Cáceres}{Caceres} Ainsa, Centre Tecnologic Forestal de Catalunya
 }
 \seealso{
- \code{\link{soil}}, \code{\link{defaultControl}}, \code{\link{SpParamsMED}}
+ \code{\link{soil}}, \code{\link{soilgridsParams}}, \code{\link{defaultControl}}, \code{\link{SpParamsMED}}
 }
 \examples{
-defaultSoilParams()
+defaultSoilParams(4)
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.

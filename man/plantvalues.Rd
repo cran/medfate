@@ -12,6 +12,7 @@
 \alias{plant.FoliarBiomass}
 \alias{plant.Fuel}
 \alias{plant.Height}
+\alias{plant.ID}
 \alias{plant.Parameter}
 \alias{plant.LAI}
 \alias{plant.LargerTreeBasalArea}
@@ -32,13 +33,14 @@ plant.Cover(x)
 plant.CrownBaseHeight(x, SpParams)
 plant.CrownLength(x, SpParams)
 plant.CrownRatio(x, SpParams)
-plant.Density(x)
+plant.Density(x, SpParams)
 plant.EquilibriumLeafLitter(x, SpParams, AET = 800)
 plant.EquilibriumSmallBranchLitter(x, SpParams, 
                                    smallBranchDecompositionRate = 0.81)
 plant.FoliarBiomass(x, SpParams, gdd = NA)
 plant.Fuel(x, SpParams, gdd = NA, includeDead = TRUE)
 plant.Height(x)
+plant.ID(x)
 plant.LAI(x, SpParams, gdd = NA)
 plant.Parameter(x, SpParams, parName)
 plant.Phytovolume(x, SpParams)
@@ -64,12 +66,13 @@ A vector with values for each plant of the input \code{\link{forest}} object:
 \item{\code{plant.CrownBaseHeight}: The height corresponding to the start of the crown (in cm).}
 \item{\code{plant.CrownLength}: The difference between crown base height and total height (in cm).}
 \item{\code{plant.CrownRatio}: The ratio between crown length and total height (between 0 and 1).}
-\item{\code{plant.Density}: Tree density (ind/ha).}
+\item{\code{plant.Density}: Plant density (ind/ha). Tree density is directly taken from the forest object, while the shrub density is estimated from cover and height by calculating the area of a single individual.}
 \item{\code{plant.EquilibriumLeafLitter}: Litter biomass of leaves at equilibrium (in kg/m2).}
 \item{\code{plant.EquilibriumSmallBranchLitter}: Litter biomass of small branches (< 6.35 mm diameter) at equilibrium (in kg/m2).}
 \item{\code{plant.FoliarBiomass}: Standing biomass of leaves (in kg/m2).}
 \item{\code{plant.Fuel}: Fine fuel load (in kg/m2).}
 \item{\code{plant.Height}: Total height (in cm).}
+\item{\code{plant.ID}: Cohort coding for simulation functions (concatenation of 'T' (Trees) or 'S' (Shrub), cohort index and species index).}
 \item{\code{plant.LAI}: Leaf area index (m2/m2).}
 \item{\code{plant.Parameter}: The parameter values of each plant, as numeric.}
 \item{\code{plant.Phytovolume}: Shrub phytovolume (m3/m2).}
@@ -81,7 +84,7 @@ A vector with values for each plant of the input \code{\link{forest}} object:
 Miquel De \enc{Cáceres}{Caceres} Ainsa, Centre Tecnologic Forestal de Catalunya
 }
 \seealso{
- \code{\link{swb}}, \code{\link{forest}}, \code{\link{summary.forest}}
+ \code{\link{spwb}}, \code{\link{forest}}, \code{\link{summary.forest}}
 }
 \examples{
 #Default species parameterization
@@ -103,4 +106,6 @@ sum(plant.Fuel(exampleforest, SpParamsMED))
 summary(exampleforest, SpParamsMED)
 
 plant.SpeciesName(exampleforest, SpParamsMED)
+
+plant.ID(exampleforest)
 }

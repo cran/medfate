@@ -13,7 +13,7 @@ Description of a forest patch.
 \usage{
 \method{summary}{forest}(object, SpParams, detailed=FALSE, ...) 
 \method{print}{summary.forest}(x, digits = getOption("digits"), ...)
-emptyforest(ID="", patchsize=10000)
+emptyforest(ID="", patchsize=10000, ntree = 0, nshrub = 0)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -27,8 +27,8 @@ emptyforest(ID="", patchsize=10000)
       \item{\code{Height}: Total height (in cm).}
       \item{\code{DBH}: Diameter at breast height (in cm).}
       \item{\code{N}: Density (number of individuals/cell).}
-      \item{\code{Z50}: Depth (in mm) corresponding to 50\% of roots.}
-      \item{\code{Z95}: Depth (in mm) corresponding to 95\% of roots.}
+      \item{\code{Z50}: Depth (in mm) corresponding to 50\% of fine roots.}
+      \item{\code{Z95}: Depth (in mm) corresponding to 95\% of fine roots.}
    }
   }
   \item{\code{shrubData}: A data frame of shrub cohorts (in rows) and the following columns:
@@ -36,7 +36,8 @@ emptyforest(ID="", patchsize=10000)
       \item{\code{Species}: Non-negative integer for shrub species identity (i.e., 0,1,2,...).}
       \item{\code{Height}: Total height (in cm).}
       \item{\code{Cover}: Percent cover.}
-      \item{\code{Z}: Depth (in mm) of root system.}
+      \item{\code{Z50}: Depth (in mm) corresponding to 50\% of fine roots.}
+      \item{\code{Z95}: Depth (in mm) corresponding to 95\% of fine roots.}
    }
   }
   \item{\code{seedBank}: A data frame containing the abundance of seeds for each species (in rows) and the following columns:
@@ -56,6 +57,7 @@ emptyforest(ID="", patchsize=10000)
   \item{...}{Additional parameters for functions \code{\link{summary}} and \code{\link{print}}.}
   \item{ID}{An identifier of the forest stand (a string).}
   \item{patchsize}{The area of the forest stand, in square meters.}
+  \item{ntree, nshrub}{Number of tree and shrub cohorts, respectively.}
 }
 \details{
   Function \code{summary.forest} can be used to summarize a \code{forest} object in the console. Function \code{emptyforest} creates an empty \code{forest} object.
@@ -63,14 +65,11 @@ emptyforest(ID="", patchsize=10000)
 \value{
   Function \code{summary.forest} returns a data frame with the basal area and LAI of the forest, either expressed as totals or divided among life stages and species. Function \code{emptyforest} returns an empty \code{forest} object.
 }
-\references{
-De \enc{Cáceres}{Caceres} M, \enc{Martínez}{Martinez}-Vilalta J, Coll L, Llorens P, Casals P, Poyatos R, Pausas JG, Brotons L. (submitted) Coupling a water balance model with forest inventory data to evaluate plant drought stress at the regional level. Agricultural and Forest Meteorology.
-}
 \author{
 Miquel De \enc{Cáceres}{Caceres} Ainsa, Centre Tecnologic Forestal de Catalunya
 }
 \seealso{
- \code{\link{exampleforest}}, \code{\link{extractSFIforest}}, \code{\link{soil}}, \code{\link{SpatialPointsForest}}
+ \code{\link{exampleforest}}, \code{\link{extractSFIforest}}, \code{\link{soil}}, \code{\link{SFI2SPL}}
 }
 \examples{
 data(exampleforest)

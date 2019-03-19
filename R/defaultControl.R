@@ -2,10 +2,30 @@ defaultControl<-function() {
   return(list(
     #For all
     verbose = TRUE,
-    petMode = "Input",
-    hydraulicMode = "Simple"
+    subdailyResults = FALSE,
+    # swb
+    soilFunctions = "SX",
+    snowpack = TRUE,
+    drainage = TRUE,
+    transpirationMode = "Simple", #vs. "Complex"
+    hydraulicCostFunction = 1, #vs. 2
+    verticalLayerSize = 100,
+    nStemSegments = 1,
+    capacitance = FALSE,
+    cavitationRefill = TRUE,
+    # ksymver = 0, # whole-stem symplastic vertical conductance
+    klat = 0.1, # symplastic-apoplastic lateral conductance
+    taper = TRUE,
+    numericParams=list(maxNsteps = 400, ntrial = 200, psiTol = 0.0001, ETol = 0.0000001),
+    averageFracRhizosphereResistance = 0.15,
+    Catm = 386,
+    ndailysteps = 24,
+    thermalCapacityLAI = 1000000,
+    defaultWindSpeed = 5,
+    # growth
+    storagePool = "none"
+    
 #     #For water balance
-#     embolism = FALSE,
     #For forest dynamics
 #     freqZopt = 20,
 #     sap2tree=TRUE,
@@ -26,8 +46,8 @@ defaultControl<-function() {
 #     fireBrandTimeStep = 1/60, #in minutes
 #     numBrandsPerBurningTime = 1, # dimensionless
     #For fire behaviour
-    # liveFMCmode = "swb",
-    # useModelForLive = FALSE,
+   # liveFMCmode = "swb",
+   # useModelForLive = FALSE
     # initialMoisture = c(35,35,35,35,35),
     # surfaceToVolumeRatios = c(5600,358,98,6200,8000), #dimensionless
     # heatContent = c(18622, 18622, 18622, 19500, 20000), #kJ/kg

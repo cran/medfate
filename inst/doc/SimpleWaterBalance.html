@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<meta name="author" content="Miquel De Caceres" />
+
+<meta name="date" content="2019-03-19" />
+
+<title>1. Simple water balance simulation</title>
+
+
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css" data-origin="pandoc">
+div.sourceLine, a.sourceLine { display: inline-block; min-height: 1.25em; }
+a.sourceLine { pointer-events: none; color: inherit; text-decoration: inherit; }
+.sourceCode { overflow: visible; }
+code.sourceCode { white-space: pre; }
+@media print {
+code.sourceCode { white-space: pre-wrap; }
+div.sourceLine, a.sourceLine { text-indent: -1em; padding-left: 1em; }
+}
+pre.numberSource div.sourceLine, .numberSource a.sourceLine
+  { position: relative; }
+pre.numberSource div.sourceLine::before, .numberSource a.sourceLine::before
+  { content: attr(data-line-number);
+    position: absolute; left: -5em; text-align: right; vertical-align: baseline;
+    border: none; pointer-events: all;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em; }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; color: #aaaaaa;  padding-left: 4px; }
+@media screen {
+a.sourceLine::before { text-decoration: underline; color: initial; }
+}
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.bn { color: #40a070; } /* BaseN */
+code span.fl { color: #40a070; } /* Float */
+code span.ch { color: #4070a0; } /* Char */
+code span.st { color: #4070a0; } /* String */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.ot { color: #007020; } /* Other */
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.fu { color: #06287e; } /* Function */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code span.cn { color: #880000; } /* Constant */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.im { } /* Import */
+code span.va { color: #19177c; } /* Variable */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.op { color: #666666; } /* Operator */
+code span.bu { } /* BuiltIn */
+code span.ex { } /* Extension */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.at { color: #7d9029; } /* Attribute */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    for (var j = 0; j < rules.length; j++) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") continue;
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' || rule.style.backgroundColor === '') continue;
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#header {
+text-align: center;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">1. Simple water balance simulation</h1>
+<h4 class="author">Miquel De Caceres</h4>
+<h4 class="date">2019-03-19</h4>
+
+
+<div id="TOC">
+<ul>
+<li><a href="#about-this-vignette">About this vignette</a></li>
+<li><a href="#preparing-model-inputs">Preparing model inputs</a><ul>
+<li><a href="#soils">Soils</a></li>
+<li><a href="#species-data">Species data</a></li>
+<li><a href="#vegetation">Vegetation</a></li>
+<li><a href="#meteorological-forcing">Meteorological forcing</a></li>
+<li><a href="#simulation-control">Simulation control</a></li>
+<li><a href="#water-balance-input-object">Water balance input object</a></li>
+</ul></li>
+<li><a href="#executing-the-soil-water-balance-model">Executing the soil water balance model</a><ul>
+<li><a href="#water-balance-for-a-single-day">Water balance for a single day</a></li>
+<li><a href="#water-balance-for-multiple-days">Water balance for multiple days</a></li>
+<li><a href="#water-balance-for-a-set-of-forest-stands">Water balance for a set of forest stands</a></li>
+</ul></li>
+</ul>
+</div>
+
+<div id="about-this-vignette" class="section level2">
+<h2>About this vignette</h2>
+<p>This document describes how to run the soil water balance model described in De Cáceres et al. (2015) using package <code>medfate</code>. The document indicates how to prepare the inputs, use the simulation functions and inspect the outputs. All the details of the model design and formulation are given in a separate document that can be found on the website of the R package (<a href="http://vegmod.ctfc.cat/medfateweb" class="uri">http://vegmod.ctfc.cat/medfateweb</a>).</p>
+</div>
+<div id="preparing-model-inputs" class="section level2">
+<h2>Preparing model inputs</h2>
+<p>Any forest water balance model needs information on <strong>climate</strong>, <strong>vegetation</strong> and <strong>soils</strong> of the forest stand to be simulated. Moreover, since the soil water balance in <code>medfate</code> differentiates between species, <strong>species-specific parameters</strong> are also needed. In this subsection we explain the different steps (including optional pathways) to prepare all the data needed to run function <code>spwb()</code>.</p>
+<div id="soils" class="section level3">
+<h3>Soils</h3>
+<div id="required-soil-data" class="section level4">
+<h4>Required soil data</h4>
+<p>Simulation models in <code>medfate</code> require information on the physical attributes of soil, namely soil depth, texture, bulk density and rock fragment content. Soil information needs to be entered as a <code>data frame</code> with soil layers in rows and physical attributes in columns. The model accepts one to five soil layers with arbitrary widths. Soil physical attributes can be initialized to default values, for a given number of layers, using function <code>defaultSoilParams()</code>:</p>
+<pre class="sourceCode r" id="cb1"><code class="sourceCode r"><div class="sourceLine" id="cb1-1" data-line-number="1">spar =<span class="st"> </span><span class="kw">defaultSoilParams</span>(<span class="dv">2</span>)</div>
+<div class="sourceLine" id="cb1-2" data-line-number="2"><span class="kw">print</span>(spar)</div></code></pre>
+<pre><code>##   widths clay sand om  bd rfc
+## 1    300   25   25 NA 1.5  20
+## 2    700   25   25 NA 1.5  40</code></pre>
+<p>where <code>widths</code> are soil layer widths in mm; <code>clay</code> and <code>sand</code> are the percentage of clay and sand, in percent of dry weight, <code>om</code> stands for organic matter, <code>bd</code> is bulk density (in g·cm<span class="math inline">\(^{-3}\)</span>) and <code>rfc</code> the percentage of rock fragments. Because soil properties vary strongly at fine spatial scales, ideally soil physical attributes should be measured on samples taken at the forest stand to be simulated. For those users lacking such data, soil properties modelled at larger scales are available via soilgrids.org (see function <code>soilgridsParams()</code>).</p>
+</div>
+<div id="soil-input-object" class="section level4">
+<h4>Soil input object</h4>
+<p>The soil input for function <code>spwb()</code> is actually an object of class <code>soil</code> that is created using a function with the same name:</p>
+<pre class="sourceCode r" id="cb3"><code class="sourceCode r"><div class="sourceLine" id="cb3-1" data-line-number="1">examplesoil =<span class="st"> </span><span class="kw">soil</span>(spar, <span class="dt">VG_PTF =</span> <span class="st">&quot;Toth&quot;</span>)</div>
+<div class="sourceLine" id="cb3-2" data-line-number="2"><span class="kw">names</span>(examplesoil)</div></code></pre>
+<pre><code>##  [1] &quot;SoilDepth&quot;    &quot;W&quot;            &quot;SWE&quot;          &quot;Temp&quot;        
+##  [5] &quot;Ksoil&quot;        &quot;Gsoil&quot;        &quot;dVec&quot;         &quot;sand&quot;        
+##  [9] &quot;clay&quot;         &quot;om&quot;           &quot;usda_Type&quot;    &quot;VG_alpha&quot;    
+## [13] &quot;VG_n&quot;         &quot;VG_theta_res&quot; &quot;VG_theta_sat&quot; &quot;macro&quot;       
+## [17] &quot;rfc&quot;</code></pre>
+<p>In addition to the physical soil description, this object contains soil parameters needed for soil water balance simulations. For example, <code>macro</code> specifies the macroporosity of each layer; <code>Gsoil</code> and <code>Ksoil</code> are parameters needed to model the process of water infiltration into the soil. The meaning of all elements in the soil object can be found in the help page for function <code>soil()</code>.</p>
+<p>The soil object is also used to store the moisture degree of each soil layer. In particular, <code>W</code> contains the state variable that represents moisture content - the proportion of moisture <strong>relative to field capacity</strong> - which is normally initialized to 1 for each layer:</p>
+<pre class="sourceCode r" id="cb5"><code class="sourceCode r"><div class="sourceLine" id="cb5-1" data-line-number="1">examplesoil<span class="op">$</span>W</div></code></pre>
+<pre><code>## [1] 1 1</code></pre>
+<p>It is important to remember that, unlike normal objects in R, any water balance simulation will modify the moisture values in soil object. That is, the state of the soil at the end of the simulated process (i.e. <code>W</code>) will be stored. Hence, one can use the same object to simulate water balance sequentially and the final state of one simulation is the initial state of the next.</p>
+</div>
+<div id="water-retention-curves" class="section level4">
+<h4>Water retention curves</h4>
+<p>At any time, one can print the status of the soil object using its <code>print</code> function:</p>
+<pre class="sourceCode r" id="cb7"><code class="sourceCode r"><div class="sourceLine" id="cb7-1" data-line-number="1"><span class="kw">print</span>(examplesoil, <span class="dt">model =</span> <span class="st">&quot;SX&quot;</span>)</div></code></pre>
+<pre><code>## Soil depth (mm): 1000 
+## 
+## Layer  1  [ 0  to  300 mm ] 
+##     clay (%): 25 silt (%): 50 sand (%): 25 organic matter (%): NA [ Silt loam ]
+##     Rock fragment content (%): 20 Macroporosity (%): 5 
+##     Theta WP (%): 14 Theta FC (%): 30 Theta SAT (%): 49 Theta current (%) 30 
+##     Vol. WP (mm): 34 Vol. FC (mm): 73 Vol. SAT (mm): 118 Vol. current (mm): 73 
+##     Temperature (Celsius): NA 
+## 
+## Layer  2  [ 300  to  1000 mm ] 
+##     clay (%): 25 silt (%): 50 sand (%): 25 organic matter (%): NA [ Silt loam ]
+##     Rock fragment content (%): 40 Macroporosity (%): 5 
+##     Theta WP (%): 14 Theta FC (%): 30 Theta SAT (%): 49 Theta current (%) 30 
+##     Vol. WP (mm): 60 Vol. FC (mm): 127 Vol. SAT (mm): 207 Vol. current (mm): 127 
+##     Temperature (Celsius): NA 
+## 
+## Total soil saturated capacity (mm): 325 
+## Total soil water holding capacity (mm): 200 
+## Total soil extractable water (mm): 106 
+## Total soil current Volume (mm): 200 
+## Water table depth (mm): 1000 
+## 
+## Snow pack water equivalent (mm): 0</code></pre>
+<p>The modelled moisture content of the soil depends on the <strong>water retention curve</strong> used to represent the relationship between soil volumetric water content (<span class="math inline">\(\theta\)</span>; %) and soil water potential (<span class="math inline">\(\Psi\)</span>; MPa). By default the Saxton (<code>model = &quot;SX&quot;</code>) equations are used as water retention curve, but the user may choose to follow Van Genuchten - Mualem equations, which will give different values for the same texture:</p>
+<pre class="sourceCode r" id="cb9"><code class="sourceCode r"><div class="sourceLine" id="cb9-1" data-line-number="1"><span class="kw">print</span>(examplesoil, <span class="dt">model=</span><span class="st">&quot;VG&quot;</span>)</div></code></pre>
+<pre><code>## Soil depth (mm): 1000 
+## 
+## Layer  1  [ 0  to  300 mm ] 
+##     clay (%): 25 silt (%): 50 sand (%): 25 organic matter (%): NA [ Silt loam ]
+##     Rock fragment content (%): 20 Macroporosity (%): 5 
+##     Theta WP (%): 13 Theta FC (%): 29 Theta SAT (%): 42 Theta current (%) 29 
+##     Vol. WP (mm): 32 Vol. FC (mm): 68 Vol. SAT (mm): 102 Vol. current (mm): 68 
+##     Temperature (Celsius): NA 
+## 
+## Layer  2  [ 300  to  1000 mm ] 
+##     clay (%): 25 silt (%): 50 sand (%): 25 organic matter (%): NA [ Silt loam ]
+##     Rock fragment content (%): 40 Macroporosity (%): 5 
+##     Theta WP (%): 13 Theta FC (%): 30 Theta SAT (%): 42 Theta current (%) 30 
+##     Vol. WP (mm): 54 Vol. FC (mm): 127 Vol. SAT (mm): 178 Vol. current (mm): 127 
+##     Temperature (Celsius): NA 
+## 
+## Total soil saturated capacity (mm): 280 
+## Total soil water holding capacity (mm): 196 
+## Total soil extractable water (mm): 111 
+## Total soil current Volume (mm): 196 
+## Water table depth (mm): 1000 
+## 
+## Snow pack water equivalent (mm): 0</code></pre>
+<p>While Saxton equations use texture and organic matter as inputs, the Van Genuchten-Mualem equations need other parameters, which are estimated using pedotransfer functions and their names start with <code>VG_</code> (two alternative options are provided in function <code>soil</code> to estimate Van Genuchten parameters). The following figure illustrates the difference between the two water retention models:</p>
+<pre class="sourceCode r" id="cb11"><code class="sourceCode r"><div class="sourceLine" id="cb11-1" data-line-number="1"><span class="kw">par</span>(<span class="dt">mar=</span><span class="kw">c</span>(<span class="dv">4</span>,<span class="dv">4</span>,<span class="dv">1</span>,<span class="dv">1</span>))</div>
+<div class="sourceLine" id="cb11-2" data-line-number="2"><span class="co"># Plot Saxton's retention curve</span></div>
+<div class="sourceLine" id="cb11-3" data-line-number="3">psi =<span class="st"> </span><span class="kw">seq</span>(<span class="op">-</span><span class="fl">0.001</span>, <span class="fl">-2.0</span>, <span class="dt">by=</span><span class="op">-</span><span class="fl">0.001</span>)</div>
+<div class="sourceLine" id="cb11-4" data-line-number="4"><span class="kw">plot</span>(<span class="op">-</span>psi, <span class="kw">lapply</span>(<span class="kw">as.list</span>(psi), <span class="dt">FUN=</span>soil.psi2thetaSX, <span class="dt">clay=</span><span class="dv">25</span>, <span class="dt">sand=</span><span class="dv">25</span>), </div>
+<div class="sourceLine" id="cb11-5" data-line-number="5">     <span class="dt">type=</span><span class="st">&quot;l&quot;</span>, <span class="dt">ylim=</span><span class="kw">c</span>(<span class="dv">0</span>,<span class="fl">0.5</span>),<span class="dt">ylab=</span><span class="st">&quot;Water content (prop. volume)&quot;</span>, <span class="dt">xlab =</span> <span class="st">&quot;Soil water potential (-MPa)&quot;</span>)</div>
+<div class="sourceLine" id="cb11-6" data-line-number="6"></div>
+<div class="sourceLine" id="cb11-7" data-line-number="7"><span class="co">#Add Van Genuchten retention curve</span></div>
+<div class="sourceLine" id="cb11-8" data-line-number="8"><span class="kw">lines</span>(<span class="op">-</span>psi, <span class="kw">lapply</span>(<span class="kw">as.list</span>(psi), <span class="dt">FUN=</span>soil.psi2thetaVG, </div>
+<div class="sourceLine" id="cb11-9" data-line-number="9">      <span class="dt">alpha=</span>examplesoil<span class="op">$</span>VG_alpha[<span class="dv">1</span>], <span class="dt">n =</span> examplesoil<span class="op">$</span>VG_n[<span class="dv">1</span>], </div>
+<div class="sourceLine" id="cb11-10" data-line-number="10">      <span class="dt">theta_res =</span> examplesoil<span class="op">$</span>VG_theta_res[<span class="dv">1</span>], </div>
+<div class="sourceLine" id="cb11-11" data-line-number="11">      <span class="dt">theta_sat =</span> examplesoil<span class="op">$</span>VG_theta_sat[<span class="dv">1</span>]), <span class="dt">lty=</span><span class="dv">2</span>) </div>
+<div class="sourceLine" id="cb11-12" data-line-number="12"></div>
+<div class="sourceLine" id="cb11-13" data-line-number="13"><span class="kw">legend</span>(<span class="st">&quot;topright&quot;</span>, <span class="dt">legend=</span><span class="kw">c</span>(<span class="st">&quot;Saxton&quot;</span>, <span class="st">&quot;Van Genuchten&quot;</span>), <span class="dt">lty=</span><span class="kw">c</span>(<span class="dv">1</span>,<span class="dv">2</span>), <span class="dt">bty=</span><span class="st">&quot;n&quot;</span>)</div></code></pre>
+<p><img src="data:image/png;base64,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" style="display: block; margin: auto;" /></p>
+<p>Functions <code>soil.psi2thetaSX()</code> and <code>soil.psi2thetaVG()</code> (and their counterparts) can be used to calculate volumetric soil moisture from the water potential using the two models. When simulating soil water balance, the user can choose among the two models (see control parameters below).</p>
+</div>
+</div>
+<div id="species-data" class="section level3">
+<h3>Species data</h3>
+<p>Simulation models in <code>medfate</code> require a data frame with species parameter values. The package provides a default data set of parameter values for 89 Mediterranean species (rows), resulting from bibliographic search, fit to empirical data or expert-based guesses:</p>
+<pre class="sourceCode r" id="cb12"><code class="sourceCode r"><div class="sourceLine" id="cb12-1" data-line-number="1"><span class="kw">data</span>(<span class="st">&quot;SpParamsMED&quot;</span>)</div></code></pre>
+<p>These species commonly occur in the Spanish forest inventory of Catalonia, but may not be sufficient for other areas. A large number of parameters (columns) can be found in <code>SpParamsMED</code>:</p>
+<pre class="sourceCode r" id="cb13"><code class="sourceCode r"><div class="sourceLine" id="cb13-1" data-line-number="1"><span class="kw">names</span>(SpParamsMED)</div></code></pre>
+<pre><code>##  [1] &quot;Name&quot;               &quot;IFNcodes&quot;           &quot;SpIndex&quot;           
+##  [4] &quot;Group&quot;              &quot;Order&quot;              &quot;Family&quot;            
+##  [7] &quot;GrowthForm&quot;         &quot;TreeType&quot;           &quot;Hmed&quot;              
+## [10] &quot;Hmax&quot;               &quot;Z50&quot;                &quot;Z95&quot;               
+## [13] &quot;Zmax&quot;               &quot;a_ash&quot;              &quot;a_bsh&quot;             
+## [16] &quot;b_bsh&quot;              &quot;cr&quot;                 &quot;a_fbt&quot;             
+## [19] &quot;b_fbt&quot;              &quot;c_fbt&quot;              &quot;d_fbt&quot;             
+## [22] &quot;a_cr&quot;               &quot;b_1cr&quot;              &quot;b_2cr&quot;             
+## [25] &quot;b_3cr&quot;              &quot;c_1cr&quot;              &quot;c_2cr&quot;             
+## [28] &quot;a_cw&quot;               &quot;b_cw&quot;               &quot;fHDmin&quot;            
+## [31] &quot;fHDmax&quot;             &quot;SLA&quot;                &quot;LeafDensity&quot;       
+## [34] &quot;r635&quot;               &quot;pDead&quot;              &quot;maxFMC&quot;            
+## [37] &quot;minFMC&quot;             &quot;LeafPI0&quot;            &quot;LeafEPS&quot;           
+## [40] &quot;LeafAF&quot;             &quot;StemPI0&quot;            &quot;StemEPS&quot;           
+## [43] &quot;StemAF&quot;             &quot;LeafDuration&quot;       &quot;LigninPercent&quot;     
+## [46] &quot;ParticleDensity&quot;    &quot;LeafLitterFuelType&quot; &quot;Flammability&quot;      
+## [49] &quot;SAV&quot;                &quot;HeatContent&quot;        &quot;albedo&quot;            
+## [52] &quot;k&quot;                  &quot;g&quot;                  &quot;Sgdd&quot;              
+## [55] &quot;Psi_Extract&quot;        &quot;WUE&quot;                &quot;pRootDisc&quot;         
+## [58] &quot;Gwmin&quot;              &quot;Gwmax&quot;              &quot;VCleaf_kmax&quot;       
+## [61] &quot;VCleaf_c&quot;           &quot;VCleaf_d&quot;           &quot;Kmax_stemxylem&quot;    
+## [64] &quot;VCstem_c&quot;           &quot;VCstem_d&quot;           &quot;Kmax_rootxylem&quot;    
+## [67] &quot;VCroot_c&quot;           &quot;VCroot_d&quot;           &quot;LeafWidth&quot;         
+## [70] &quot;Vmax298&quot;            &quot;Jmax298&quot;            &quot;Al2As&quot;             
+## [73] &quot;WoodDensity&quot;        &quot;WoodC&quot;              &quot;RGRmax&quot;            
+## [76] &quot;Cstoragepmax&quot;</code></pre>
+<p>Not all parameters are needed for all models. The user can find parameter definitions in the help page of this data set. However, to fully understand the role of parameters in the model, the user should read the details of model design and formulation (<a href="http://vegmod.ctfc.cat/medfateweb" class="uri">http://vegmod.ctfc.cat/medfateweb</a>).</p>
+</div>
+<div id="vegetation" class="section level3">
+<h3>Vegetation</h3>
+<div id="forest-plot-data" class="section level4">
+<h4>Forest plot data</h4>
+<p>Models included in <code>medfate</code> were primarily designed to be ran on <strong>forest inventory plots</strong>. In this kind of data, the vegetation of a sampled area is described in terms of woody plants (trees and shrubs) along with their size and species identity. Forest plots in <code>medfate</code> are assumed to be in a format that follows closely the Spanish forest inventory. Each forest plot is represented in an object of class <code>forest</code>, a list that contains several elements. Among them, the most important items are two data frames, <code>treeData</code> (for trees) and <code>shrubData</code> for shrubs:</p>
+<pre class="sourceCode r" id="cb15"><code class="sourceCode r"><div class="sourceLine" id="cb15-1" data-line-number="1"><span class="kw">data</span>(exampleforest)</div>
+<div class="sourceLine" id="cb15-2" data-line-number="2">exampleforest</div></code></pre>
+<pre><code>## $ID
+## [1] &quot;1&quot;
+## 
+## $patchsize
+## [1] 10000
+## 
+## $treeData
+##   Species   N   DBH Height Z50  Z95
+## 1      54 168 37.55    800 750 3000
+## 2      68 384 14.60    660 750 3000
+## 
+## $shrubData
+##   Species Cover Height Z50  Z95
+## 1      65  3.75     30  50 1000
+## 
+## $herbCover
+## [1] 10
+## 
+## $herbHeight
+## [1] 20
+## 
+## $seedBank
+##   Species Abundance
+## 5      54       100
+## 8      65       100
+## 9      68       100
+## 
+## attr(,&quot;class&quot;)
+## [1] &quot;forest&quot; &quot;list&quot;</code></pre>
+<p>Trees are expected to be primarily described in terms of species, diameter (DBH) and height, whereas shrubs are described in terms of species, percent cover and mean height.</p>
+</div>
+<div id="aboveground-and-belowground-data-tables" class="section level4">
+<h4>Aboveground and belowground data tables</h4>
+<p>Because the forest plot format is rather specific, simulation functions in <code>medfate</code> allow starting in a more general way using two data frames, one with <strong>aboveground</strong> information (i.e. the leave area and size of plants) and the other with <strong>belowground</strong> information (i.e. root distribution). The aboveground data frame does not distinguish between trees and shrubs. It includes, for each plant cohort to be considered in rows, its <em>species identity</em>, <em>height</em> and <em>leaf area index</em> (LAI). While users can build their input data themselves, we use function <code>forest2aboveground()</code> on the object <code>exampleforest</code> to show how should the data look like:</p>
+<pre class="sourceCode r" id="cb17"><code class="sourceCode r"><div class="sourceLine" id="cb17-1" data-line-number="1">above =<span class="st"> </span><span class="kw">forest2aboveground</span>(exampleforest, SpParamsMED)</div>
+<div class="sourceLine" id="cb17-2" data-line-number="2">above</div></code></pre>
+<pre><code>##       SP        N   DBH Cover   H        CR   LAI_live LAI_expanded
+## T1_54 54  168.000 37.55    NA 800 0.7150421 0.81630007   0.81630007
+## T2_68 68  384.000 14.60    NA 660 0.6055507 0.79744714   0.79744714
+## S1_65 65 5504.183    NA  3.75  30 0.9740000 0.08911235   0.08911235
+##       LAI_dead
+## T1_54        0
+## T2_68        0
+## S1_65        0</code></pre>
+<p>Note that the call to <code>forest2aboveground()</code> included species parameters, because species-specific values are needed to calculate leaf area from tree diameters or shrub cover. Columns <code>N</code>, <code>DBH</code> and <code>Cover</code> are required for simulating growth, but not for soil water balance, which only requires columns <code>SP</code>, <code>H</code> (in cm), <code>CR</code> (i.e. the crown ratio), <code>LAI_live</code>, <code>LAI_expanded</code> and <code>LAI_dead</code>. Here plant cohorts are given unique codes that tell us whether they correspond to trees or shrubs, but the user can use other row identifiers as long as they are unique. In practice, the user only needs to worry to calculate the values for <code>LAI_live</code>. <code>LAI_live</code> and <code>LAI_expanded</code> can contain the same LAI values, and <code>LAI_dead</code> is normally zero. This is so because models update <code>LAI_expanded</code> and <code>LAI_dead</code> according to the leaf phenology of species.</p>
+<p>Regarding <strong>belowground</strong> information, a matrix describing for each plant cohort, the proportion of fine roots in each soil layer. As before, we use function <code>forest2belowground()</code> on the object <code>exampleforest</code> to show how should the data look like:</p>
+<pre class="sourceCode r" id="cb19"><code class="sourceCode r"><div class="sourceLine" id="cb19-1" data-line-number="1">below =<span class="st"> </span><span class="kw">forest2belowground</span>(exampleforest, examplesoil, SpParamsMED)</div>
+<div class="sourceLine" id="cb19-2" data-line-number="2">below</div></code></pre>
+<pre><code>##               1         2
+## T1_54 0.1933638 0.8066362
+## T2_68 0.1933638 0.8066362
+## S1_65 0.8981075 0.1018925</code></pre>
+<p>Function <code>forest2belowground()</code> internally takes values of <code>Z50</code> and <code>Z95</code> and calls function <code>root.ldrDistribution()</code> to estimate the distribution of fine roots according to the linear dose response model. For example the first row is:</p>
+<pre class="sourceCode r" id="cb21"><code class="sourceCode r"><div class="sourceLine" id="cb21-1" data-line-number="1"><span class="kw">root.ldrDistribution</span>(exampleforest<span class="op">$</span>treeData<span class="op">$</span>Z50[<span class="dv">1</span>], </div>
+<div class="sourceLine" id="cb21-2" data-line-number="2">                     exampleforest<span class="op">$</span>treeData<span class="op">$</span>Z95[<span class="dv">1</span>],</div>
+<div class="sourceLine" id="cb21-3" data-line-number="3">                     examplesoil<span class="op">$</span>dVec)</div></code></pre>
+<pre><code>##           [,1]      [,2]
+## [1,] 0.1933638 0.8066362</code></pre>
+<p>An analogous function <code>root.conicDistribution()</code> can be used to estimate fine root distribution according to a cone. The user is free to build any numeric matrix for root distribution, as long as values in rows sum always one (i.e. we have proportions). Otherwise, functions <code>root.conicDistribution()</code> and <code>root.ldrDistribution()</code> can be used to calculate root distribution under specific assumptions.</p>
+</div>
+</div>
+<div id="meteorological-forcing" class="section level3">
+<h3>Meteorological forcing</h3>
+<p>Soil water simulations require daily weather inputs. The weather variables that are required depend on the complexity of the soil water balance model we are using. In the simplest case, only mean temperature, precipitation and potential evapotranspiration is required, but the more complex simulation model also requires radiation, wind speed, min/max temparature and relative humitidy. Here we show an example of meteorological forcing data.</p>
+<pre class="sourceCode r" id="cb23"><code class="sourceCode r"><div class="sourceLine" id="cb23-1" data-line-number="1"><span class="kw">data</span>(examplemeteo)</div>
+<div class="sourceLine" id="cb23-2" data-line-number="2"><span class="kw">head</span>(examplemeteo)</div></code></pre>
+<pre><code>##            MeanTemperature MinTemperature MaxTemperature Precipitation
+## 2001-01-01      3.57668969     -0.5934215       6.287950      4.869109
+## 2001-01-02      1.83695972     -2.3662458       4.569737      2.498292
+## 2001-01-03      0.09462563     -3.8541036       2.661951      0.000000
+## 2001-01-04      1.13866156     -1.8744860       3.097705      5.796973
+## 2001-01-05      4.70578690      0.3288287       7.551532      1.884401
+## 2001-01-06      4.57036721      0.5461322       7.186784     13.359801
+##            MeanRelativeHumidity MinRelativeHumidity MaxRelativeHumidity
+## 2001-01-01             78.73709            65.15411           100.00000
+## 2001-01-02             69.70800            57.43761            94.71780
+## 2001-01-03             70.69610            58.77432            94.66823
+## 2001-01-04             76.89156            66.84256            95.80950
+## 2001-01-05             76.67424            62.97656           100.00000
+## 2001-01-06             89.01940            74.25754           100.00000
+##            Radiation WindSpeed WindDirection       PET
+## 2001-01-01  12.89251  2.000000           172 1.3212770
+## 2001-01-02  13.03079  7.662544           278 2.2185985
+## 2001-01-03  16.90722  2.000000           141 1.8045176
+## 2001-01-04  11.07275  2.000000           172 0.9200627
+## 2001-01-05  13.45205  7.581347           321 2.2914449
+## 2001-01-06  12.84841  6.570501           141 1.7255058</code></pre>
+<p>Simulation models in <code>medfate</code> have been designed to work along with data generated from package <code>meteoland</code>. The user is strongly recommended to resort to this package to obtain suitable weather input for soil water balance simulations.</p>
+</div>
+<div id="simulation-control" class="section level3">
+<h3>Simulation control</h3>
+<p>Apart from data inputs, the behaviour of simulation models can be controlled using a set of global parameters. The default parameterization is obtained using function <code>defaultControl()</code>:</p>
+<pre class="sourceCode r" id="cb25"><code class="sourceCode r"><div class="sourceLine" id="cb25-1" data-line-number="1">control =<span class="st"> </span><span class="kw">defaultControl</span>()</div>
+<div class="sourceLine" id="cb25-2" data-line-number="2">control</div></code></pre>
+<pre><code>## $verbose
+## [1] TRUE
+## 
+## $subdailyResults
+## [1] FALSE
+## 
+## $soilFunctions
+## [1] &quot;SX&quot;
+## 
+## $snowpack
+## [1] TRUE
+## 
+## $drainage
+## [1] TRUE
+## 
+## $transpirationMode
+## [1] &quot;Simple&quot;
+## 
+## $hydraulicCostFunction
+## [1] 1
+## 
+## $verticalLayerSize
+## [1] 100
+## 
+## $nStemSegments
+## [1] 1
+## 
+## $capacitance
+## [1] FALSE
+## 
+## $cavitationRefill
+## [1] TRUE
+## 
+## $klat
+## [1] 0.1
+## 
+## $taper
+## [1] TRUE
+## 
+## $numericParams
+## $numericParams$maxNsteps
+## [1] 400
+## 
+## $numericParams$ntrial
+## [1] 200
+## 
+## $numericParams$psiTol
+## [1] 1e-04
+## 
+## $numericParams$ETol
+## [1] 1e-07
+## 
+## 
+## $averageFracRhizosphereResistance
+## [1] 0.15
+## 
+## $Catm
+## [1] 386
+## 
+## $ndailysteps
+## [1] 24
+## 
+## $thermalCapacityLAI
+## [1] 1e+06
+## 
+## $defaultWindSpeed
+## [1] 5
+## 
+## $storagePool
+## [1] &quot;none&quot;</code></pre>
+<p>Most of these parameters should normally be left to their default value. However, there are three that deserve explanation here:</p>
+<ol style="list-style-type: decimal">
+<li>Console output can be turned off by setting <code>verbose = FALSE</code>.</li>
+<li>The soil water retention curves can be switched between Saxton’s and Van Genuchten’s using parameter <code>soilFunctions</code>.</li>
+<li>The complexity of the soil water balance calculations will be very different if we set <code>transpirationMode = &quot;Complex&quot;</code>. Most of the other options apply in the case of complex soil water balance only.</li>
+<li>Non-reversible cavitation can be forced by setting <code>cavitationRefill = FALSE</code>.</li>
+</ol>
+</div>
+<div id="water-balance-input-object" class="section level3">
+<h3>Water balance input object</h3>
+<p>A last step is needed before calling simulation functions. It consists in the compilation of all aboveground and belowground parameters and the specification of additional parameter values for each plant cohort, such as their light extinction coefficient or their response to drought. This is done by calling function <code>spwbInput()</code> and taking species parameter values from species parameter data:</p>
+<pre class="sourceCode r" id="cb27"><code class="sourceCode r"><div class="sourceLine" id="cb27-1" data-line-number="1">x =<span class="st"> </span><span class="kw">spwbInput</span>(above, below, examplesoil, SpParamsMED, control)</div></code></pre>
+<p>Different parameter variables will be drawn depending on the value of <code>transpirationMode</code>. For the simple model, relatively few parameters are needed. All the input information for forest data and species parameter values can be inspected by printing the input object.</p>
+<pre class="sourceCode r" id="cb28"><code class="sourceCode r"><div class="sourceLine" id="cb28-1" data-line-number="1">x</div></code></pre>
+<pre><code>## $control
+## $control$verbose
+## [1] TRUE
+## 
+## $control$subdailyResults
+## [1] FALSE
+## 
+## $control$soilFunctions
+## [1] &quot;SX&quot;
+## 
+## $control$snowpack
+## [1] TRUE
+## 
+## $control$drainage
+## [1] TRUE
+## 
+## $control$transpirationMode
+## [1] &quot;Simple&quot;
+## 
+## $control$hydraulicCostFunction
+## [1] 1
+## 
+## $control$verticalLayerSize
+## [1] 100
+## 
+## $control$nStemSegments
+## [1] 1
+## 
+## $control$capacitance
+## [1] FALSE
+## 
+## $control$cavitationRefill
+## [1] TRUE
+## 
+## $control$klat
+## [1] 0.1
+## 
+## $control$taper
+## [1] TRUE
+## 
+## $control$numericParams
+## $control$numericParams$maxNsteps
+## [1] 400
+## 
+## $control$numericParams$ntrial
+## [1] 200
+## 
+## $control$numericParams$psiTol
+## [1] 1e-04
+## 
+## $control$numericParams$ETol
+## [1] 1e-07
+## 
+## 
+## $control$averageFracRhizosphereResistance
+## [1] 0.15
+## 
+## $control$Catm
+## [1] 386
+## 
+## $control$ndailysteps
+## [1] 24
+## 
+## $control$thermalCapacityLAI
+## [1] 1e+06
+## 
+## $control$defaultWindSpeed
+## [1] 5
+## 
+## $control$storagePool
+## [1] &quot;none&quot;
+## 
+## 
+## $canopy
+## $canopy$gdd
+## [1] 0
+## 
+## 
+## $cohorts
+##       SP              Name
+## T1_54 54  Pinus halepensis
+## T2_68 68      Quercus ilex
+## S1_65 65 Quercus coccifera
+## 
+## $above
+##         H        CR   LAI_live LAI_expanded LAI_dead
+## T1_54 800 0.7150421 0.81630007   0.81630007        0
+## T2_68 660 0.6055507 0.79744714   0.79744714        0
+## S1_65  30 0.9740000 0.08911235   0.08911235        0
+## 
+## $below
+## $below$V
+##               1         2
+## T1_54 0.1933638 0.8066362
+## T2_68 0.1933638 0.8066362
+## S1_65 0.8981075 0.1018925
+## 
+## 
+## $paramsBase
+##       albedo    k    g Sgdd
+## T1_54   0.14 0.50 1.00    0
+## T2_68   0.18 0.55 0.50    0
+## S1_65   0.18 0.55 0.25    0
+## 
+## $paramsTransp
+##       Psi_Extract WUE pRootDisc
+## T1_54          -2   6         0
+## T2_68          -3   6         0
+## S1_65          -4   6         0
+## 
+## $Transpiration
+## T1_54 T2_68 S1_65 
+##     0     0     0 
+## 
+## $Photosynthesis
+## T1_54 T2_68 S1_65 
+##     0     0     0 
+## 
+## $PLC
+## [1] 0 0 0
+## 
+## attr(,&quot;class&quot;)
+## [1] &quot;spwbInput&quot; &quot;list&quot;</code></pre>
+<p>As with the soil input object, the <code>spwbInput</code> object may be modified during simulations. In the case of soil water balance, these modifications are minimal, for example concerning <code>LAI_expanded</code>, but in the case of growth simulations the object is used to store the status of vegetation during and at the end of simulations. If one has a <code>forest</code> object, the <code>spwbInput</code> object can be generated in directly from it, avoiding the need to explicitly build aboveground and belowground data frames:</p>
+<pre class="sourceCode r" id="cb30"><code class="sourceCode r"><div class="sourceLine" id="cb30-1" data-line-number="1">x =<span class="st"> </span><span class="kw">forest2spwbInput</span>(exampleforest, examplesoil, SpParamsMED, control)</div></code></pre>
+<p>Finally, note that one can play with plant-specific parameters for soil water balance (instead of using species-level values) by modifying manually the parameter values in this object.</p>
+</div>
+</div>
+<div id="executing-the-soil-water-balance-model" class="section level2">
+<h2>Executing the soil water balance model</h2>
+<div id="water-balance-for-a-single-day" class="section level3">
+<h3>Water balance for a single day</h3>
+<p>Soil water balance simulations will normally span periods of several months or years, but since the model operates at a daily temporal scale, it is possible to perform soil water balance for one day only. This is done using function <code>spwb.day()</code>. In the following code we select day 100 from the meteorological input data and perform soil water balance for that day only:</p>
+<pre class="sourceCode r" id="cb31"><code class="sourceCode r"><div class="sourceLine" id="cb31-1" data-line-number="1">d =<span class="st"> </span><span class="dv">100</span></div>
+<div class="sourceLine" id="cb31-2" data-line-number="2">sd1&lt;-<span class="kw">spwb.day</span>(x, examplesoil, <span class="kw">rownames</span>(examplemeteo)[d],  </div>
+<div class="sourceLine" id="cb31-3" data-line-number="3">             examplemeteo<span class="op">$</span>MinTemperature[d], examplemeteo<span class="op">$</span>MaxTemperature[d], </div>
+<div class="sourceLine" id="cb31-4" data-line-number="4">             examplemeteo<span class="op">$</span>MinRelativeHumidity[d], examplemeteo<span class="op">$</span>MaxRelativeHumidity[d], </div>
+<div class="sourceLine" id="cb31-5" data-line-number="5">             examplemeteo<span class="op">$</span>Radiation[d], examplemeteo<span class="op">$</span>WindSpeed[d], </div>
+<div class="sourceLine" id="cb31-6" data-line-number="6">             <span class="dt">latitude =</span> <span class="fl">41.82592</span>, <span class="dt">elevation =</span> <span class="dv">100</span>, </div>
+<div class="sourceLine" id="cb31-7" data-line-number="7">             <span class="dt">slope=</span> <span class="dv">0</span>, <span class="dt">aspect =</span> <span class="dv">0</span>, <span class="dt">prec =</span> examplemeteo<span class="op">$</span>Precipitation[d])</div></code></pre>
+<p>Function <code>spwb.day()</code> is most useful when working with the complex transpiration model. This is why so many meteorological variables are required. The output of <code>spwb.day()</code> is a list with three elements:</p>
+<pre class="sourceCode r" id="cb32"><code class="sourceCode r"><div class="sourceLine" id="cb32-1" data-line-number="1"><span class="kw">names</span>(sd1)</div></code></pre>
+<pre><code>## [1] &quot;cohorts&quot;      &quot;WaterBalance&quot; &quot;Soil&quot;         &quot;Plants&quot;</code></pre>
+<ul>
+<li><strong>WaterBalance</strong>: Contains the soil water balance flows (precipitation, infiltration, transpiration, …)</li>
+<li><strong>Soil</strong>: Contains output values by soil layer (i.e. water evaporated from each soil layer, water transpired from each soil layer and the final soil water potential).</li>
+<li><strong>Plants</strong>: Contains output values by plant cohort (i.e. LAI values, transpiration, water potential, drought stress index, …).</li>
+</ul>
+<pre class="sourceCode r" id="cb34"><code class="sourceCode r"><div class="sourceLine" id="cb34-1" data-line-number="1">sd1</div></code></pre>
+<pre><code>## $cohorts
+##       SP              Name
+## T1_54 54  Pinus halepensis
+## T2_68 68      Quercus ilex
+## S1_65 65 Quercus coccifera
+## 
+## $WaterBalance
+##             PET            Rain            Snow         NetRain 
+##       5.0233468       0.0000000       0.0000000       0.0000000 
+##           Runon    Infiltration          Runoff    DeepDrainage 
+##       0.0000000       0.0000000       0.0000000       0.0000000 
+## SoilEvaporation PlantExtraction   Transpiration         LAIcell 
+##       0.5000000       1.0588430       1.0588430       1.7028596 
+##     LAIcelldead              Cm         Lground 
+##       0.0000000       1.2373017       0.4082981 
+## 
+## $Soil
+##   SoilEvaporation PlantExtraction    psi
+## 1    4.999998e-01       0.2340415 -0.033
+## 2    1.529512e-07       0.8248016 -0.033
+## 
+## $Plants
+##              LAI Transpiration    psi          DDS
+## T1_54 0.81630007    0.50990026 -0.033 3.113699e-06
+## T2_68 0.79744714    0.50736806 -0.033 9.225785e-07
+## S1_65 0.08911235    0.04157472 -0.033 3.892129e-07
+## 
+## attr(,&quot;class&quot;)
+## [1] &quot;spwb.day&quot; &quot;list&quot;</code></pre>
+</div>
+<div id="water-balance-for-multiple-days" class="section level3">
+<h3>Water balance for multiple days</h3>
+<p>Most often, users will use function <code>spwb()</code> to run the soil water balance model. This function requires the <code>spwbInput</code> object, the <code>soil</code> object and the meteorological data frame. However, function <code>spwb.day()</code> modified the state variables of the input objects. In particular, the values of soil moisture and cumulative growth degree days are now:</p>
+<pre class="sourceCode r" id="cb36"><code class="sourceCode r"><div class="sourceLine" id="cb36-1" data-line-number="1">examplesoil<span class="op">$</span>W</div></code></pre>
+<pre><code>## [1] 0.9899190 0.9935271</code></pre>
+<pre class="sourceCode r" id="cb38"><code class="sourceCode r"><div class="sourceLine" id="cb38-1" data-line-number="1">x<span class="op">$</span>canopy<span class="op">$</span>gdd</div></code></pre>
+<pre><code>## [1] 1.232373</code></pre>
+<p>We simply reset state variables to their default values so that new simulations are not affected by the end state of the previous simulation:</p>
+<pre class="sourceCode r" id="cb40"><code class="sourceCode r"><div class="sourceLine" id="cb40-1" data-line-number="1"><span class="kw">spwb.resetInputs</span>(x, examplesoil)</div>
+<div class="sourceLine" id="cb40-2" data-line-number="2">examplesoil<span class="op">$</span>W</div></code></pre>
+<pre><code>## [1] 1 1</code></pre>
+<pre class="sourceCode r" id="cb42"><code class="sourceCode r"><div class="sourceLine" id="cb42-1" data-line-number="1">x<span class="op">$</span>canopy<span class="op">$</span>gdd</div></code></pre>
+<pre><code>## [1] 0</code></pre>
+<p>Now we are ready to call function <code>spwb()</code>:</p>
+<pre class="sourceCode r" id="cb44"><code class="sourceCode r"><div class="sourceLine" id="cb44-1" data-line-number="1">S =<span class="st"> </span><span class="kw">spwb</span>(x, examplesoil, examplemeteo, <span class="dt">elevation =</span> <span class="dv">100</span>)</div></code></pre>
+<pre><code>## W1i:1 W2i:1 
+## Daily balance:.............................................................................................................................................................................................................................................................................................................................................................................done
+## Precipitation (mm) 513
+## Rain (mm) 462 Snow (mm) 51
+## Interception (mm) 99 Net rainfall (mm) 364
+## Infiltration (mm) 454 Runoff (mm) 8 Deep drainage (mm) 129
+## Soil evaporation (mm) 48 Transpiration (mm) 297
+## W1f:0.92 W2f:0.89 
+## Final soil water content (mm): 180
+## 
+## Building SPWB output ...done.</code></pre>
+<p>Function <code>spwb()</code> returns an object of class with the same name, actually a list:</p>
+<pre class="sourceCode r" id="cb46"><code class="sourceCode r"><div class="sourceLine" id="cb46-1" data-line-number="1"><span class="kw">class</span>(S)</div></code></pre>
+<pre><code>## [1] &quot;spwb&quot; &quot;list&quot;</code></pre>
+<p>If we inspect its elements, we realize that the output is arranged differently than in <code>spwb.day()</code>:</p>
+<pre class="sourceCode r" id="cb48"><code class="sourceCode r"><div class="sourceLine" id="cb48-1" data-line-number="1"><span class="kw">names</span>(S)</div></code></pre>
+<pre><code>##  [1] &quot;spwbInput&quot;           &quot;soilInput&quot;           &quot;WaterBalance&quot;       
+##  [4] &quot;Soil&quot;                &quot;PlantLAI&quot;            &quot;PlantTranspiration&quot; 
+##  [7] &quot;PlantPhotosynthesis&quot; &quot;PlantPsi&quot;            &quot;PlantStress&quot;        
+## [10] &quot;subdaily&quot;</code></pre>
+<p>In particular, element <code>spwbInput</code> contains a copy of the input parameters that were used to run the model:</p>
+<pre class="sourceCode r" id="cb50"><code class="sourceCode r"><div class="sourceLine" id="cb50-1" data-line-number="1"><span class="kw">names</span>(S<span class="op">$</span>spwbInput)</div></code></pre>
+<pre><code>##  [1] &quot;control&quot;        &quot;canopy&quot;         &quot;cohorts&quot;        &quot;above&quot;         
+##  [5] &quot;below&quot;          &quot;paramsBase&quot;     &quot;paramsTransp&quot;   &quot;Transpiration&quot; 
+##  [9] &quot;Photosynthesis&quot; &quot;PLC&quot;</code></pre>
+<p>As before, <code>WaterBalance</code> contains water balance components, but in this case in form of a data frame with days in rows:</p>
+<pre class="sourceCode r" id="cb52"><code class="sourceCode r"><div class="sourceLine" id="cb52-1" data-line-number="1"><span class="kw">head</span>(S<span class="op">$</span>WaterBalance)</div></code></pre>
+<pre><code>##            GDD LAIcell LAIcelldead       Cm   Lground       PET
+## 2001-01-01   0 1.70286           0 1.237302 0.4082981 1.3212770
+## 2001-01-02   0 1.70286           0 1.237302 0.4082981 2.2185985
+## 2001-01-03   0 1.70286           0 1.237302 0.4082981 1.8045176
+## 2001-01-04   0 1.70286           0 1.237302 0.4082981 0.9200627
+## 2001-01-05   0 1.70286           0 1.237302 0.4082981 2.2914449
+## 2001-01-06   0 1.70286           0 1.237302 0.4082981 1.7255058
+##            Precipitation      Rain Snow    NetRain Infiltration Runoff
+## 2001-01-01      4.869109  4.869109    0  3.1885130    3.1885130      0
+## 2001-01-02      2.498292  2.498292    0  1.0982592    1.0982592      0
+## 2001-01-03      0.000000  0.000000    0  0.0000000    0.0000000      0
+## 2001-01-04      5.796973  5.796973    0  4.0065734    4.0065734      0
+## 2001-01-05      1.884401  1.884401    0  0.7693975    0.7693975      0
+## 2001-01-06     13.359801 13.359801    0 10.6744131   10.6744131      0
+##            DeepDrainage Evapotranspiration Interception SoilEvaporation
+## 2001-01-01    3.1885130          2.4591004     1.680596       0.5000000
+## 2001-01-02    0.3197546          2.3676783     1.400032       0.5000000
+## 2001-01-03    0.0000000          0.5606118     0.000000       0.1802478
+## 2001-01-04    2.4783156          2.4581971     1.790400       0.4738627
+## 2001-01-05    0.1016000          2.0980047     1.115004       0.5000000
+## 2001-01-06    9.6914123          3.5490972     2.685388       0.5000000
+##            PlantExtraction Transpiration
+## 2001-01-01       0.2785046     0.2785046
+## 2001-01-02       0.4676459     0.4676459
+## 2001-01-03       0.3803641     0.3803641
+## 2001-01-04       0.1939349     0.1939349
+## 2001-01-05       0.4830008     0.4830008
+## 2001-01-06       0.3637097     0.3637097</code></pre>
+<p>Elements <code>PlantLAI</code>, <code>PlantStress</code>, <code>PlantPsi</code>, <code>PlantTranspiration</code> and <code>PlantPhotosynthesis</code> contain daily values by plant cohorts, for example plant water potentials are:</p>
+<pre class="sourceCode r" id="cb54"><code class="sourceCode r"><div class="sourceLine" id="cb54-1" data-line-number="1"><span class="kw">head</span>(S<span class="op">$</span>PlantPsi)</div></code></pre>
+<pre><code>##                  T1_54       T2_68       S1_65
+## 2001-01-01 -0.03300000 -0.03300000 -0.03300000
+## 2001-01-02 -0.03300000 -0.03300000 -0.03300000
+## 2001-01-03 -0.03366851 -0.03366851 -0.03432907
+## 2001-01-04 -0.03300000 -0.03300000 -0.03300000
+## 2001-01-05 -0.03300000 -0.03300000 -0.03300000
+## 2001-01-06 -0.03300000 -0.03300000 -0.03300000</code></pre>
+<div id="plotting-results" class="section level4">
+<h4>Plotting results</h4>
+<p>Package <code>medfate</code> provides a simple <code>plot</code> function for objects of class <code>spwb</code>. It can be used to show the meteorological input:</p>
+<pre class="sourceCode r" id="cb56"><code class="sourceCode r"><div class="sourceLine" id="cb56-1" data-line-number="1"><span class="kw">par</span>(<span class="dt">mar=</span><span class="kw">c</span>(<span class="dv">5</span>,<span class="dv">5</span>,<span class="dv">1</span>,<span class="dv">1</span>))</div>
+<div class="sourceLine" id="cb56-2" data-line-number="2"><span class="kw">plot</span>(S, <span class="dt">type =</span> <span class="st">&quot;PET_Precipitation&quot;</span>)</div></code></pre>
+<p><img src="data:image/png;base64,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" style="display: block; margin: auto;" /> Since this simulations include snow dynamics, we can plot the water input in form of snow and the dynamics of the snowpack.</p>
+<pre class="sourceCode r" id="cb57"><code class="sourceCode r"><div class="sourceLine" id="cb57-1" data-line-number="1"><span class="kw">par</span>(<span class="dt">mar=</span><span class="kw">c</span>(<span class="dv">5</span>,<span class="dv">5</span>,<span class="dv">1</span>,<span class="dv">1</span>))</div>
+<div class="sourceLine" id="cb57-2" data-line-number="2"><span class="kw">plot</span>(S, <span class="dt">type =</span> <span class="st">&quot;Snow&quot;</span>)</div></code></pre>
+<p><img src="data:image/png;base64,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" style="display: block; margin: auto;" /> It is also useful to plot the dynamics of soil state variables by layer, such as the percentage of moisture in relation to field capacity:</p>
+<pre class="sourceCode r" id="cb58"><code class="sourceCode r"><div class="sourceLine" id="cb58-1" data-line-number="1"><span class="kw">par</span>(<span class="dt">mar=</span><span class="kw">c</span>(<span class="dv">5</span>,<span class="dv">5</span>,<span class="dv">1</span>,<span class="dv">1</span>))</div>
+<div class="sourceLine" id="cb58-2" data-line-number="2"><span class="kw">plot</span>(S, <span class="dt">type=</span><span class="st">&quot;SoilTheta&quot;</span>)</div></code></pre>
+<p><img src="data:image/png;base64,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" style="display: block; margin: auto;" /> Or soil water potentials:</p>
+<pre class="sourceCode r" id="cb59"><code class="sourceCode r"><div class="sourceLine" id="cb59-1" data-line-number="1"><span class="kw">par</span>(<span class="dt">mar=</span><span class="kw">c</span>(<span class="dv">5</span>,<span class="dv">5</span>,<span class="dv">1</span>,<span class="dv">1</span>))</div>
+<div class="sourceLine" id="cb59-2" data-line-number="2"><span class="kw">plot</span>(S, <span class="dt">type=</span><span class="st">&quot;SoilPsi&quot;</span>)</div></code></pre>
+<p><img src="data:image/png;base64,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" style="display: block; margin: auto;" /></p>
+<p>Additionally, it can also be used to draw plant variables, such as plant transpiration:</p>
+<pre class="sourceCode r" id="cb60"><code class="sourceCode r"><div class="sourceLine" id="cb60-1" data-line-number="1"><span class="kw">par</span>(<span class="dt">mar=</span><span class="kw">c</span>(<span class="dv">5</span>,<span class="dv">5</span>,<span class="dv">1</span>,<span class="dv">1</span>))</div>
+<div class="sourceLine" id="cb60-2" data-line-number="2"><span class="kw">plot</span>(S, <span class="dt">type=</span><span class="st">&quot;PlantTranspiration&quot;</span>)</div></code></pre>
+<p><img src="data:image/png;base64,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" style="display: block; margin: auto;" /></p>
+</div>
+<div id="generating-output-summaries" class="section level4">
+<h4>Generating output summaries</h4>
+<p>While the simulation model uses daily steps, users will normally be interested in outputs at larger time scales. The package provides a <code>summary</code> for objects of class <code>spwb</code>. This function can be used to summarize the model’s output at different temporal steps (i.e. weekly, annual, …). For example, to obtain the average soil moisture and water potentials by months one can use:</p>
+<pre class="sourceCode r" id="cb61"><code class="sourceCode r"><div class="sourceLine" id="cb61-1" data-line-number="1"><span class="kw">summary</span>(S, <span class="dt">freq=</span><span class="st">&quot;months&quot;</span>,<span class="dt">FUN=</span>mean, <span class="dt">output=</span><span class="st">&quot;Soil&quot;</span>)</div></code></pre>
+<pre><code>##                  W.1       W.2     ML.1      ML.2    MLTot  WTD        SWE
+## 2001-01-01 0.9896225 0.9958004 72.05855 126.88968 198.9482 1000 1.65045409
+## 2001-02-01 0.9735915 0.9633684 70.89127 122.75704 193.6483 1000 0.27477726
+## 2001-03-01 0.9762610 0.9663211 71.08564 123.13328 194.2189 1000 0.01762496
+## 2001-04-01 0.9601092 0.8746602 69.90956 111.45340 181.3630 1000 0.57892253
+## 2001-05-01 0.9500448 0.9266482 69.17673 118.07797 187.2547 1000 0.00000000
+## 2001-06-01 0.8355693 0.7017067 60.84129  89.41484 150.2561 1000 0.00000000
+## 2001-07-01 0.9638331 0.7368312 70.18071  93.89058 164.0713 1000 0.00000000
+## 2001-08-01 0.9649472 0.8092188 70.26184 103.11456 173.3764 1000 0.00000000
+## 2001-09-01 0.9646835 0.8443110 70.24264 107.58617 177.8288 1000 0.00000000
+## 2001-10-01 0.9786082 0.8601130 71.25655 109.59973 180.8563 1000 0.00000000
+## 2001-11-01 0.9708081 0.9395455 70.68859 119.72141 190.4100 1000 2.59359494
+## 2001-12-01 0.9403160 0.9292005 68.46834 118.40320 186.8715 1000 0.00000000
+##            PlantExt.1 PlantExt.2       psi.1       psi.2
+## 2001-01-01 0.06683854  0.2355503 -0.03406229 -0.03345586
+## 2001-02-01 0.13942295  0.4913494 -0.03741046 -0.04002574
+## 2001-03-01 0.14487045  0.5105474 -0.03642897 -0.03891798
+## 2001-04-01 0.18487080  0.6515064 -0.04008745 -0.06573411
+## 2001-05-01 0.21820974  0.7690031 -0.04311717 -0.05030673
+## 2001-06-01 0.31108832  1.0945499 -0.08255836 -0.23611310
+## 2001-07-01 0.26258670  0.9219999 -0.03921643 -0.23772034
+## 2001-08-01 0.26529184  0.9348716 -0.03851804 -0.09802990
+## 2001-09-01 0.20820865  0.7337453 -0.03899551 -0.07707626
+## 2001-10-01 0.14934869  0.5263139 -0.03631734 -0.07469575
+## 2001-11-01 0.10787654  0.3801738 -0.03781471 -0.04572363
+## 2001-12-01 0.10089653  0.3555757 -0.04519835 -0.04838294</code></pre>
+<p>Parameter <code>output</code> is used to indicate the element of the <code>spwb</code> object for which we desire summaries. Similarly, it is possible to calculate the average stress of plant cohorts by months:</p>
+<pre class="sourceCode r" id="cb63"><code class="sourceCode r"><div class="sourceLine" id="cb63-1" data-line-number="1"><span class="kw">summary</span>(S, <span class="dt">freq=</span><span class="st">&quot;months&quot;</span>,<span class="dt">FUN=</span>mean, <span class="dt">output=</span><span class="st">&quot;PlantStress&quot;</span>)</div></code></pre>
+<pre><code>##                   T1_54        T2_68        S1_65
+## 2001-01-01 3.282798e-06 9.726819e-07 4.267819e-07
+## 2001-02-01 5.614420e-06 1.663536e-06 5.914400e-07
+## 2001-03-01 5.225700e-06 1.548359e-06 5.491305e-07
+## 2001-04-01 2.495126e-05 7.393080e-06 1.016845e-06
+## 2001-05-01 1.304102e-05 3.864041e-06 1.034090e-06
+## 2001-06-01 1.913494e-03 5.685156e-04 3.617461e-05
+## 2001-07-01 4.579882e-03 1.367567e-03 7.387092e-05
+## 2001-08-01 8.892996e-05 2.635143e-05 1.968106e-06
+## 2001-09-01 3.637437e-05 1.077779e-05 1.165768e-06
+## 2001-10-01 4.121765e-05 1.221299e-05 1.107669e-06
+## 2001-11-01 8.745022e-06 2.591129e-06 6.701548e-07
+## 2001-12-01 9.895270e-06 2.931943e-06 1.046359e-06</code></pre>
+<p>The <code>summary</code> function can be also used to aggregate the output by species. In this case, the values of plant cohorts belonging to the same species will be averaged using LAI values as weights. For example, we may average the daily drought stress across cohorts of the same species (here there is only one cohort by species, so this does not modify the output):</p>
+<pre class="sourceCode r" id="cb65"><code class="sourceCode r"><div class="sourceLine" id="cb65-1" data-line-number="1"><span class="kw">head</span>(<span class="kw">summary</span>(S, <span class="dt">freq=</span><span class="st">&quot;day&quot;</span>, <span class="dt">output=</span><span class="st">&quot;PlantStress&quot;</span>, <span class="dt">bySpecies =</span> <span class="ot">TRUE</span>))</div></code></pre>
+<pre><code>##            Pinus halepensis Quercus coccifera Quercus ilex
+## 2001-01-01     3.113699e-06      3.892129e-07 9.225785e-07
+## 2001-01-02     3.113699e-06      3.892129e-07 9.225785e-07
+## 2001-01-03     3.306787e-06      4.381586e-07 9.797900e-07
+## 2001-01-04     3.113699e-06      3.892129e-07 9.225785e-07
+## 2001-01-05     3.113699e-06      3.892129e-07 9.225785e-07
+## 2001-01-06     3.113699e-06      3.892129e-07 9.225785e-07</code></pre>
+<p>Or we can combine the aggregation by species with a temporal aggregation (here monthly averages):</p>
+<pre class="sourceCode r" id="cb67"><code class="sourceCode r"><div class="sourceLine" id="cb67-1" data-line-number="1"><span class="kw">summary</span>(S, <span class="dt">freq=</span><span class="st">&quot;month&quot;</span>, <span class="dt">FUN =</span> mean, <span class="dt">output=</span><span class="st">&quot;PlantStress&quot;</span>, <span class="dt">bySpecies =</span> <span class="ot">TRUE</span>)</div></code></pre>
+<pre><code>##            Pinus halepensis Quercus coccifera Quercus ilex
+## 2001-01-01     3.282798e-06      4.267819e-07 9.726819e-07
+## 2001-02-01     5.614420e-06      5.914400e-07 1.663536e-06
+## 2001-03-01     5.225700e-06      5.491305e-07 1.548359e-06
+## 2001-04-01     2.495126e-05      1.016845e-06 7.393080e-06
+## 2001-05-01     1.304102e-05      1.034090e-06 3.864041e-06
+## 2001-06-01     1.913494e-03      3.617461e-05 5.685156e-04
+## 2001-07-01     4.579882e-03      7.387092e-05 1.367567e-03
+## 2001-08-01     8.892996e-05      1.968106e-06 2.635143e-05
+## 2001-09-01     3.637437e-05      1.165768e-06 1.077779e-05
+## 2001-10-01     4.121765e-05      1.107669e-06 1.221299e-05
+## 2001-11-01     8.745022e-06      6.701548e-07 2.591129e-06
+## 2001-12-01     9.895270e-06      1.046359e-06 2.931943e-06</code></pre>
+</div>
+<div id="water-balance-without-cavitation-refill" class="section level4">
+<h4>Water balance without cavitation refill</h4>
+<p>One of the simulation control parameters allows specifying that refilling of conduits does not occur after cavitation, so that plants cannot recover from drought stress. To simulate this behaviour we set <code>cavitationRefill = FALSE</code> (we also turn off console output):</p>
+<pre class="sourceCode r" id="cb69"><code class="sourceCode r"><div class="sourceLine" id="cb69-1" data-line-number="1">x<span class="op">$</span>control<span class="op">$</span>cavitationRefill =<span class="st"> </span><span class="ot">FALSE</span></div>
+<div class="sourceLine" id="cb69-2" data-line-number="2">x<span class="op">$</span>control<span class="op">$</span>verbose =<span class="st"> </span><span class="ot">FALSE</span></div></code></pre>
+<p>We re-run the water balance model after resetting state variables</p>
+<pre class="sourceCode r" id="cb70"><code class="sourceCode r"><div class="sourceLine" id="cb70-1" data-line-number="1"><span class="kw">spwb.resetInputs</span>(x, examplesoil)</div>
+<div class="sourceLine" id="cb70-2" data-line-number="2">Snr =<span class="st"> </span><span class="kw">spwb</span>(x, examplesoil, examplemeteo, <span class="dt">elevation=</span><span class="dv">100</span>) </div></code></pre>
+<p>In this case no console output is produced during the simulation process. We can examine the effect of preventing cavitation refill in the plots of plant drought stress and plant transpiration:</p>
+<pre class="sourceCode r" id="cb71"><code class="sourceCode r"><div class="sourceLine" id="cb71-1" data-line-number="1"><span class="kw">par</span>(<span class="dt">mar=</span><span class="kw">c</span>(<span class="dv">5</span>,<span class="dv">5</span>,<span class="dv">1</span>,<span class="dv">1</span>), <span class="dt">mfrow=</span><span class="kw">c</span>(<span class="dv">1</span>,<span class="dv">2</span>))</div>
+<div class="sourceLine" id="cb71-2" data-line-number="2"><span class="kw">plot</span>(Snr, <span class="dt">type=</span><span class="st">&quot;PlantStress&quot;</span>)</div>
+<div class="sourceLine" id="cb71-3" data-line-number="3"><span class="kw">plot</span>(Snr, <span class="dt">type=</span><span class="st">&quot;PlantTranspiration&quot;</span>)</div></code></pre>
+<p><img src="data:image/png;base64,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" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+<div id="water-balance-for-a-set-of-forest-stands" class="section level3">
+<h3>Water balance for a set of forest stands</h3>
+<p>So far, we used <code>spwb()</code> to simulate soil water balance on a single stand. Package <code>medfate</code> offers the possibility to conduct simulations on a set of forest stands in one call, using function <code>spwbpoints()</code>. This function takes an object of class <code>SpatialPointsForest</code> as input. We begin by loading an example dataset of 30 forest stands:</p>
+<pre class="sourceCode r" id="cb72"><code class="sourceCode r"><div class="sourceLine" id="cb72-1" data-line-number="1"><span class="kw">data</span>(<span class="st">&quot;exampleSPL&quot;</span>)</div>
+<div class="sourceLine" id="cb72-2" data-line-number="2"><span class="kw">plot</span>(exampleSPL)</div></code></pre>
+<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASAAAAEgCAMAAAAjXV6yAAAABlBMVEUAAAD///+l2Z/dAAAACXBIWXMAAA7DAAAOwwHHb6hkAAADUUlEQVR4nO3aSWrrQBRAUWf/m/6DPwgYq27UNz53FojqVR0sg4RfPxr2OnsDVw9QBCgCFAGKAEWAIkARoAhQBCgCFAGKAEWAIkARoAhQBCgCFAGKAEWAIkARoAhQBCgCFAGKAEWAIkARoAhQBCgCFAGKAEWAIkARoAhQBCgCFAGKAEWAIkARoAhQBCgCFAGKAEWAIkARoAhQBCgCFAGKAEWAIkARoAhQBCgCFAGKAEWAIkARoAhQBCgCFAGKvgRo+TEB7XblrQIUAZru9duiy7fezzXzCYoARYAiQBGg3QIUPRVos3M9Bug158/l6943QBGgCFD0e5BPT6ffDTQW8TT/P7dYBCgCFAGKAJ0UoAhQBCgCFD0GaK+DADpp3cMDFAGKAE238o1PLL79kufkExQBigBFgCJAJwUoujTQis19xyvX4ebGOwcE6AdQBmi6fgCd3PkX/bpj0qYf37/j1x1usQhQBCgCtCZA1whQBCg6GWjF1/BBHbyJ93HD79LxPx+0c0ARoAhQdBrQa/hW4uMj+MOB4swfwF5TF+/6a4X3be8+YTjOLRbjAMU4QDEO0Lxxc15hPBPofgGKLgU06yXhQR09dda38oxL54095Mpl6wOK9QHF+oBi/UVA4yf/Jds44srZ67+dcvYD+scn/z/s4LI/XvjDOx23mO+guesDivUBxforgGLl7f55oyuvsf7u3f4AewcoeizQVgc7HGg0cMvNAFox54x1NhkIKAYCioHbbObjy5Hlq61fYpOB255qes5p6/xpVhm4xWIgoBgIKAYCioFXfO65FNAVu9t+Dw9QBCg6GWjWi/jhC+y9DgIoAhQBigBFpwG9v98YPuq//fOcS1fvc/slV4z3CYrxgGI8oBgPKMYDul+AIkARoAhQBCgCFAGKAEWAIkARoAhQBCgCFAGKAEWAIkARoAhQBCgCFAGKAEWAIkARoAhQBCgCFAGKAEWAIkARoAhQBCgCFAGKAEWAIkARoAhQBCgCFAGKAEWAIkARoAhQBCgCFAGKAEWAIkARoAhQBCgCFAGKAEWAIkARoAhQBCgCFAGKAEWAIkARoAhQBCgCFAGKAEWAIkARoAhQBCgCFAGKAEWAIkARoAhQBCgCFAGKAEX/AEWrQY96BWHZAAAAAElFTkSuQmCC" /><!-- --></p>
+<p>As before, we need meteorological data, species parameters and control parameters (which will apply to all forest stands):</p>
+<pre class="sourceCode r" id="cb73"><code class="sourceCode r"><div class="sourceLine" id="cb73-1" data-line-number="1"><span class="kw">data</span>(<span class="st">&quot;examplemeteo&quot;</span>)</div>
+<div class="sourceLine" id="cb73-2" data-line-number="2"><span class="kw">data</span>(<span class="st">&quot;SpParamsMED&quot;</span>)</div>
+<div class="sourceLine" id="cb73-3" data-line-number="3">control =<span class="st"> </span><span class="kw">defaultControl</span>()</div>
+<div class="sourceLine" id="cb73-4" data-line-number="4">control<span class="op">$</span>verbose =<span class="st"> </span><span class="ot">FALSE</span></div></code></pre>
+<p>The call to <code>spwbpoints()</code> can be done as follows:</p>
+<pre class="sourceCode r" id="cb74"><code class="sourceCode r"><div class="sourceLine" id="cb74-1" data-line-number="1">res &lt;-<span class="st"> </span><span class="kw">spwbpoints</span>(exampleSPL, SpParamsMED, examplemeteo, <span class="dt">control =</span> control)</div></code></pre>
+<pre><code>## 
+## Processing 80001 at (402024, 4683921) - Meteorology - Soil water balance
+## Processing 80002 at (399986, 4682988) - Meteorology - Soil water balance
+## Processing 80003 at (401004, 4683037) - Meteorology - Soil water balance
+## Processing 80004 at (402018, 4682997) - Meteorology - Soil water balance
+## Processing 80005 at (400010, 4681938) - Meteorology - Soil water balance
+## Processing 80006 at (397044, 4681032) - Meteorology - Soil water balance
+## Processing 80007 at (399001, 4680983) - Meteorology - Soil water balance
+## Processing 80008 at (401000, 4681017) - Meteorology - Soil water balance
+## Processing 80009 at (402005, 4681013) - Meteorology - Soil water balance
+## Processing 80010 at (393941, 4679962) - Meteorology - Soil water balance
+## Processing 80011 at (394975, 4680031) - Meteorology - Soil water balance
+## Processing 80012 at (396045, 4679970) - Meteorology - Soil water balance
+## Processing 80013 at (396957, 4680027) - Meteorology - Soil water balance
+## Processing 80014 at (398021, 4679971) - Meteorology - Soil water balance
+## Processing 80015 at (398977, 4679962) - Meteorology - Soil water balance
+## Processing 80016 at (392924, 4678941) - Meteorology - Soil water balance
+## Processing 80017 at (393981, 4679007) - Meteorology - Soil water balance
+## Processing 80018 at (395016, 4679013) - Meteorology - Soil water balance
+## Processing 80019 at (395969, 4679058) - Meteorology - Soil water balance
+## Processing 80020 at (397933, 4679078) - Meteorology - Soil water balance
+## Processing 80021 at (399002, 4679035) - Meteorology - Soil water balance
+## Processing 80022 at (402005, 4679039) - Meteorology - Soil water balance
+## Processing 80023 at (394052, 4677980) - Meteorology - Soil water balance
+## Processing 80024 at (395976, 4677996) - Meteorology - Soil water balance
+## Processing 80025 at (401030, 4678059) - Meteorology - Soil water balance
+## Processing 80026 at (394973, 4677026) - Meteorology - Soil water balance
+## Processing 80027 at (395993, 4677015) - Meteorology - Soil water balance
+## Processing 80028 at (398000, 4677031) - Meteorology - Soil water balance
+## Processing 80029 at (399000, 4676978) - Meteorology - Soil water balance
+## Processing 80030 at (400010, 4676998) - Meteorology - Soil water balance</code></pre>
+<p>For each forest stand described in the <code>SpatialPointsForest</code> object, function <code>spwbpoints()</code> first calls <code>forest2spwbInput()</code>, to generate the appropriate input, and then it calls <code>spwb()</code>. The elements of the result of calling <code>spwbpoints()</code> are:</p>
+<pre class="sourceCode r" id="cb76"><code class="sourceCode r"><div class="sourceLine" id="cb76-1" data-line-number="1"><span class="kw">names</span>(res)</div></code></pre>
+<pre><code>## [1] &quot;sp&quot;     &quot;input&quot;  &quot;result&quot;</code></pre>
+<p>where <code>sp</code> is object of class SpatialPoints with the spatial coordinates of forest stands. Vector <code>input</code> contains the <code>spwbInput</code> corresponding to each forest stand, and vector <code>result</code> contains the output of <code>spwb()</code> for each forest stand. This structure of the output of <code>spwbpoints()</code> allows querying information for the simulation of any forest stand. For example, if we want a monthly summary of species transpiration for the stand ‘80013’, we can use:</p>
+<pre class="sourceCode r" id="cb78"><code class="sourceCode r"><div class="sourceLine" id="cb78-1" data-line-number="1"><span class="kw">summary</span>(res<span class="op">$</span>result<span class="op">$</span><span class="st">`</span><span class="dt">80013</span><span class="st">`</span>, <span class="dt">freq=</span><span class="st">&quot;months&quot;</span>,<span class="dt">FUN=</span>sum, </div>
+<div class="sourceLine" id="cb78-2" data-line-number="2">        <span class="dt">output=</span><span class="st">&quot;PlantTranspiration&quot;</span>, <span class="dt">bySpecies =</span> <span class="ot">TRUE</span>)</div></code></pre>
+<pre><code>##            Amelanchier ovalis Buxus sempervirens Fagus sylvatica
+## 2001-01-01                 NA          0.1854988              NA
+## 2001-02-01                 NA          0.3495023              NA
+## 2001-03-01        0.002159455          0.4020889    0.0004193099
+## 2001-04-01        0.005903584          0.4965935    0.0011462411
+## 2001-05-01        0.013562617          0.6056656    0.0026328944
+## 2001-06-01        0.016643879          0.7939005    0.0032306465
+## 2001-07-01        0.018215350          0.7038897    0.0035356755
+## 2001-08-01        0.015696949          0.7092205    0.0030468433
+## 2001-09-01        0.009685920          0.5299104    0.0018800776
+## 2001-10-01        0.008011271          0.3937934    0.0015550211
+## 2001-11-01                 NA          0.2853242              NA
+## 2001-12-01                 NA          0.2799738              NA
+##            Juniperus communis Pinus sylvestris Pinus uncinata  Sorbus spp.
+## 2001-01-01          0.1323964        0.2846429      0.5194117           NA
+## 2001-02-01          0.2494506        0.5363001      0.9786314           NA
+## 2001-03-01          0.2869815        0.6170012      1.1258931 0.0001854806
+## 2001-04-01          0.3544288        0.7619504      1.3903933 0.0005070367
+## 2001-05-01          0.4322701        0.9271756      1.6918922 0.0011646537
+## 2001-06-01          0.5654416        0.7423066      1.3545460 0.0014290677
+## 2001-07-01          0.5014988        0.8123932      1.4824386 0.0015639965
+## 2001-08-01          0.5057832        0.7000741      1.2774810 0.0013477629
+## 2001-09-01          0.3776310        0.4319860      0.7882792 0.0008316472
+## 2001-10-01          0.2805453        0.3572977      0.6519895 0.0006878594
+## 2001-11-01          0.2036246        0.3596119      0.6562129           NA
+## 2001-12-01          0.1998255        0.4274208      0.7799500           NA</code></pre>
+<p>If one needs to save memory, it is possible with <code>spwbpoints()</code> to generate summaries automatically after the simulation of soil water balance of each stand, and storing those summaries instead of all the output of <code>spwb()</code>.</p>
+</div>
+</div>
+
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

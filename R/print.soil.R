@@ -1,17 +1,35 @@
-print.soil<-function(x,...) {
+print.soil<-function(x, model="SX",...) {
   #Depth
-  cat(paste("Soil depth (mm):", round(x$SoilDepth, digits=0),
-            "  Rock layer depth (mm):", round(x$RockLayerDepth, digits=0),"\n"))
+  cat(paste("Soil depth (mm):", round(x$SoilDepth, digits=0),"\n"))
   #Soil parameters related to texture
-  if(x$dVec[1]>0) cat(paste("\nTopsoil \n    clay (%):", round(x$clay[1]),"sand (%):", round(x$sand[1]),
-                            "[", x$usda_Type[1],"]\n    Rock fragment content (%):", round(x$rfc[1]),"Macroporosity (%):", round(x$macro[1]*100),  
-                            "\n    Theta FC (%):", round(100*x$Theta_FC[1]),"Vol FC (mm):", round(x$Water_FC[1]),"\n"))
-  if(x$dVec[2]>0) cat(paste("\nSubsoil\n    clay (%):", round(x$clay[2]),"sand (%):", round(x$sand[2]),
-                            "[", x$usda_Type[2], "]\n    Rock fragment content (%):", round(x$rfc[2]),"Macroporosity (%):", round(x$macro[2]*100),
-                            "\n    Theta FC (%):", round(100*x$Theta_FC[2]),"Vol FC (mm):", round(x$Water_FC[2]),"\n"))
-  if(x$dVec[3]>0) cat(paste("\nRock layer\n    clay (%):", round(x$clay[3]),"sand (%):", round(x$sand[3]),
-                            "[", x$usda_Type[3], "]\n    Rock fragment content (%):", round(x$rfc[3]),"Macroporosity (%):", round(x$macro[3]*100),
-                            "\n    Theta FC (%):", round(100*x$Theta_FC[3]),"Vol FC (mm):", round(x$Water_FC[3]),"\n"))
-  cat(paste("\nTotal soil water holding capacity (mm): ", round(sum(x$Water_FC), digits=0),"\n"))  
-  cat(paste("\nCurrent Vol1 (mm):", round(x$W[1]*x$Water_FC[1]),"Vol2 (mm):", round(x$W[2]*x$Water_FC[2]),"Vol3 (mm):", round(x$W[3]*x$Water_FC[3]),"\n"))
+  nlayers = length(x$dVec)
+  dini = 0;
+  dfin = 0;
+  ##Water content at field capacity
+  Water_WP = soil.waterWP(x, model)
+  Theta_WP = soil.thetaWP(x, model)
+  Water_FC = soil.waterFC(x, model)
+  Theta_FC = soil.thetaFC(x, model)
+  Water_SAT = soil.waterSAT(x, model)
+  Theta_SAT = soil.thetaSAT(x, model)
+  
+  for(l in 1:nlayers) {
+    dfin = dfin+x$dVec[l]
+    silt = 100-x$sand[l]-x$clay[l]
+    if(!is.na(x$om[l])) silt = silt - x$om[l]
+    cat(paste("\nLayer ",l," [",dini," to ",dfin,"mm ]",
+              "\n    clay (%):", round(x$clay[l]),"silt (%):", round(silt), "sand (%):", round(x$sand[l]), "organic matter (%):", round(x$om[l]),
+              "[", x$usda_Type[l],"]\n    Rock fragment content (%):", round(x$rfc[l]),"Macroporosity (%):", round(x$macro[l]*100),  
+              "\n    Theta WP (%):", round(100*Theta_WP[l]),"Theta FC (%):", round(100*Theta_FC[l]), "Theta SAT (%):", round(100*Theta_SAT[l]), "Theta current (%)", round(100*x$W[l]*Theta_FC[l]),
+              "\n    Vol. WP (mm):", round(Water_WP[l]),"Vol. FC (mm):", round(Water_FC[l]),"Vol. SAT (mm):", round(Water_SAT[l]), "Vol. current (mm):", round(x$W[l]*Water_FC[l]), 
+              "\n    Temperature (Celsius):", round(x$Temp[l],1),
+              "\n"))
+    dini = dini+x$dVec[l]
+  }
+  cat(paste("\nTotal soil saturated capacity (mm):", round(sum(Water_SAT), digits=0),"\n"))  
+  cat(paste("Total soil water holding capacity (mm):", round(sum(Water_FC), digits=0),"\n"))  
+  cat(paste("Total soil extractable water (mm):", round(sum(Water_FC-Water_WP), digits=0),"\n"))  
+  cat(paste("Total soil current Volume (mm):",round(sum(x$W*Water_FC), digits=0),"\n"))
+  cat(paste("Water table depth (mm):",round(soil.waterTableDepth(x, model), digits=0),"\n"))
+  cat(paste("\nSnow pack water equivalent (mm):",round(x$SWE, digits=0),"\n"))
 }
