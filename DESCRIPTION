@@ -1,7 +1,7 @@
 Package: medfate
 Type: Package
 Title: Mediterranean Forest Simulation
-Version: 0.7.3
+Version: 0.7.4
 Date: 2019-03-19
 Authors@R: c(
 	person('Miquel', 'De Cáceres', role=c('aut','cre'),
@@ -19,10 +19,10 @@ LinkingTo: Rcpp, meteoland
 Encoding: UTF-8
 NeedsCompilation: yes
 VignetteBuilder: utils, knitr
-Packaged: 2019-03-19 14:15:04 UTC; miquel.decaceres
+Packaged: 2019-03-20 12:01:49 UTC; miquel.decaceres
 Author: Miquel De Cáceres [aut, cre],
   Víctor Granda [aut],
   Antoine Cabon [aut]
 Maintainer: Miquel De Cáceres <miquelcaceres@gmail.com>
 Repository: CRAN
-Date/Publication: 2019-03-19 15:40:03 UTC
+Date/Publication: 2019-03-22 14:00:06 UTC
