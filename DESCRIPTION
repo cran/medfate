@@ -1,8 +1,8 @@
 Package: medfate
 Type: Package
 Title: Mediterranean Forest Simulation
-Version: 0.7.4
-Date: 2019-03-19
+Version: 0.8.2
+Date: 2019-05-29
 Authors@R: c(
 	person('Miquel', 'De Cáceres', role=c('aut','cre'),
 	email='miquelcaceres@gmail.com'),
@@ -13,16 +13,17 @@ License: GPL (>= 2)
 URL: http://vegmod.ctfc.cat/medfateweb
 LazyLoad: yes
 Depends: R (>= 3.4.0), sp
-Imports: spdep, GSIF, methods, meteoland (>= 0.7.1), Rcpp (>= 0.12.12)
+Imports: spdep, GSIF, ggplot2, methods, meteoland (>= 0.8.1), Rcpp (>=
+        0.12.12)
 Suggests: knitr, rmarkdown, rjson
 LinkingTo: Rcpp, meteoland
 Encoding: UTF-8
 NeedsCompilation: yes
 VignetteBuilder: utils, knitr
-Packaged: 2019-03-20 12:01:49 UTC; miquel.decaceres
+Packaged: 2019-05-29 16:44:40 UTC; miquel.decaceres
 Author: Miquel De Cáceres [aut, cre],
   Víctor Granda [aut],
   Antoine Cabon [aut]
 Maintainer: Miquel De Cáceres <miquelcaceres@gmail.com>
 Repository: CRAN
-Date/Publication: 2019-03-22 14:00:06 UTC
+Date/Publication: 2019-05-29 18:10:02 UTC

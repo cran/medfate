@@ -7,7 +7,10 @@ spar = defaultSoilParams(2)
 print(spar)
 
 ## ------------------------------------------------------------------------
-examplesoil = soil(spar, VG_PTF = "Toth")
+examplesoil = soil(spar)
+class(examplesoil)
+
+## ------------------------------------------------------------------------
 names(examplesoil)
 
 ## ------------------------------------------------------------------------
@@ -19,21 +22,8 @@ print(examplesoil, model = "SX")
 ## ------------------------------------------------------------------------
 print(examplesoil, model="VG")
 
-## ---- fig = TRUE, fig.width= 5, fig.height=4, fig.align= 'center', echo=TRUE----
-par(mar=c(4,4,1,1))
-# Plot Saxton's retention curve
-psi = seq(-0.001, -2.0, by=-0.001)
-plot(-psi, lapply(as.list(psi), FUN=soil.psi2thetaSX, clay=25, sand=25), 
-     type="l", ylim=c(0,0.5),ylab="Water content (prop. volume)", xlab = "Soil water potential (-MPa)")
-
-#Add Van Genuchten retention curve
-lines(-psi, lapply(as.list(psi), FUN=soil.psi2thetaVG, 
-      alpha=examplesoil$VG_alpha[1], n = examplesoil$VG_n[1], 
-      theta_res = examplesoil$VG_theta_res[1], 
-      theta_sat = examplesoil$VG_theta_sat[1]), lty=2) 
-
-legend("topright", legend=c("Saxton", "Van Genuchten"), lty=c(1,2), bty="n")
-
+## ---- fig = TRUE, fig.width= 5, fig.height=3, fig.align= 'center', echo=TRUE----
+soil_retentionCurvePlot(examplesoil, model="both")
 
 ## ------------------------------------------------------------------------
 data("SpParamsMED")
@@ -49,14 +39,23 @@ exampleforest
 above = forest2aboveground(exampleforest, SpParamsMED)
 above
 
+## ---- fig = TRUE, fig.width= 4, fig.height=3, fig.align= 'center', echo=TRUE----
+vprofile_leafAreaDensity(above, byCohorts = F)
+
+## ---- fig = TRUE, fig.width= 5, fig.height=3, fig.align= 'center', echo=TRUE----
+vprofile_leafAreaDensity(above, byCohorts = T)
+
 ## ------------------------------------------------------------------------
 below = forest2belowground(exampleforest, examplesoil, SpParamsMED)
 below
 
 ## ------------------------------------------------------------------------
-root.ldrDistribution(exampleforest$treeData$Z50[1], 
+root_ldrDistribution(exampleforest$treeData$Z50[1], 
                      exampleforest$treeData$Z95[1],
                      examplesoil$dVec)
+
+## ---- fig = TRUE, fig.width= 5, fig.height=3, fig.align= 'center', echo=TRUE----
+vprofile_rootDistribution(exampleforest, SpParamsMED)
 
 ## ------------------------------------------------------------------------
 data(examplemeteo)
@@ -77,7 +76,7 @@ x = forest2spwbInput(exampleforest, examplesoil, SpParamsMED, control)
 
 ## ------------------------------------------------------------------------
 d = 100
-sd1<-spwb.day(x, examplesoil, rownames(examplemeteo)[d],  
+sd1<-spwb_day(x, examplesoil, rownames(examplemeteo)[d],  
              examplemeteo$MinTemperature[d], examplemeteo$MaxTemperature[d], 
              examplemeteo$MinRelativeHumidity[d], examplemeteo$MaxRelativeHumidity[d], 
              examplemeteo$Radiation[d], examplemeteo$WindSpeed[d], 
@@ -95,7 +94,7 @@ examplesoil$W
 x$canopy$gdd
 
 ## ------------------------------------------------------------------------
-spwb.resetInputs(x, examplesoil)
+spwb_resetInputs(x, examplesoil)
 examplesoil$W
 x$canopy$gdd
 
@@ -117,25 +116,25 @@ head(S$WaterBalance)
 ## ------------------------------------------------------------------------
 head(S$PlantPsi)
 
-## ---- fig=TRUE, fig.align="center", fig.width=5, fig.height = 4----------
-par(mar=c(5,5,1,1))
+## ---- fig=TRUE, fig.align="center", fig.width=5, fig.height = 3.5--------
 plot(S, type = "PET_Precipitation")
-
-## ---- fig=TRUE, fig.align="center", fig.width=5, fig.height = 4----------
-par(mar=c(5,5,1,1))
 plot(S, type = "Snow")
+plot(S, type = "Export")
 
-## ---- fig=TRUE, fig.align="center", fig.width=5, fig.height = 4----------
-par(mar=c(5,5,1,1))
+## ---- fig=TRUE, fig.align="center", fig.width=7, fig.height = 3.5--------
+plot(S, type = "Evapotranspiration")
+
+## ---- fig=TRUE, fig.align="center", fig.width=7, fig.height = 4----------
 plot(S, type="SoilTheta")
-
-## ---- fig=TRUE, fig.align="center", fig.width=5, fig.height = 4----------
-par(mar=c(5,5,1,1))
+plot(S, type="SoilRWC")
 plot(S, type="SoilPsi")
+plot(S, type="SoilVol")
 
-## ---- fig=TRUE, fig.align="center", fig.width=5, fig.height = 4----------
-par(mar=c(5,5,1,1))
+## ---- fig=TRUE, fig.align="center", fig.width=7, fig.height = 4----------
 plot(S, type="PlantTranspiration")
+plot(S, type="PlantPhotosynthesis")
+plot(S, type="PlantPsi")
+plot(S, type="PlantStress")
 
 ## ------------------------------------------------------------------------
 summary(S, freq="months",FUN=mean, output="Soil")
@@ -150,35 +149,12 @@ head(summary(S, freq="day", output="PlantStress", bySpecies = TRUE))
 summary(S, freq="month", FUN = mean, output="PlantStress", bySpecies = TRUE)
 
 ## ------------------------------------------------------------------------
-x$control$cavitationRefill = FALSE
-x$control$verbose = FALSE
+spwb_stress(S, index = "NDD", freq = "years", draw=FALSE)
+spwb_stress(S, index = "MDS", freq = "years", draw=FALSE)
+
+## ---- fig=TRUE, fig.align="center", fig.width=7, fig.height = 4----------
+spwb_stress(S, index = "WSI", freq = "months", draw=TRUE)
 
 ## ------------------------------------------------------------------------
-spwb.resetInputs(x, examplesoil)
-Snr = spwb(x, examplesoil, examplemeteo, elevation=100) 
-
-## ---- fig=TRUE, fig.align="center", fig.width=8, fig.height = 4----------
-par(mar=c(5,5,1,1), mfrow=c(1,2))
-plot(Snr, type="PlantStress")
-plot(Snr, type="PlantTranspiration")
-
-## ------------------------------------------------------------------------
-data("exampleSPL")
-plot(exampleSPL)
-
-## ------------------------------------------------------------------------
-data("examplemeteo")
-data("SpParamsMED")
-control = defaultControl()
-control$verbose = FALSE
-
-## ------------------------------------------------------------------------
-res <- spwbpoints(exampleSPL, SpParamsMED, examplemeteo, control = control)
-
-## ------------------------------------------------------------------------
-names(res)
-
-## ------------------------------------------------------------------------
-summary(res$result$`80013`, freq="months",FUN=sum, 
-        output="PlantTranspiration", bySpecies = TRUE)
+spwb_waterUseEfficiency(S, type = "Stand An/E", freq = "months", draw=FALSE)
 

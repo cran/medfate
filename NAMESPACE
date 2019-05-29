@@ -1,33 +1,27 @@
-# Default NAMESPACE created by R
-# Remove the previous line if you edit this file
 import(sp)
 import(spdep)
 import(methods)
 import(meteoland)
-importFrom("stats", "aggregate","filter","uniroot")
+import(ggplot2)
+importFrom("stats", "aggregate","filter","uniroot", "median",
+           "cor","quantile")
 importFrom("grDevices", "rainbow")
 importFrom("graphics", "axis", "abline", "barplot", "legend", "lines", "matplot","mtext",
            "matlines", "par", "polygon","axis.Date")
 importFrom("utils", "setTxtProgressBar", "txtProgressBar", "head", "tail")
 importFrom("GSIF", "REST.SoilGrids","over")
-# Export all names
-useDynLib(medfate)
+useDynLib(medfate, .registration = TRUE)
 exportPattern("^[[:alpha:]]+")
-exportMethods("[", show, head, tail)
-exportClasses(SpatialPointsLandscape, SpatialGridLandscape, SpatialPixelsLandscape)
 
 
 importFrom(Rcpp, evalCpp)
+S3method(plot,pwb)
+S3method(plot,pwb_day)
 S3method(plot,spwb)
-S3method(plot,spwb.day)
+S3method(plot,spwb_day)
 S3method(plot,growth)
-S3method(plot,spwbgrid)
-# S3method(plot,fb)
-# S3method(plot,fbpoints)
-# S3method(head, SpatialPointsLandscape, head.SpatialPointsLandscape)
-# S3method(tail, SpatialPointsLandscape, tail.SpatialPointsLandscape)
-# S3method(print, SpatialPointsLandscape, print.SpatialPointsLandscape)
 
+S3method(summary, pwb)
 S3method(summary, spwb)
 S3method(summary, growth)
 S3method(summary, forest)

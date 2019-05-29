@@ -7,7 +7,8 @@ defaultControl<-function() {
     soilFunctions = "SX",
     snowpack = TRUE,
     drainage = TRUE,
-    transpirationMode = "Simple", #vs. "Complex"
+    leafPhenology = TRUE,
+    transpirationMode = "Granier", #vs. "Sperry"
     hydraulicCostFunction = 1, #vs. 2
     verticalLayerSize = 100,
     nStemSegments = 1,
@@ -17,11 +18,12 @@ defaultControl<-function() {
     klat = 0.1, # symplastic-apoplastic lateral conductance
     taper = TRUE,
     numericParams=list(maxNsteps = 400, ntrial = 200, psiTol = 0.0001, ETol = 0.0000001),
+    fracRootResistance = 0.4,
     averageFracRhizosphereResistance = 0.15,
     Catm = 386,
     ndailysteps = 24,
     thermalCapacityLAI = 1000000,
-    defaultWindSpeed = 5,
+    defaultWindSpeed = 2.5, #m/s
     # growth
     storagePool = "none"
     

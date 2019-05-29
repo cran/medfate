@@ -23,13 +23,13 @@ const double lightResponseCurvature = 0.9;
  *  Oi - Oxigen concentration (mmol*mol-1)
  */
 //Compensation point (micromol * mol-1)
-// [[Rcpp::export("photo.GammaTemp")]]
+// [[Rcpp::export("photo_GammaTemp")]]
 double gammaTemp(double leaf_temp) {return(42.75*exp((37830*(leaf_temp-25.0))/(298.0*R_gas*(leaf_temp+273))));} 
 //Michaelis-Menten coefficients of Rubisco for Carbon (micromol * mol-1)
 double KcTemp(double leaf_temp) {return(404.9*exp((79430*(leaf_temp-25.0))/(298.0*R_gas*(leaf_temp+273))));}
 //Michaelis-Menten coefficients of Rubisco for Oxigen (mmol * mol-1)
 double KoTemp(double leaf_temp) {return(278.4*exp((36380*(leaf_temp-25.0))/(298.0*R_gas*(leaf_temp+273))));}
-// [[Rcpp::export("photo.KmTemp")]]
+// [[Rcpp::export("photo_KmTemp")]]
 double KmTemp(double leaf_temp, double Oi = 209.0) {
   double Kc = KcTemp(leaf_temp);
   double Ko = KoTemp(leaf_temp);  
@@ -48,7 +48,7 @@ double KmTemp(double leaf_temp, double Oi = 209.0) {
  *  leaf_temp - Leaf temperature (ºC)
  *  Vmax298 - maximum carboxylation rate at 298ºK (ie. 25 ºC) (micromol*s-1*m-2)
  */
-// [[Rcpp::export("photo.VmaxTemp")]]
+// [[Rcpp::export("photo_VmaxTemp")]]
 double VmaxTemp(double Vmax298, double leaf_temp) {
   double Ha = 73637.0; //Energy of activation J * mol-1
   double Hd = 149252.0; //Energy of deactivation J * mol-1
@@ -69,7 +69,7 @@ double VmaxTemp(double Vmax298, double leaf_temp) {
  *  leaf_temp - Leaf temperature (ºC)
  *  Jmax298 - maximum electron transport rate at 298ºK (ie. 25 ºC) (micromol*s-1*m-2)
  */
-// [[Rcpp::export("photo.JmaxTemp")]]
+// [[Rcpp::export("photo_JmaxTemp")]]
 double JmaxTemp(double Jmax298, double leaf_temp) {
   double Ha = 50300.0; //Energy of activation J * mol-1
   double Hd = 152044.0; //Energy of deactivation J * mol-1
@@ -89,7 +89,7 @@ double JmaxTemp(double Jmax298, double leaf_temp) {
  * 
  * return units: micromol*s-1*m-2
  */
-// [[Rcpp::export("photo.electronLimitedPhotosynthesis")]]
+// [[Rcpp::export("photo_electronLimitedPhotosynthesis")]]
 double electronLimitedPhotosynthesis(double Q, double Ci, double GT, double Jmax) {
   double J = ((quantumYield*Q+Jmax)-sqrt(pow(quantumYield*Q+Jmax, 2.0) - 4.0*lightResponseCurvature*quantumYield*Q*Jmax))/(2.0*lightResponseCurvature);
   return((J/4.0)*((Ci-GT)/(Ci+2.0*GT)));
@@ -109,7 +109,7 @@ double electronLimitedPhotosynthesisDerivative(double Q, double Ci, double GT, d
  * 
  * return units: micromol*s-1*m-2
  */
-// [[Rcpp::export("photo.rubiscoLimitedPhotosynthesis")]]
+// [[Rcpp::export("photo_rubiscoLimitedPhotosynthesis")]]
 double rubiscoLimitedPhotosynthesis(double Ci, double GT, double Km, double Vmax) {
   return(Vmax *(Ci-GT)/(Ci+Km));
 }
@@ -160,8 +160,8 @@ double fder(double x, double Q, double Ca, double Gc, double GT, double Km, doub
  * 
  * return units: micromol*s-1*m-2
  */
-// [[Rcpp::export("photo.photosynthesis")]]
-double leafphotosynthesis(double Q, double Catm, double Gc, double leaf_temp, double Vmax298, double Jmax298, bool verbose=false) {
+// [[Rcpp::export("photo_photosynthesis")]]
+NumericVector leafphotosynthesis(double Q, double Catm, double Gc, double leaf_temp, double Vmax298, double Jmax298, bool verbose=false) {
   //Corrections per leaf temperature
   double GT = gammaTemp(leaf_temp);
   double Km = KmTemp(leaf_temp, O2_conc);
@@ -170,33 +170,41 @@ double leafphotosynthesis(double Q, double Catm, double Gc, double leaf_temp, do
   double x,x1,e,fx,fx1;
   x1 = 0.0;//initial guess
   e = 0.001; // accuracy in micromol * mol-1
+  int cnt = 0;
+  int mxiter = 100;
   if(verbose) Rcout <<"x{i}"<<"    "<<"x{i+1}"<<"        "<<"|x{i+1}-x{i}|\n";                
   do {
     x=x1; /*make x equal to the last calculated value of                             x1*/
     fx=f(x, Q, Catm, Gc, GT, Km, Vmax, Jmax);            //simplifying f(x)to fx
     fx1=fder(x, Q, Catm, Gc, GT, Km, Vmax, Jmax);            //simplifying fprime(x) to fx1
     x1=x-(fx/fx1);/*calculate x{1} from x, fx and fx1*/ 
-    if(verbose) Rcout<<x<<"     "<<x1<<"           "<<abs(x1-x)<<"\n";        
-  } while (fabs(x1-x)>=e);
-  return(photosynthesis_Ci(Q,x1,GT,Km,Vmax,Jmax));
+    cnt++;
+    if(verbose) Rcout<<x<<"     "<<x1<<"           "<<std::abs(x1-x)<<"\n";        
+  } while ((std::abs(x1-x)>=e) & (cnt < mxiter));
+  double A = photosynthesis_Ci(Q,x1,GT,Km,Vmax,Jmax);
+  NumericVector res = NumericVector::create(x1, A);
+  res.attr("names") = CharacterVector::create("Ci", "A");
+  return(res);
 }
 
 
-// [[Rcpp::export("photo.leafPhotosynthesisFunction")]]
+// [[Rcpp::export("photo_leafPhotosynthesisFunction")]]
 DataFrame leafPhotosynthesisFunction(NumericVector E, double Catm, double Patm, double Tair, double vpa, double u, 
                              double absRad, double Q, double Vmax298, double Jmax298, double Gwmin, double Gwmax, 
                              double leafWidth = 1.0, double refLeafArea = 1.0, bool verbose = false) {
   int nsteps = E.size();
   NumericVector leafTemp(nsteps);
   NumericVector leafVPD(nsteps);
-  NumericVector Gw(nsteps);
+  NumericVector Gw(nsteps), Ci(nsteps);
   NumericVector Ag(nsteps), An(nsteps);
   for(int i=0;i<nsteps;i++){
     leafTemp[i] = leafTemperature(absRad/refLeafArea, Tair, u, E[i], leafWidth);
     leafVPD[i] = std::max(0.0,meteoland::utils_saturationVP(std::max(0.0,leafTemp[i]))-vpa);
     Gw[i] = Patm*(E[i]/1000.0)/leafVPD[i]; //Transform flow from mmol to mol
     Gw[i] = std::max(Gwmin, std::min(Gw[i], Gwmax));
-    Ag[i] = leafphotosynthesis(Q/refLeafArea, Catm, Gw[i]/1.6, std::max(0.0,leafTemp[i]), Vmax298/refLeafArea, Jmax298/refLeafArea);
+    NumericVector LP = leafphotosynthesis(Q/refLeafArea, Catm, Gw[i]/1.6, std::max(0.0,leafTemp[i]), Vmax298/refLeafArea, Jmax298/refLeafArea);
+    Ci[i] = LP[0];
+    Ag[i] = LP[1];
     An[i] = Ag[i] - 0.015*VmaxTemp(Vmax298/refLeafArea, leafTemp[i]);
     //Scale per leaf area
     // Ag[i] = Ag[i]/refLeafArea;
@@ -205,6 +213,7 @@ DataFrame leafPhotosynthesisFunction(NumericVector E, double Catm, double Patm, 
   return(DataFrame::create(Named("LeafTemperature") = leafTemp,
                       Named("LeafVPD") = leafVPD,
                       Named("WaterVaporConductance") = Gw,
+                      Named("Ci") = Ci,
                       Named("Photosynthesis") = Ag,
                       Named("NetPhotosynthesis") = An));
 }
@@ -232,7 +241,7 @@ DataFrame leafPhotosynthesisFunction(NumericVector E, double Catm, double Patm, 
  * return units: micromol*s-1*m-2
  */
 
-// [[Rcpp::export("photo.sunshadePhotosynthesisFunction")]]
+// [[Rcpp::export("photo_sunshadePhotosynthesisFunction")]]
 DataFrame sunshadePhotosynthesisFunction(NumericVector E, double Catm, double Patm, double Tair, double vpa, 
                                   double SLarea, double SHarea,
                                   double u, double absRadSL, double absRadSH,
@@ -242,6 +251,7 @@ DataFrame sunshadePhotosynthesisFunction(NumericVector E, double Catm, double Pa
                                   double Gwmin, double Gwmax, double leafWidth = 1.0, bool verbose = false) {
   int nsteps = E.size();
   NumericVector Ag(nsteps,0.0), An(nsteps,0.0);
+  NumericVector leafCiSL(nsteps,0.0), leafCiSH(nsteps,0.0);
   NumericVector leafTSL(nsteps,0.0), leafTSH(nsteps,0.0);
   NumericVector leafVPDSL(nsteps,0.0), leafVPDSH(nsteps,0.0);
   // Rcout<<"ws "<<u<<" tair "<< Tair<< " SLarea "<< SLarea << " SHarea "<< SHarea<< " absRadSL"<< absRadSL<< " absRadSH "<< absRadSH<< " QSL "<<QSL<<" QSH "<<QSH<<"\n";
@@ -258,7 +268,9 @@ DataFrame sunshadePhotosynthesisFunction(NumericVector E, double Catm, double Pa
     Gw = std::max(Gwmin, std::min(Gw, Gwmax));
     Gw = Gw*SLarea; //From Gw per leaf area to Gw per ground area
     if(QSL>0.0) {
-      Agj = leafphotosynthesis(QSL, Catm, Gw/1.6, leafT, Vmax298SL, Jmax298SL);//Call photosynthesis with aggregated values
+      NumericVector LP = leafphotosynthesis(QSL, Catm, Gw/1.6, leafT, Vmax298SL, Jmax298SL);//Call photosynthesis with aggregated values
+      leafCiSL[i] = LP[0];
+      Agj = LP[1];
       Anj = Agj - 0.015*VmaxTemp(Vmax298SL, leafT);
       Ag[i]+=Agj;
       An[i]+=Anj;
@@ -272,7 +284,9 @@ DataFrame sunshadePhotosynthesisFunction(NumericVector E, double Catm, double Pa
     // Gw = std::max(Gwmin, std::min(Gw, Gwmax));
     Gw = Gw*SHarea; //From Gw per leaf area to Gw per ground area
     if(QSH>0.0) {
-      Agj = leafphotosynthesis(QSH, Catm, Gw/1.6, leafT, Vmax298SH, Jmax298SH); //Call photosynthesis with aggregated values
+      NumericVector LP = leafphotosynthesis(QSH, Catm, Gw/1.6, leafT, Vmax298SH, Jmax298SH); //Call photosynthesis with aggregated values
+      leafCiSH[i] = LP[0];
+      Agj = LP[1];
       Anj = Agj - 0.015*VmaxTemp(Vmax298SH, leafT);
       Ag[i]+=Agj;
       An[i]+=Anj;
@@ -281,13 +295,15 @@ DataFrame sunshadePhotosynthesisFunction(NumericVector E, double Catm, double Pa
   }
   return(DataFrame::create(Named("Photosynthesis") = Ag,
                       Named("NetPhotosynthesis") = An,
+                      Named("LeafCiSL") = leafCiSL,
+                      Named("LeafCiSH") = leafCiSH,
                       Named("LeafTempSL") = leafTSL,
                       Named("LeafTempSH") = leafTSH,
                       Named("LeafVPDSL") = leafVPDSL,
                       Named("LeafVPDSH") = leafVPDSH));
 }
 
-// [[Rcpp::export("photo.multilayerPhotosynthesisFunction")]]
+// [[Rcpp::export("photo_multilayerPhotosynthesisFunction")]]
 DataFrame multilayerPhotosynthesisFunction(NumericVector E, double Catm, double Patm, double Tair, double vpa, 
                                   NumericVector SLarea, NumericVector SHarea,
                                   NumericVector u, NumericVector absRadSL, NumericVector absRadSH,
@@ -308,7 +324,8 @@ DataFrame multilayerPhotosynthesisFunction(NumericVector E, double Catm, double 
       Gw = Patm*(E[i]/1000.0)/leafVPD;
       Gw = std::max(Gwmin, std::min(Gw, Gwmax));
       if(QSL[j]>0.0) {
-        Agj = leafphotosynthesis(QSL[j], Catm, Gw/1.6, leafT, Vmax298[j], Jmax298[j]);
+        NumericVector LP = leafphotosynthesis(QSL[j], Catm, Gw/1.6, leafT, Vmax298[j], Jmax298[j]);
+        Agj = LP[1];
         Anj = Agj - 0.015*VmaxTemp(Vmax298[j], leafT);
         //From A per leaf area to A per ground area
         Ag[i]+=Agj*SLarea[j];
@@ -320,7 +337,8 @@ DataFrame multilayerPhotosynthesisFunction(NumericVector E, double Catm, double 
       Gw = Patm*(E[i]/1000.0)/leafVPD;
       Gw = std::max(Gwmin, std::min(Gw, Gwmax));
       if(QSH[j]>0.0) {
-        Agj = leafphotosynthesis(QSH[j], Catm, Gw/1.6, leafT, Vmax298[j], Jmax298[j]);
+        NumericVector LP = leafphotosynthesis(QSH[j], Catm, Gw/1.6, leafT, Vmax298[j], Jmax298[j]);
+        Agj = LP[1];
         Anj = Agj - 0.015*VmaxTemp(Vmax298[j], leafT);
         Ag[i]+=Agj*SHarea[j];
         An[i]+=Anj*SHarea[j];

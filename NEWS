@@ -3,6 +3,35 @@
 -------------------------------
 
 __Version history__
+_Version 0.8.2, May 2019.
+1. Modification of meteoland to better calculate direct/diffuse light on slopes
+2. Added Narea parameter to facilitate estimation of Vmax298
+3. New function 'spwb_validation'.
+4. Plot functions using ggplot.
+5. Improvement of infiltration repartition for varying macroporosity.
+6. Input values for latitude and topography stored in the result of simulations.
+7. Wind for each cohort stored in the result of transp_transpirationSperry and spwb_day.
+
+_Version 0.8.1, April 2019.
+1. Export Ci from spwb_day.
+2. New function 'maximumTranspirationRatioPlot'
+3. Output of min/max water potential for sunlit and shade leaves.
+4. New function 'soil_waterRetentionPlot'
+5. New function 'spwb_waterUseEfficiency'
+6. Default Van Genuchten PTF set to 'Toth'
+7. New functions 'modifySpParams' and 'modifyCohortParams'.
+8. New function 'hydrology_interceptionPlot'
+
+_Version 0.8.0, April 2019.
+1. Move spatial classes and methods to package 'medfateland'
+2. Implement underscores instead of dots to separate function groups and function names
+3. New function transp_Granier.
+4. Bug corrected in spwb.plot for snow plotting.
+5. New function 'pwb'.
+6. New function 'snowMelt'.
+7. Transpiration model changed to Granier and Sperry.
+8. PLC set to zero when DOY = 1
+9. New functions for leaf phenology
 
 _Version 0.7.4, March 2019.
 1. Fixing bugs for installation in all platforms

@@ -10,9 +10,6 @@ int findRowIndex(int sp, DataFrame SpParams);
 DataFrame forest2aboveground(List x, DataFrame SpParams, double gdd = NA_REAL);
 NumericMatrix forest2belowground(List x, List soil, DataFrame SpParams);
 
-NumericVector leafDevelopmentStatus(NumericVector Sgdd, double gdd);
-double leafDevelopmentStatus(double Sgdd, double gdd);
-
 NumericVector cohortNumericParameter(List x, DataFrame SpParams, String parName);
 NumericVector cohortNumericParameter(IntegerVector SP, DataFrame SpParams, String parName);
 CharacterVector cohortCharacterParameter(List x, DataFrame SpParams, String parName);
@@ -55,7 +52,7 @@ NumericVector cohortEquilibriumSmallBranchLitter(List x, DataFrame SpParams, dou
 NumericVector treeLAI(IntegerVector SP, NumericVector N, NumericVector dbh, DataFrame SpParams, NumericVector pEmb=NumericVector(0), double gdd = NA_REAL);
 NumericVector shrubLAI(IntegerVector SP, NumericVector Cover, NumericVector H, DataFrame SpParams, double gdd = NA_REAL);
 NumericVector cohortLAI(List x, DataFrame SpParams, double gdd = NA_REAL);
-NumericMatrix LAIdistribution(NumericVector z, NumericVector LAI, NumericVector H, NumericVector CR);
+NumericMatrix LAIdistributionVectors(NumericVector z, NumericVector LAI, NumericVector H, NumericVector CR);
 NumericMatrix LAIdistribution(NumericVector z, List x, DataFrame SpParams, double gdd = NA_REAL);
 
 double shrubCover(List x, double excludeMinHeight = 0.0);

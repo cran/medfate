@@ -1,8 +1,8 @@
 \encoding{UTF-8}
 \name{biophysics}
-\alias{biophysics.leafTemperature}
-\alias{biophysics.radiationDiurnalPattern}
-\alias{biophysics.temperatureDiurnalPattern}
+\alias{biophysics_leafTemperature}
+\alias{biophysics_radiationDiurnalPattern}
+\alias{biophysics_temperatureDiurnalPattern}
 
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
@@ -12,9 +12,9 @@ Physical and biophysical utility functions
 Set of functions used in the calculation of biophysical variables. 
 }
 \usage{
-biophysics.leafTemperature(absRad, airTemperature, u, E, leafWidth = 1.0)
-biophysics.radiationDiurnalPattern(t, daylength)
-biophysics.temperatureDiurnalPattern(t, tmin, tmax, daylength)
+biophysics_leafTemperature(absRad, airTemperature, u, E, leafWidth = 1.0)
+biophysics_radiationDiurnalPattern(t, daylength)
+biophysics_temperatureDiurnalPattern(t, tmin, tmax, daylength)
 }
 
 %- maybe also 'usage' for other objects documented here.
@@ -32,9 +32,9 @@ biophysics.temperatureDiurnalPattern(t, tmin, tmax, daylength)
 \value{
 Values returned for each function are:
 \itemize{
-\item{\code{biophysics.leafTemperature}: leaf temperature (in ºC)} 
-\item{\code{biophysics.radiationDiurnalPattern}: the proportion of daily radiation corresponding to the input time in seconds after sunrise.} 
-\item{\code{biophysics.temperatureDiurnalPattern}: diurnal pattern of temperature assuming a sinusoidal pattern with T = Tmin at sunrise and T = (Tmin+Tmax)/2 at sunset.}
+\item{\code{biophysics_leafTemperature}: leaf temperature (in ºC)} 
+\item{\code{biophysics_radiationDiurnalPattern}: the proportion of daily radiation corresponding to the input time in seconds after sunrise.} 
+\item{\code{biophysics_temperatureDiurnalPattern}: diurnal pattern of temperature assuming a sinusoidal pattern with T = Tmin at sunrise and T = (Tmin+Tmax)/2 at sunset.}
 }
 }
 \references{
@@ -47,7 +47,7 @@ McMurtrie, R. E., D. A. Rook, and F. M. Kelliher. 1990. Modelling the yield of P
 McMahon, T. A., M. C. Peel, L. Lowe, R. Srikanthan, and T. R. McVicar. 2013. Estimating actual, potential, reference crop and pan evaporation using standard meteorological data: a pragmatic synthesis. Hydrology & Earth System Sciences 17:1331–1363. See also:  http://www.fao.org/docrep/x0490e/x0490e06.htm
 }
 \author{
-Miquel De \enc{Cáceres}{Caceres} Ainsa, Centre Tecnologic Forestal de Catalunya
+Miquel De \enc{Cáceres}{Caceres} Ainsa, CTFC
 }
 \seealso{
 \code{\link{spwb}}

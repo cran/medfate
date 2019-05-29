@@ -12,7 +12,7 @@
 
 <meta name="author" content="Miquel De Caceres" />
 
-<meta name="date" content="2019-03-20" />
+<meta name="date" content="2019-05-29" />
 
 <title>Package overview</title>
 
@@ -293,7 +293,7 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 
 <h1 class="title toc-ignore">Package overview</h1>
 <h4 class="author">Miquel De Caceres</h4>
-<h4 class="date">2019-03-20</h4>
+<h4 class="date">2019-05-29</h4>
 
 
 <div id="TOC">
@@ -302,7 +302,6 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <li><a href="#data-structures">Data structures</a><ul>
 <li><a href="#forest-objects">Forest objects</a></li>
 <li><a href="#soil-objects">Soil objects</a></li>
-<li><a href="#spatial-objects">Spatial objects</a></li>
 </ul></li>
 <li><a href="#dynamic-simulation-functions">Dynamic simulation functions</a><ul>
 <li><a href="#water-balance-and-plant-drought-stress">Water balance and plant drought stress</a></li>
@@ -320,15 +319,15 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <h2>Introduction</h2>
 <p>Being able to anticipate the impact of global change on ecosystems is one of the major environmental challenges in contemporary societies. However, uncertainties in how ecological systems function and practical constraints in how to integrate available information prevent the development of robust and reliable predictive models. Despite the amount of knowledge accumulated about the functioning and dynamics of Mediterranean forests, scientists should make coordinate their efforts to address the challenge of integrating the different global change drivers in a modelling framework useful for research and applications.</p>
 <p>The R package <code>medfate</code> has been designed to study the characteristics and simulate dynamics of Mediterranean forests. Fire and drought impacts are the main drivers covered by the package. Representation of vegetation is not spatially-explicit (i.e. trees or shrubs do not have explicit coordinates within forest stands). This simplified representation is chosen so that package functions can be easily applied to forest plot data from national forest inventories. Since the package intends to facilitate predictions of not only forest functioning but also forest structure and composition, the taxonomic identity of plants is stored, and parameter values need to be provided for each taxonomic entity (but the package could be used with functional groups).</p>
-<pre class="sourceCode r" id="cb1"><code class="sourceCode r"><div class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">library</span>(medfate)</div></code></pre>
+<p>Package vignettes only cover how to run models using the package functions. Complete documentation on the design and formulation of medfate models can be found in the <a href="https://miquelcaceres.github.io/medfate/medfatebook/intro.html">medfate reference book</a>.</p>
 </div>
 <div id="data-structures" class="section level2">
 <h2>Data structures</h2>
 <div id="forest-objects" class="section level3">
 <h3>Forest objects</h3>
 <p>Models included in <code>medfate</code> were primarily designed to be ran on <strong>forest inventory plots</strong>. In this kind of data, the vegetation of a sampled area is primarily described in terms of woody plants (trees and shrubs) along with their size and species identity. Forest plots in <code>medfate</code> are assumed to be in a format that follows closely the Spanish national forest inventory. Each forest plot is represented in an object of class <code>forest</code>, a list that contains several elements. Among them, the most important items are two data frames, <code>treeData</code> (for trees) and <code>shrubData</code> for shrubs:</p>
-<pre class="sourceCode r" id="cb2"><code class="sourceCode r"><div class="sourceLine" id="cb2-1" data-line-number="1"><span class="kw">data</span>(exampleforest)</div>
-<div class="sourceLine" id="cb2-2" data-line-number="2">exampleforest</div></code></pre>
+<pre class="sourceCode r" id="cb1"><code class="sourceCode r"><div class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">data</span>(exampleforest)</div>
+<div class="sourceLine" id="cb1-2" data-line-number="2">exampleforest</div></code></pre>
 <pre><code>## $ID
 ## [1] &quot;1&quot;
 ## 
@@ -363,15 +362,15 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <div id="soil-objects" class="section level3">
 <h3>Soil objects</h3>
 <p>Simulation models in <code>medfate</code> require information on the physical attributes of soil, namely soil depth, texture, bulk density and rock fragment content. Soil physical attributes can be initialized to default values, for a given number of layers, using function <code>defaultSoilParams()</code>:</p>
-<pre class="sourceCode r" id="cb4"><code class="sourceCode r"><div class="sourceLine" id="cb4-1" data-line-number="1">spar =<span class="st"> </span><span class="kw">defaultSoilParams</span>(<span class="dv">2</span>)</div>
-<div class="sourceLine" id="cb4-2" data-line-number="2"><span class="kw">print</span>(spar)</div></code></pre>
+<pre class="sourceCode r" id="cb3"><code class="sourceCode r"><div class="sourceLine" id="cb3-1" data-line-number="1">spar =<span class="st"> </span><span class="kw">defaultSoilParams</span>(<span class="dv">2</span>)</div>
+<div class="sourceLine" id="cb3-2" data-line-number="2"><span class="kw">print</span>(spar)</div></code></pre>
 <pre><code>##   widths clay sand om  bd rfc
 ## 1    300   25   25 NA 1.5  20
 ## 2    700   25   25 NA 1.5  40</code></pre>
 <p>where <code>widths</code> are soil layer widths in mm; <code>clay</code> and <code>sand</code> are the percentage of clay and sand, in percent of dry weight, <code>om</code> stands for organic matter, <code>bd</code> is bulk density (in g·cm<span class="math inline">\(^{-3}\)</span>) and <code>rfc</code> the percentage of rock fragments. Because soil properties vary strongly at fine spatial scales, ideally soil physical attributes should be measured on samples taken at the forest stand to be simulated. For those users lacking such data, soil properties modelled at larger scales are available via soilgrids.org (see function <code>soilgridsParams()</code>).</p>
 <p>The soil input for simulations is an object of class <code>soil</code> (a list) that is created using a function with the same name:</p>
-<pre class="sourceCode r" id="cb6"><code class="sourceCode r"><div class="sourceLine" id="cb6-1" data-line-number="1">examplesoil =<span class="st"> </span><span class="kw">soil</span>(spar)</div>
-<div class="sourceLine" id="cb6-2" data-line-number="2"><span class="kw">names</span>(examplesoil)</div></code></pre>
+<pre class="sourceCode r" id="cb5"><code class="sourceCode r"><div class="sourceLine" id="cb5-1" data-line-number="1">examplesoil =<span class="st"> </span><span class="kw">soil</span>(spar)</div>
+<div class="sourceLine" id="cb5-2" data-line-number="2"><span class="kw">names</span>(examplesoil)</div></code></pre>
 <pre><code>##  [1] &quot;SoilDepth&quot;    &quot;W&quot;            &quot;SWE&quot;          &quot;Temp&quot;        
 ##  [5] &quot;Ksoil&quot;        &quot;Gsoil&quot;        &quot;dVec&quot;         &quot;sand&quot;        
 ##  [9] &quot;clay&quot;         &quot;om&quot;           &quot;usda_Type&quot;    &quot;VG_alpha&quot;    
@@ -379,43 +378,22 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 ## [17] &quot;rfc&quot;</code></pre>
 <p>In addition to the physical soil description, this object contains soil parameters needed for soil water balance simulations.</p>
 </div>
-<div id="spatial-objects" class="section level3">
-<h3>Spatial objects</h3>
-<p>Package <code>medfate</code> offers three spatial classes that inherit fields from three corresponding classes in package <code>meteoland</code>:</p>
-<ul>
-<li><code>SpatialPointsLandscape</code>: represents a set of forest stands (including soil description) as points within a landscape. Extends class <code>SpatialPointsTopography</code>.</li>
-<li><code>SpatialPixelsLandscape</code>: represents a set of forest stands (including soil description) or other land cover units (i.e. agricultural, rock outcrops or urban areas) as pixels within a gridded landscape. Extends class <code>SpatialPixelsTopography</code>.</li>
-<li><code>SpatialGridLandscape</code>: represents a set of forest stands (including soil description) or other land cover units (i.e. agricultural, rock outcrops or urban areas) as pixels within a complete grid. Extends class <code>SpatialGridTopography</code>.</li>
-</ul>
-<p>Spatial objects allow simulations to be performed more easily for a set of forest stands related spatially. Simulations on objects <code>SpatialPointsLandscape</code> are performed sequentially for all forest stands, but no landscape processes are considered. In contrast, simulating water balance on objects <code>SpatialGridLandscape</code> or <code>SpatialPixelsLandscape</code> allows considering spatial processes such as lateral water transfer.</p>
-</div>
 </div>
 <div id="dynamic-simulation-functions" class="section level2">
 <h2>Dynamic simulation functions</h2>
 <div id="water-balance-and-plant-drought-stress" class="section level3">
 <h3>Water balance and plant drought stress</h3>
-<p>Eco-hydrological processes are fundamental for the simulation models included in the <code>medfate</code> package. Eco-hydrological processes can be divided into local and landscape processes. By local processes we refer to the water balance of soils and plants within forest stands. Processes affecting soil water content include rainfall, canopy interception, infiltration and runoff, percolation and deep drainage, soil evaporation and plant transpiration. In <code>medfate</code>, the soil water balance of a forest is primarily used to predict drought stress for living plants in it. Soil water balance can be studied for a single forest stand using function <code>spwb()</code> or for multiple stands distributed spatially using function <code>spwbpoints()</code> or <code>spwbgrid()</code>. When input data is in form of continuous spatial variation of forests over a landscape, the <code>medfate</code> package allows studying local soil water balance in combination with water discharge from one cell to the other (a landscape hydrological process). This is done using function <code>spwbgrid()</code>.</p>
-<p>Functions <code>spwb()</code> and <code>spwbpoints()</code> may be used to:</p>
+<p>Eco-hydrological processes are fundamental for the simulation models included in the <code>medfate</code> package. In particular, the package allows the simulation of water balance of soils and plants within forest stands. Processes affecting soil water content include rainfall, canopy interception, infiltration and runoff, percolation and deep drainage, soil evaporation and plant transpiration. In <code>medfate</code>, the soil water balance of a forest is primarily used to predict drought stress for living plants in it. Soil water balance can be studied for a single forest stand using function <code>spwb()</code>. Function <code>spwb()</code> may be used to:</p>
 <ol style="list-style-type: decimal">
 <li>Monitor or forecast temporal variation in soil water content in particular stands (for example to estimate mushroom yield).</li>
 <li>Monitor or forecast temporal variation of plant drought stress in particular stands (for example to anticipate mortality events).</li>
 <li>Monitor or forecast temporal variation of fuel moisture in particular stands (for example to monitor wildfire risk).</li>
 </ol>
-<p>Function <code>spwbgrid()</code> may be used to:</p>
-<ol style="list-style-type: decimal">
-<li>Determine areas where particular plant species have high vulnerability to suffer from drought stress.</li>
-<li>Partition the total rainfall in given area among:
-<ol style="list-style-type: lower-roman">
-<li>water evaporated from canopy interception or bare soil evaporation</li>
-<li>water transpired by plants</li>
-<li>water exported via runoff or deep drainage into the water table and river streams.</li>
-</ol></li>
-</ol>
 </div>
 <div id="forest-growth" class="section level3">
 <h3>Forest growth</h3>
 <p>Changes in leaf area and plant growth are key to evaluate the influence of climatic conditions on forest structure and function. Processes affecting annual changes leaf area and plant size are those involved water and carbon balances, as well as those affecting growth directly. Processes influencing plant water balance include those affecting soil water content, such as rainfall, canopy interception, infiltration and runoff, percolation and deep drainage, soil evaporation and plant transpiration. Carbon balance arises from the relationship between plant photosynthesis and respiration, although carbon reserves play a role in the availabity of carbon for growth. Water and carbon balances are coupled through the regulation of transpiration done by stomata. Plant growth is affected by the availability of carbon (source limitation), but also by temperature and water status (sink limitation).</p>
-<p>Package <code>medfate</code> allows simulating plant growth of a set of cohorts (competing for light and water) in a single forest stand using function <code>growth()</code> or for multiple stands distributed spatially using function <code>growthpoints()</code>. Leaf area of plants can be severely decreased by drought stress, causing an increase in dead leaf area and affecting carbon and water fluxes. Functions <code>growth()</code> and <code>growthpoints()</code> may be used to:</p>
+<p>Package <code>medfate</code> allows simulating plant growth of a set of cohorts (competing for light and water) in a single forest stand using function <code>growth()</code>. Leaf area of plants can be severely decreased by drought stress, causing an increase in dead leaf area and affecting carbon and water fluxes. Function <code>growth()</code> may be used to:</p>
 <ol style="list-style-type: decimal">
 <li>Monitor or forecast temporal variation in water fluxes and soil water content in particular stands (for example to estimate regulation ecosystem services) taking into account processes determining plant growth.</li>
 <li>Monitor or forecast temporal variation of plant drought stress in particular stands(for example to anticipate mortality events) taking into account processes determining plant growth.</li>
@@ -426,16 +404,17 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <h3>Sub-model functions</h3>
 <p>Many of the functions included in <code>medfate</code> are internally called by simulation functions. Some of them are made available to the user, to facilitate understanding the different sub-models and to facilitate a more creative use of the package. Sub-model functions are grouped by <em>subject</em>, which is included in the name of the function. The different sub-model functions are (by subject):</p>
 <ul>
-<li><strong>biophysics.* </strong>: Physical and biophysical utility functions.</li>
-<li><strong>hydraulics.* </strong>: Plant hydraulics.</li>
-<li><strong>hydrology.* </strong>: Canopy and soil hydrology (rainfall interception, soil evaporation, soil infiltration).</li>
-<li><strong>light.* </strong>: Light extinction and absortion.</li>
-<li><strong>moisture.* </strong>: Live tissue moisture.</li>
-<li><strong>photo.* </strong>: Leaf photosynthesis.</li>
-<li><strong>root.* </strong>: Root distribution and conductance calculations.</li>
-<li><strong>soil.* </strong>: Soil hydraulics and thermodynamics.</li>
-<li><strong>spwb.* </strong>: Soil water balance parameter optimization/calibration routines.</li>
-<li><strong>transp.* </strong>: Stomatal regulation and resulting transpiration/photosynthesis.</li>
+<li><code>biophysics_*</code>: Physical and biophysical utility functions.</li>
+<li><code>hydraulics_*</code>: Plant hydraulics.</li>
+<li><code>hydrology_*</code>: Canopy and soil hydrology (rainfall interception, soil evaporation, soil infiltration).</li>
+<li><code>light_*</code>: Light extinction and absortion.</li>
+<li><code>moisture_*</code>: Live tissue moisture.</li>
+<li><code>pheno_*</code>: Leaf phenology.</li>
+<li><code>photo_*</code>: Leaf photosynthesis.</li>
+<li><code>root_*</code>: Root distribution and conductance calculations.</li>
+<li><code>soil_*</code>: Soil hydraulics and thermodynamics.</li>
+<li><code>spwb_*</code>: Soil water balance parameter optimization/calibration routines.</li>
+<li><code>transp_*</code>: Stomatal regulation and resulting transpiration/photosynthesis.</li>
 </ul>
 </div>
 </div>
@@ -445,15 +424,16 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <h3>Plant and forest attributes</h3>
 <p>Package <code>medfate</code> include a number of functions to examine properties of the plants conforming the <code>forest</code> object, summary functions at the stand level or vertical profiles of several physical properties:</p>
 <ul>
-<li><strong>plant.* </strong>: Cohort-level information (species name, id, leaf area, height…)</li>
-<li><strong>forest.* </strong>: Forest-level attributes (e.g. basal area)</li>
-<li><strong>vprofile.* </strong>: Vertical profiles (light, wind, fuel density, leaf area density).</li>
+<li><code>plant_*</code>: Cohort-level information (species name, id, leaf area, height…).</li>
+<li><code>species_*</code>: Cohort-level attributes aggregated by species (e.g. basal area).</li>
+<li><code>forest_*</code>: Forest-level attributes (e.g. basal area).</li>
+<li><code>vprofile_*</code>: Vertical profiles (light, wind, fuel density, leaf area density).</li>
 </ul>
 </div>
 <div id="fuel-properties-and-fire-hazard" class="section level3">
 <h3>Fuel properties and fire hazard</h3>
-<p>Vegetation functioning and dynamics have strong, but complex, effects on fire hazard. On one hand, growth and death of organs and individuals changes the amount of standing live and dead fuels, as well as downed dead fuels. On the other, day-to-day changes in soil and plant water content changes the physical properties of fuel, notably fuel moisture content. Package <code>medfate</code> provides functions to estimate fuel properties and potential fire behaviour in forest inventory plots. Specifically, function <code>fuel.Stratification()</code> provides a stratification of the stand into understory and canopy strata; and <code>fuel.FCCS()</code> calculates fuel characteristics from a <code>forest</code> object following an adaptation of the protocols described for the Fuel Characteristics Classification System (Prichard et al. 2013). Function <code>fuel.cohortFineFMC()</code> allows obtaining daily fuel moisture content estimates corresponding to the water status of plants, as returned by function <code>spwb()</code>.</p>
-<p>In FCCS, fuelbed is divided into six strata, including canopy, shrub, herbaceous vegetation, dead woody materials, leaf litter and ground fuels. All except ground fuels are considered here. The intensity of burning depends on several factors, including topography, wind conditions, fuel structure and its moisture content, which is determined from antecedent and current meteorological conditions. A modification of the Rothermel’s (1972) model is used in function <code>fire.FCCS()</code> to calculate the intensity of surface fire reaction and the rate of fire spread of surface fires assuming a steady-state fire. Both quantities are dependent on fuel characteristics, windspeed and direction, and topographic slope and aspect. Fuel and fire behaviour functions allow obtaining the following:</p>
+<p>Vegetation functioning and dynamics have strong, but complex, effects on fire hazard. On one hand, growth and death of organs and individuals changes the amount of standing live and dead fuels, as well as downed dead fuels. On the other, day-to-day changes in soil and plant water content changes the physical properties of fuel, notably fuel moisture content. Package <code>medfate</code> provides functions to estimate fuel properties and potential fire behaviour in forest inventory plots. Specifically, function <code>fuel_Stratification()</code> provides a stratification of the stand into understory and canopy strata; and <code>fuel_FCCS()</code> calculates fuel characteristics from a <code>forest</code> object following an adaptation of the protocols described for the Fuel Characteristics Classification System (Prichard et al. 2013). Function <code>fuel_cohortFineFMC()</code> allows obtaining daily fuel moisture content estimates corresponding to the water status of plants, as returned by function <code>spwb()</code>.</p>
+<p>In FCCS, fuelbed is divided into six strata, including canopy, shrub, herbaceous vegetation, dead woody materials, leaf litter and ground fuels. All except ground fuels are considered here. The intensity of burning depends on several factors, including topography, wind conditions, fuel structure and its moisture content, which is determined from antecedent and current meteorological conditions. A modification of the Rothermel’s (1972) model is used in function <code>fire_FCCS()</code> to calculate the intensity of surface fire reaction and the rate of fire spread of surface fires assuming a steady-state fire. Both quantities are dependent on fuel characteristics, windspeed and direction, and topographic slope and aspect. Fuel and fire behaviour functions allow obtaining the following:</p>
 <ol style="list-style-type: decimal">
 <li>Fuel characteristics by stratum.</li>
 <li>Surface fire behavior (i.e. reaction intensity, rate of spread, fireline intensity and flame length).</li>

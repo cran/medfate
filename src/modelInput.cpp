@@ -93,6 +93,7 @@ DataFrame paramsTranspiration(DataFrame above, NumericMatrix V, List soil, DataF
   NumericVector H = above["H"];
   int numCohorts = SP.size();
   NumericVector Vc;
+  double fracRootResistance = control["fracRootResistance"];
   
   NumericVector dVec = soil["dVec"];
   
@@ -112,6 +113,8 @@ DataFrame paramsTranspiration(DataFrame above, NumericMatrix V, List soil, DataF
   NumericVector Kmax_rootxylem = cohortNumericParameter(SP, SpParams, "Kmax_rootxylem");
   NumericVector VCroot_c = cohortNumericParameter(SP, SpParams, "VCroot_c");
   NumericVector VCroot_d = cohortNumericParameter(SP, SpParams, "VCroot_d");
+  NumericVector SLA = cohortNumericParameter(SP, SpParams, "SLA");
+  NumericVector Narea = cohortNumericParameter(SP, SpParams, "Narea");
   NumericVector Vmax298 = cohortNumericParameter(SP, SpParams, "Vmax298");
   NumericVector Jmax298 = cohortNumericParameter(SP, SpParams, "Jmax298");
   NumericVector pRootDisc = cohortNumericParameter(SP, SpParams, "pRootDisc");
@@ -120,7 +123,8 @@ DataFrame paramsTranspiration(DataFrame above, NumericMatrix V, List soil, DataF
   
   NumericVector VCstem_kmax(numCohorts);
   NumericVector VCroottot_kmax(numCohorts, 0.0);
-
+  NumericVector Plant_kmax(numCohorts, 0.0);
+  
   
   for(int c=0;c<numCohorts;c++){
     Vc = V(c,_);
@@ -150,7 +154,7 @@ DataFrame paramsTranspiration(DataFrame above, NumericMatrix V, List soil, DataF
     VCstem_kmax[c]=maximumStemHydraulicConductance(Kmax_stemxylem[c], Hmed[c], Al2As[c],H[c], (Group[c]=="Angiosperm"),control["taper"]); 
     
     //Xylem vulnerability curve
-    if(NumericVector::is_na(VCstem_d[c])) {
+    if(NumericVector::is_na(VCstem_d[c]) | NumericVector::is_na(VCstem_c[c])) {
       double psi50 = NA_REAL;
       // From: Maherali H, Pockman W, Jackson R (2004) Adaptive variation in the vulnerability of woody plants to xylem cavitation. Ecology 85:2184–2199
       if(Group[c]=="Angiosperm") {
@@ -170,18 +174,18 @@ DataFrame paramsTranspiration(DataFrame above, NumericMatrix V, List soil, DataF
       }
       double psi88 = 1.2593*psi50 - 1.4264; //Regression using data from Choat et al. 2012
       NumericVector par = psi2Weibull(psi50, psi88);
-      VCstem_c[c] = par["c"];
-      VCstem_d[c] = par["d"];
+      if(NumericVector::is_na(VCstem_c[c])) VCstem_c[c] = par["c"];
+      if(NumericVector::is_na(VCstem_d[c])) VCstem_d[c] = par["d"];
     }
     
     //Default vulnerability curve parameters if missing
-    if(NumericVector::is_na(VCroot_d[c])) {
+    if(NumericVector::is_na(VCroot_d[c]) | NumericVector::is_na(VCroot_c[c])) {
       double psi50stem = VCstem_d[c]*pow(0.6931472,1.0/VCstem_c[c]);
       double psi50root = 0.742*psi50stem + 0.4892; //Regression using data from Bartlett et al. 2016
       double psi88root = 1.2593*psi50root - 1.4264; //Regression using data from Choat et al. 2012
       NumericVector par = psi2Weibull(psi50root, psi88root);
-      VCroot_c[c] = par["c"];
-      VCroot_d[c] = par["d"];
+      if(NumericVector::is_na(VCroot_c[c])) VCroot_c[c] = par["c"];
+      if(NumericVector::is_na(VCroot_d[c])) VCroot_d[c] = par["d"];
     }
     //Sack, L., & Holbrook, N.M. 2006. Leaf Hydraulics. Annual Review of Plant Biology 57: 361–381.
     if(NumericVector::is_na(VCleaf_kmax[c])) { 
@@ -222,14 +226,33 @@ DataFrame paramsTranspiration(DataFrame above, NumericMatrix V, List soil, DataF
     }
     //Mencuccini M (2003) The ecological significance of long-distance water transport : short-term regulation , long-term acclimation and the hydraulic costs of stature across plant life forms. Plant Cell Environ 26:163–182
     if(NumericVector::is_na(Gwmax[c])) Gwmax[c] = 0.12115*pow(VCleaf_kmax[c], 0.633);
-    // double VCroot_kmaxc = 1.0/((1.0/(VCstem_kmax[c]*fracTotalTreeResistance))-(1.0/VCstem_kmax[c]));
-    double VCroot_kmaxc = maximumRootHydraulicConductance(Kmax_rootxylem[c],Al2As[c], Vc, dVec);
+    
+    double VCroot_kmaxc = NA_REAL;
+    if(NumericVector::is_na(fracRootResistance)) {
+      VCroot_kmaxc = maximumRootHydraulicConductance(Kmax_rootxylem[c],Al2As[c], Vc, dVec);
+    } else {
+      double rstem = (1.0/VCstem_kmax[c]);
+      double rleaf = (1.0/VCleaf_kmax[c]);
+      double rtot = (rstem+rleaf)/(1.0 - fracRootResistance);
+      VCroot_kmaxc = 1.0/(rtot - rstem - rleaf);
+    }
     VCroottot_kmax[c] = VCroot_kmaxc;
-    //Default value of Vmax298 = 100.0
-    if(NumericVector::is_na(Vmax298[c])) Vmax298[c] = 100.0;
+    
+    if(NumericVector::is_na(Vmax298[c]))  {
+      if(!NumericVector::is_na(SLA[c]) & !NumericVector::is_na(Narea[c]))  {
+        //Walker AP, Beckerman AP, Gu L, et al (2014) The relationship of leaf photosynthetic traits - Vcmax and Jmax - to leaf nitrogen, leaf phosphorus, and specific leaf area: A meta-analysis and modeling study. Ecol Evol 4:3218–3235. doi: 10.1002/ece3.1173
+        double lnN = log(Narea[c]);
+        double lnSLA = log(SLA[c]/1000.0); //SLA in m2*g-1
+        Vmax298[c] = exp(1.993 + 2.555*lnN - 0.372*lnSLA + 0.422*lnN*lnSLA);
+      } else {
+        Vmax298[c] = 100.0; //Default value of Vmax298 = 100.0
+      }
+    }
     //Walker AP, Beckerman AP, Gu L, et al (2014) The relationship of leaf photosynthetic traits - Vcmax and Jmax - to leaf nitrogen, leaf phosphorus, and specific leaf area: A meta-analysis and modeling study. Ecol Evol 4:3218–3235. doi: 10.1002/ece3.1173
     if(NumericVector::is_na(Jmax298[c])) Jmax298[c] = exp(1.197 + 0.847*log(Vmax298[c])); 
     
+    //Plant kmax
+    Plant_kmax[c] = 1.0/((1.0/VCleaf_kmax[c])+(1.0/VCstem_kmax[c])+(1.0/VCroottot_kmax[c]));
   }
   
   DataFrame paramsTranspdf = DataFrame::create(
@@ -238,7 +261,8 @@ DataFrame paramsTranspiration(DataFrame above, NumericMatrix V, List soil, DataF
         _["VCleaf_kmax"]=VCleaf_kmax,_["VCleaf_c"]=VCleaf_c,_["VCleaf_d"]=VCleaf_d,
         _["VCstem_kmax"]=VCstem_kmax,_["VCstem_c"]=VCstem_c,_["VCstem_d"]=VCstem_d, 
         _["VCroot_kmax"] = VCroottot_kmax ,_["VCroot_c"]=VCroot_c,_["VCroot_d"]=VCroot_d,
-        _["pRootDisc"] = pRootDisc);
+        _["pRootDisc"] = pRootDisc,
+        _["Plant_kmax"] = Plant_kmax);
   paramsTranspdf.attr("row.names") = above.attr("row.names");
   return(paramsTranspdf);
 }
@@ -372,7 +396,7 @@ List spwbInput(DataFrame above, NumericMatrix V, List soil, DataFrame SpParams, 
   NumericVector H = above["H"];
   NumericVector CR = above["CR"];
   String transpirationMode = control["transpirationMode"];
-  if((transpirationMode!="Simple") & (transpirationMode!="Complex")) stop("Wrong Transpiration mode ('transpirationMode' should be either 'Simple' or 'Complex')");
+  if((transpirationMode!="Granier") & (transpirationMode!="Sperry")) stop("Wrong Transpiration mode ('transpirationMode' should be either 'Granier' or 'Sperry')");
 
   
   String soilFunctions = control["soilFunctions"]; 
@@ -410,7 +434,7 @@ List spwbInput(DataFrame above, NumericMatrix V, List soil, DataFrame SpParams, 
  
 
   List input;
-  if(transpirationMode=="Simple") {
+  if(transpirationMode=="Granier") {
     NumericVector WUE = cohortNumericParameter(SP, SpParams, "WUE");
     NumericVector Psi_Extract = cohortNumericParameter(SP, SpParams, "Psi_Extract");
     NumericVector pRootDisc = cohortNumericParameter(SP, SpParams, "pRootDisc");
@@ -434,7 +458,7 @@ List spwbInput(DataFrame above, NumericMatrix V, List soil, DataFrame SpParams, 
     pvec.attr("names") = above.attr("row.names");
     input["Photosynthesis"] = pvec;
     input["PLC"] = NumericVector(numCohorts, 0.0);
-  } else if(transpirationMode =="Complex"){
+  } else if(transpirationMode =="Sperry"){
     int numStemSegments = control["nStemSegments"];
     bool capacitance = control["capacitance"];
     
@@ -523,7 +547,7 @@ List growthInput(DataFrame above, NumericVector Z, NumericMatrix V, List soil, D
   NumericVector CR = above["CR"];
   
   String transpirationMode = control["transpirationMode"];
-  if((transpirationMode!="Simple") & (transpirationMode!="Complex")) stop("Wrong Transpiration mode ('transpirationMode' should be either 'Simple' or 'Complex')");
+  if((transpirationMode!="Granier") & (transpirationMode!="Sperry")) stop("Wrong Transpiration mode ('transpirationMode' should be either 'Granier' or 'Sperry')");
 
   String soilFunctions = control["soilFunctions"]; 
   if((soilFunctions!="SX") & (soilFunctions!="VG")) stop("Wrong soil functions ('soilFunctions' should be either 'SX' or 'VG')");
@@ -532,6 +556,8 @@ List growthInput(DataFrame above, NumericVector Z, NumericMatrix V, List soil, D
   if((storagePool!="none") & (storagePool!="one")& (storagePool!="two")) stop("Wrong storage pool ('storagePool' should be 'none', 'one' or 'two')");
 
   
+  NumericVector W = soil["W"];
+  int nlayers = W.length();
   
   DataFrame paramsAnatomydf = paramsAnatomy(above, SpParams);
   NumericVector WoodDensity = paramsAnatomydf["WoodDensity"];
@@ -603,7 +629,7 @@ List growthInput(DataFrame above, NumericVector Z, NumericMatrix V, List soil, D
   
 
   List input;
-  if(transpirationMode=="Simple") {
+  if(transpirationMode=="Granier") {
     NumericVector WUE = cohortNumericParameter(SP, SpParams, "WUE");
     NumericVector Psi_Extract = cohortNumericParameter(SP, SpParams, "Psi_Extract");
     NumericVector pRootDisc = cohortNumericParameter(SP, SpParams, "pRootDisc");
@@ -634,7 +660,7 @@ List growthInput(DataFrame above, NumericVector Z, NumericMatrix V, List soil, D
     cvec.attr("names") = above.attr("row.names");
     input["PLC"] = cvec;
 
-  } else if(transpirationMode =="Complex"){
+  } else if(transpirationMode =="Sperry"){
     int numStemSegments = control["nStemSegments"];
     bool capacitance = control["capacitance"];
 
@@ -660,6 +686,8 @@ List growthInput(DataFrame above, NumericVector Z, NumericMatrix V, List soil, D
     psiRoot.attr("names") = above.attr("row.names");
     NumericVector psiLeaf = NumericVector(numCohorts, 0.0);
     psiLeaf.attr("names") = above.attr("row.names");
+    NumericMatrix psiRhizo =  NumericMatrix(numCohorts, nlayers);
+    psiRhizo.attr("dimnames") = List::create(above.attr("row.names"), seq(1,nlayers));
     NumericVector rwcsleaf = NumericVector(numCohorts, 1.0);
     rwcsleaf.attr("names") = above.attr("row.names");
     if(soilFunctions=="SX") {
@@ -694,6 +722,7 @@ List growthInput(DataFrame above, NumericVector Z, NumericMatrix V, List soil, D
     input["RWCsympstem"] = RWCstemmat;
     input["RWCsympleaf"] = rwcsleaf;
     input["Einst"] = Einst;
+    input["psiRhizo"] = psiRhizo;
     input["psiRoot"] = psiRoot;
     input["psiStem"] = psiStemmat;
     input["psiLeaf"] = psiLeaf;
