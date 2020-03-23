@@ -31,6 +31,7 @@ An object (a list) of class \code{spwb_day} with the following elements:
 
 \itemize{
   \item{\code{"cohorts"}: A data frame with cohort information, copied from \code{\link{spwbInput}}.}
+  \item{\code{"EnergyBalance"}: When using the 'Sperry' transpiration mode, the model performs energy balance of the stand and 'EnergyBalance' is returned (see \code{\link{transp_transpirationSperry}}).}
   \item{\code{"WaterBalance"}: A vector of water balance components (rain, snow, net rain, infiltration, ...) for the simulated day, equivalent to one row of 'WaterBalance' object given in \code{\link{spwb}}.}
   \item{\code{"Soil"}: A data frame with results for each soil layer:
     \itemize{
@@ -41,12 +42,14 @@ An object (a list) of class \code{spwb_day} with the following elements:
       \item{\code{"psi"}: Soil water potential (in MPa).}
     }
   }
-  \item{\code{"EnergyBalance"}: When using the 'Sperry' transpiration mode, the model performs energy balance of the stand and 'EnergyBalance' is returned (see \code{\link{transp_transpirationSperry}}).}
+  \item{\code{"Stand"}: A named vector with with stand values for the simulated day, equivalent to one row of 'Stand' object returned by \code{\link{spwb}}.}
   \item{\code{"Plants"}: A data frame of results for each plant cohort (see \code{\link{transp_transpirationGranier}} or \code{\link{transp_transpirationSperry}}).}
+  \item{\code{"SunlitLeaves"} and \code{"ShadeLeaves"}: For each leaf type, a data frame with values of LAI, Vmax298 and Jmax298 for leaves of this type in each plant cohort.}
   \item{\code{"RhizoPsi"}: Minimum water potential (in MPa) inside roots, after crossing rhizosphere, per cohort and soil layer.}
   \item{\code{"ExtractionInst"}: Water extracted by each plant cohort during each time step.}
   \item{\code{"PlantsInst"}: A list with instantaneous (per time step) results for each plant cohort (see \code{\link{transp_transpirationSperry}}).}
-
+  \item{\code{"LightExtinction"}: A list of information regarding radiation balance through the canopy, as returned by function \code{\link{light_instantaneousLightExtinctionAbsortion}}.}
+  \item{\code{"WindExtinction"}: A numeric vector with the wind speed (in m/s) for each plant cohort.}
   }
 }
 \references{
@@ -67,7 +70,7 @@ Objects \code{x} and \code{soil} are modified during the simulation. Daily trans
 data(examplemeteo)
 
 #Load example plot plant data
-data(exampleforest)
+data(exampleforestMED)
 
 #Default species parameterization
 data(SpParamsMED)
@@ -80,7 +83,7 @@ examplesoil = soil(defaultSoilParams(2), W=c(0.5,0.5))
 
 
 #Simulate one day only
-x1 = forest2spwbInput(exampleforest,examplesoil, SpParamsMED, control)
+x1 = forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
 d = 100
 sd1<-spwb_day(x1, examplesoil, rownames(examplemeteo)[d],  
              examplemeteo$MinTemperature[d], examplemeteo$MaxTemperature[d], 
@@ -97,7 +100,7 @@ control$transpirationMode="Sperry"
 
 
 #Simulate one day only
-x2 = forest2spwbInput(exampleforest,examplesoil2, SpParamsMED, control)
+x2 = forest2spwbInput(exampleforestMED,examplesoil2, SpParamsMED, control)
 d = 100
 sd2<-spwb_day(x2, examplesoil2, rownames(examplemeteo)[d],
              examplemeteo$MinTemperature[d], examplemeteo$MaxTemperature[d], 

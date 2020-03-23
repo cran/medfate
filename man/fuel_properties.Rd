@@ -12,11 +12,11 @@ Fuel stratification and fuel characteristics
 Function \code{fuel_stratification} provides a stratification of the stand into understory and canopy strata. Function \code{fuel_FCCS} calculates fuel characteristics from a \code{forest} object following an adaptation of the protocols described for the Fuel Characteristics Classification System (Prichard et al. 2013). Function \code{fuel_windAdjustmentFactor} determines the adjustment factor of wind for surface fires, according to Andrews (2012). Function \code{fuel_cohortFineFMC} calculates the fuel moisture content of leaves and twigs of each cohort, from the results of soil water balance.
 }
 \usage{
-fuel_stratification(object, SpParams, gdd = NA, 
+fuel_stratification(object, SpParams, gdd = NA, mode = "MED",
                       heightProfileStep = 10.0, maxHeightProfile = 5000.0,
                       bulkDensityThreshold = 0.05)
 fuel_FCCS(object, ShrubCover, CanopyCover, SpParams, cohortFMC = as.numeric(c()),
-          gdd = NA, heightProfileStep = 10, maxHeightProfile = 5000, 
+          gdd = NA, mode = "MED", heightProfileStep = 10, maxHeightProfile = 5000, 
           bulkDensityThreshold = 0.05)
 fuel_cohortFineFMC(spwb, x)
 fuel_windAdjustmentFactor(topShrubHeight, bottomCanopyHeight, topCanopyHeight,
@@ -30,6 +30,7 @@ fuel_windAdjustmentFactor(topShrubHeight, bottomCanopyHeight, topCanopyHeight,
   \item{SpParams}{A data frame with species parameters (see \code{\link{SpParamsMED}}).}
   \item{cohortFMC}{A numeric vector of (actual) fuel moisture content by cohort (e.g. taken from the result of \code{fuel_cohortFineFMC}).}
   \item{gdd}{Growth degree-days.}
+  \item{mode}{Calculation mode, either "MED" or "US".}
   \item{heightProfileStep}{Precision for the fuel bulk density profile.}
   \item{maxHeightProfile}{Maximum height for the fuel bulk density profile.}
   \item{bulkDensityThreshold}{Minimum fuel bulk density to delimit fuel strata.}
@@ -97,16 +98,16 @@ Miquel De \enc{Cáceres}{Caceres} Ainsa, Centre Tecnologic Forestal de Catalunya
 }
 \examples{
 #Load example plot plant data
-data(exampleforest)
+data(exampleforestMED)
 
 #Default species parameterization
 data(SpParamsMED)
 
 #Show stratification of fuels
-fuel_stratification(exampleforest, SpParamsMED)
+fuel_stratification(exampleforestMED, SpParamsMED)
 
 #Calculate fuel properties according to FCCS
-fccs = fuel_FCCS(exampleforest, 50,100, SpParamsMED)
+fccs = fuel_FCCS(exampleforestMED, 50,100, SpParamsMED)
 fccs
 
 fuel_windAdjustmentFactor(fccs$htc[2], fccs$hbc[1], fccs$htc[1], fccs$cover[1])

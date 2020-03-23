@@ -81,7 +81,7 @@ void checkgrowthInput(List x, List soil, String transpirationMode, String soilFu
   if(!x.containsElementNamed("paramsBase")) stop("paramsBase missing in growthInput");
   DataFrame paramsBase = Rcpp::as<Rcpp::DataFrame>(x["paramsBase"]);
   if(!paramsBase.containsElementNamed("Sgdd")) stop("Sgdd missing in growthInput$paramsBase");
-  if(!paramsBase.containsElementNamed("k")) stop("k missing in growthInput$paramsBase");
+  if(!paramsBase.containsElementNamed("kPAR")) stop("kPAR missing in growthInput$paramsBase");
   if(!paramsBase.containsElementNamed("g")) stop("g missing in growthInput$paramsBase");
   
   if(!x.containsElementNamed("paramsGrowth")) stop("paramsGrowth missing in growthInput");
@@ -139,6 +139,8 @@ List growth(List x, List soil, DataFrame meteo, double latitude = NA_REAL, doubl
   List spwbInput = clone(x);
   List soilInput = clone(soil);
   
+  // Rcout<<"1";
+  
   //Cohort info
   DataFrame cohorts = Rcpp::as<Rcpp::DataFrame>(x["cohorts"]);
   NumericVector SP = cohorts["SP"];
@@ -149,9 +151,11 @@ List growth(List x, List soil, DataFrame meteo, double latitude = NA_REAL, doubl
   String storagePool = control["storagePool"];
   bool verbose = control["verbose"];
   bool snowpack = control["snowpack"];
-  bool cavitationRefill = control["cavitationRefill"];
+  String cavitationRefill = control["cavitationRefill"];
   bool taper = control["taper"];
   checkgrowthInput(x, soil, transpirationMode, soilFunctions);
+  
+  // Rcout<<"2";
   
   NumericVector Precipitation = meteo["Precipitation"];
   NumericVector MeanTemperature = meteo["MeanTemperature"];
@@ -202,8 +206,9 @@ List growth(List x, List soil, DataFrame meteo, double latitude = NA_REAL, doubl
   //Base parameters
   DataFrame paramsBase = Rcpp::as<Rcpp::DataFrame>(x["paramsBase"]);
   NumericVector Sgdd = paramsBase["Sgdd"];
-  NumericVector k = paramsBase["k"];
+  NumericVector kPAR = paramsBase["kPAR"];
   
+  // Rcout<<"3";
 
   //Transpiration parameters
   DataFrame paramsTransp = Rcpp::as<Rcpp::DataFrame>(x["paramsTransp"]);
@@ -276,8 +281,10 @@ List growth(List x, List soil, DataFrame meteo, double latitude = NA_REAL, doubl
   NumericVector GDD(numDays);
   NumericVector SoilEvaporation(numDays);
   NumericVector LAIcell(numDays);
+  NumericVector LAIcelldead(numDays);
   NumericVector Cm(numDays);
-  NumericVector Lground(numDays);
+  NumericVector LgroundPAR(numDays);
+  NumericVector LgroundSWR(numDays);
   NumericVector Runoff(numDays);
   NumericVector NetRain(numDays);
   NumericVector Rain(numDays);
@@ -295,7 +302,7 @@ List growth(List x, List soil, DataFrame meteo, double latitude = NA_REAL, doubl
   
   NumericVector Wini = soil["W"];
   Wdays(0,_) = Wini;
-
+  
   if(verbose) Rcout << "Performing daily simulations ";
   List s;
   for(int i=0;i<numDays;i++) {
@@ -314,7 +321,8 @@ List growth(List x, List soil, DataFrame meteo, double latitude = NA_REAL, doubl
     //2. Water balance and photosynthesis
     if(transpirationMode=="Granier") {
       double er = erFactor(DOY[i], PET[i], Precipitation[i]);
-      s = spwbDay1(x, soil, MeanTemperature[i], PET[i], Precipitation[i], er, 0.0, Radiation[i], elevation, false); //No Runon in simulations for a single cell
+      s = spwbDay1(x, soil, MeanTemperature[i], PET[i], Precipitation[i], er, 0.0, 
+                   Radiation[i], elevation, false); //No Runon in simulations for a single cell
     } else if(transpirationMode=="Sperry") {
       std::string c = as<std::string>(dateStrings[i]);
       int J = meteoland::radiation_julianDay(std::atoi(c.substr(0, 4).c_str()),std::atoi(c.substr(5,2).c_str()),std::atoi(c.substr(8,2).c_str()));
@@ -335,10 +343,15 @@ List growth(List x, List soil, DataFrame meteo, double latitude = NA_REAL, doubl
                    latitude, elevation, solarConstant, delta, Precipitation[i], PET[i], 
                    er, 0.0, verbose);
     }    
+    
+    List stand = s["Stand"];
+    LgroundPAR[i] = stand["LgroundPAR"];
+    LgroundSWR[i] = stand["LgroundSWR"];
+    LAIcell[i] = stand["LAIcell"];
+    LAIcelldead[i] = stand["LAIcelldead"];
+    Cm[i] = stand["Cm"];
+    
     List db = s["WaterBalance"];
-    Lground[i] = db["Lground"];
-    LAIcell[i] = db["LAIcell"];
-    Cm[i] = db["Cm"];
     DeepDrainage[i] = db["DeepDrainage"];
     Infiltration[i] = db["Infiltration"];
     Runoff[i] = db["Runoff"];
@@ -422,7 +435,7 @@ List growth(List x, List soil, DataFrame meteo, double latitude = NA_REAL, doubl
         fastCstorage[j] = fastCstorage[j]-deltaSAgrowth*cost; //Remove construction costs from (fast) C pool
       }
       if(transpirationMode=="Granier"){
-        if(!cavitationRefill) { //If we track cavitation update proportion of embolized conduits
+        if(cavitationRefill!="total") { //If we track cavitation update proportion of embolized conduits
           NumericVector pEmb =  Rcpp::as<Rcpp::NumericVector>(x["PLC"]);
           pEmb[j] = pEmb[j]*((SA[j] - deltaSAturnover)/(SA[j] + deltaSAgrowth - deltaSAturnover));
         }
@@ -503,7 +516,7 @@ List growth(List x, List soil, DataFrame meteo, double latitude = NA_REAL, doubl
         SAgrowthcum[j] = 0.0; //Reset cumulative growth
       }
 
-      NumericVector L = parcohortC(H, LAI_live, LAI_dead, k, CR);
+      NumericVector L = parcohortC(H, LAI_live, LAI_dead, kPAR, CR);
       for(int j=0;j<numCohorts; j++) {
         if(!NumericVector::is_na(DBH[j])) {
           double fHmod = std::max(0.0,std::min(1.0,(1.0-((H[j]-137.0)/(Hmax[j]-137.0)))));
@@ -512,7 +525,7 @@ List growth(List x, List soil, DataFrame meteo, double latitude = NA_REAL, doubl
           H[j] = H[j] + fHD*deltaDBH[j];
         }
       }
-      NumericVector crNew = treeCrownRatio(N, DBH, H, Acw, Bcw, Acr, B1cr, B2cr, B3cr, C1cr, C2cr);
+      NumericVector crNew = treeCrownRatioMED(N, DBH, H, Acw, Bcw, Acr, B1cr, B2cr, B3cr, C1cr, C2cr);
       for(int j=0;j<numCohorts; j++) {
         if(!NumericVector::is_na(DBH[j])) {
           CR[j] = crNew[j];
@@ -555,16 +568,19 @@ List growth(List x, List soil, DataFrame meteo, double latitude = NA_REAL, doubl
   DataFrame SWB = DataFrame::create(_["W"]=Wdays, _["ML"]=MLdays,_["MLTot"]=MLTot,
                                     _["WTD"] = WaterTable,
                                     _["SWE"] = SWE, _["PlantExt"]=Eplantdays, _["psi"]=psidays);
-  Rcpp::DataFrame DWB = DataFrame::create(_["GDD"] = GDD,
-                                          _["LAIcell"]=LAIcell, _["Cm"]=Cm, _["Lground"] = Lground, _["PET"]=PET, 
+  Rcpp::DataFrame Stand = DataFrame::create(_["GDD"] = GDD,
+                                          _["LAIcell"]=LAIcell, _["LAIcelldead"]=LAIcelldead,
+                                          _["Cm"]=Cm, _["LgroundPAR"] = LgroundPAR, _["LgroundSWR"] = LgroundSWR);
+  Rcpp::DataFrame DWB = DataFrame::create(_["PET"]=PET, 
                                           _["Precipitation"] = Precipitation, _["Rain"] = Rain, _["Snow"] = Snow, 
                                           _["NetRain"]=NetRain,_["Infiltration"]=Infiltration, _["Runoff"]=Runoff, _["DeepDrainage"]=DeepDrainage, 
                                           _["Evapotranspiration"]=Evapotranspiration,_["SoilEvaporation"]=SoilEvaporation,
                                           _["Transpiration"]=Transpiration);
   
-  SWB.attr("row.names") = meteo.attr("row.names") ;
-  DWB.attr("row.names") = meteo.attr("row.names") ;
-
+  SWB.attr("row.names") = meteo.attr("row.names");
+  DWB.attr("row.names") = meteo.attr("row.names");
+  Stand.attr("row.names") = meteo.attr("row.names");
+  
   PlantTranspiration.attr("dimnames") = List::create(meteo.attr("row.names"), cohorts.attr("row.names"));
   PlantPhotosynthesis.attr("dimnames") = List::create(meteo.attr("row.names"), cohorts.attr("row.names")) ;
   PlantRespiration.attr("dimnames") = List::create(meteo.attr("row.names"), cohorts.attr("row.names")) ;
@@ -586,6 +602,7 @@ List growth(List x, List soil, DataFrame meteo, double latitude = NA_REAL, doubl
                         Named("soilInput") = soilInput,
                         Named("WaterBalance")=DWB, 
                         Named("Soil")=SWB,
+                        Named("Stand")=Stand,
                         Named("PlantTranspiration") = PlantTranspiration,
                         Named("PlantPhotosynthesis") = PlantPhotosynthesis,
                         Named("PlantRespiration") = PlantRespiration,

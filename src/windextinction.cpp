@@ -86,6 +86,7 @@ double windSpeedAtHeightOverCanopy(double z, double wind20H, double canopyHeight
  * Boundary-Layer Meteorol. 40, 179–197
  */
 double windSpeedMassmanExtinction(double z, double wind20H, double LAIc, double canopyHeight) {
+  if(canopyHeight<200.0) canopyHeight = 200.0; //Minimum canopy height of 2 m
   double Uh = windSpeedAtCanopyHeight(wind20H, canopyHeight);
   double beta = 4.0*0.2*LAIc/(0.16*pow(1.5,2.0));
   return(Uh*pow(cosh(beta*(z/canopyHeight))/cosh(beta),0.5));
@@ -130,6 +131,7 @@ NumericVector windExtinctionCohort(NumericVector H, NumericVector CR, double win
 
 
 double aerodynamicResistance(double canopyHeight, double wind) {
+  if(canopyHeight<200.0) canopyHeight = 200.0; //Minimum canopy height of 2 m
   canopyHeight = canopyHeight/100.0;
   double d= 2/3*canopyHeight;
   double zom = 0.123*canopyHeight;

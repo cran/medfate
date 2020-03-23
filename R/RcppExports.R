@@ -61,16 +61,16 @@ plant_largerTreeBasalArea <- function(x) {
     .Call(`_medfate_cohortLargerTreeBasalArea`, x)
 }
 
-forest_basalArea <- function(x) {
-    .Call(`_medfate_forestBasalArea`, x)
+stand_basalArea <- function(x) {
+    .Call(`_medfate_standBasalArea`, x)
 }
 
-plant_density <- function(x, SpParams) {
-    .Call(`_medfate_cohortDensity`, x, SpParams)
+plant_density <- function(x, SpParams, mode = "MED") {
+    .Call(`_medfate_cohortDensity`, x, SpParams, mode)
 }
 
-species_density <- function(x, SpParams) {
-    .Call(`_medfate_speciesDensity`, x, SpParams)
+species_density <- function(x, SpParams, mode = "MED") {
+    .Call(`_medfate_speciesDensity`, x, SpParams, mode)
 }
 
 plant_height <- function(x) {
@@ -81,32 +81,28 @@ plant_height <- function(x) {
     .Call(`_medfate_shrubCrownRatio`, SP, SpParams)
 }
 
-plant_crownRatio <- function(x, SpParams) {
-    .Call(`_medfate_cohortCrownRatio`, x, SpParams)
+plant_crownRatio <- function(x, SpParams, mode = "MED") {
+    .Call(`_medfate_cohortCrownRatio`, x, SpParams, mode)
 }
 
-plant_crownBaseHeight <- function(x, SpParams) {
-    .Call(`_medfate_cohortCrownBaseHeight`, x, SpParams)
+plant_crownBaseHeight <- function(x, SpParams, mode = "MED") {
+    .Call(`_medfate_cohortCrownBaseHeight`, x, SpParams, mode)
 }
 
-plant_crownLength <- function(x, SpParams) {
-    .Call(`_medfate_cohortCrownLength`, x, SpParams)
+plant_crownLength <- function(x, SpParams, mode = "MED") {
+    .Call(`_medfate_cohortCrownLength`, x, SpParams, mode)
 }
 
-.treeFoliarBiomass <- function(SP, N, dbh, SpParams, gdd = NA_real_) {
-    .Call(`_medfate_treeFoliarBiomass`, SP, N, dbh, SpParams, gdd)
+plant_foliarBiomass <- function(x, SpParams, gdd = NA_real_, mode = "MED") {
+    .Call(`_medfate_cohortFoliarBiomass`, x, SpParams, gdd, mode)
 }
 
-.shrubFoliarBiomass <- function(SP, Cover, H, CR, SpParams, gdd = NA_real_) {
-    .Call(`_medfate_shrubFoliarBiomass`, SP, Cover, H, CR, SpParams, gdd)
+species_foliarBiomass <- function(x, SpParams, gdd = NA_real_, mode = "MED") {
+    .Call(`_medfate_speciesFoliarBiomass`, x, SpParams, gdd, mode)
 }
 
-plant_foliarBiomass <- function(x, SpParams, gdd = NA_real_) {
-    .Call(`_medfate_cohortFoliarBiomass`, x, SpParams, gdd)
-}
-
-species_foliarBiomass <- function(x, SpParams, gdd = NA_real_) {
-    .Call(`_medfate_speciesFoliarBiomass`, x, SpParams, gdd)
+stand_foliarBiomass <- function(x, SpParams, gdd = NA_real_, mode = "MED") {
+    .Call(`_medfate_standFoliarBiomass`, x, SpParams, gdd, mode)
 }
 
 .shrubCover <- function(x, excludeMinHeight = 0.0) {
@@ -133,20 +129,20 @@ species_phytovolume <- function(x, SpParams) {
     .Call(`_medfate_speciesPhytovolume`, x, SpParams)
 }
 
-.treeFuel <- function(SP, N, dbh, SpParams, gdd = NA_real_, includeDead = TRUE) {
-    .Call(`_medfate_treeFuel`, SP, N, dbh, SpParams, gdd, includeDead)
+stand_phytovolume <- function(x, SpParams) {
+    .Call(`_medfate_standPhytovolume`, x, SpParams)
 }
 
-.shrubFuel <- function(SP, Cover, H, CR, SpParams, gdd = NA_real_, includeDead = TRUE) {
-    .Call(`_medfate_shrubFuel`, SP, Cover, H, CR, SpParams, gdd, includeDead)
+plant_fuel <- function(x, SpParams, gdd = NA_real_, includeDead = TRUE, mode = "MED") {
+    .Call(`_medfate_cohortFuel`, x, SpParams, gdd, includeDead, mode)
 }
 
-plant_fuel <- function(x, SpParams, gdd = NA_real_, includeDead = TRUE) {
-    .Call(`_medfate_cohortFuel`, x, SpParams, gdd, includeDead)
+species_fuel <- function(x, SpParams, gdd = NA_real_, includeDead = TRUE, mode = "MED") {
+    .Call(`_medfate_speciesFuel`, x, SpParams, gdd, includeDead, mode)
 }
 
-species_fuel <- function(x, SpParams, gdd = NA_real_, includeDead = TRUE) {
-    .Call(`_medfate_speciesFuel`, x, SpParams, gdd, includeDead)
+stand_fuel <- function(x, SpParams, gdd = NA_real_, includeDead = TRUE, mode = "MED") {
+    .Call(`_medfate_standFuel`, x, SpParams, gdd, includeDead, mode)
 }
 
 plant_equilibriumLeafLitter <- function(x, SpParams, AET = 800) {
@@ -157,40 +153,36 @@ plant_equilibriumSmallBranchLitter <- function(x, SpParams, smallBranchDecomposi
     .Call(`_medfate_cohortEquilibriumSmallBranchLitter`, x, SpParams, smallBranchDecompositionRate)
 }
 
-.treeLAI <- function(SP, N, dbh, SpParams, gdd = NA_real_) {
-    .Call(`_medfate_treeLAI`, SP, N, dbh, SpParams, gdd)
+plant_LAI <- function(x, SpParams, gdd = NA_real_, mode = "MED") {
+    .Call(`_medfate_cohortLAI`, x, SpParams, gdd, mode)
 }
 
-.shrubLAI <- function(SP, Cover, H, SpParams, gdd = NA_real_) {
-    .Call(`_medfate_shrubLAI`, SP, Cover, H, SpParams, gdd)
+species_LAI <- function(x, SpParams, gdd = NA_real_, mode = "MED") {
+    .Call(`_medfate_speciesLAI`, x, SpParams, gdd, mode)
 }
 
-plant_LAI <- function(x, SpParams, gdd = NA_real_) {
-    .Call(`_medfate_cohortLAI`, x, SpParams, gdd)
-}
-
-species_LAI <- function(x, SpParams, gdd = NA_real_) {
-    .Call(`_medfate_speciesLAI`, x, SpParams, gdd)
+stand_LAI <- function(x, SpParams, gdd = NA_real_, mode = "MED") {
+    .Call(`_medfate_standLAI`, x, SpParams, gdd, mode)
 }
 
 .LAIdistributionVectors <- function(z, LAI, H, CR) {
     .Call(`_medfate_LAIdistributionVectors`, z, LAI, H, CR)
 }
 
-.LAIdistribution <- function(z, x, SpParams, gdd = NA_real_) {
-    .Call(`_medfate_LAIdistribution`, z, x, SpParams, gdd)
+.LAIdistribution <- function(z, x, SpParams, gdd = NA_real_, mode = "MED") {
+    .Call(`_medfate_LAIdistribution`, z, x, SpParams, gdd, mode)
 }
 
 .LAIprofileVectors <- function(z, LAI, H, CR) {
     .Call(`_medfate_LAIprofileVectors`, z, LAI, H, CR)
 }
 
-.LAIprofile <- function(z, x, SpParams, gdd = NA_real_) {
-    .Call(`_medfate_LAIprofile`, z, x, SpParams, gdd)
+.LAIprofile <- function(z, x, SpParams, gdd = NA_real_, mode = "MED") {
+    .Call(`_medfate_LAIprofile`, z, x, SpParams, gdd, mode)
 }
 
-forest2aboveground <- function(x, SpParams, gdd = NA_real_) {
-    .Call(`_medfate_forest2aboveground`, x, SpParams, gdd)
+forest2aboveground <- function(x, SpParams, gdd = NA_real_, mode = "MED") {
+    .Call(`_medfate_forest2aboveground`, x, SpParams, gdd, mode)
 }
 
 forest2belowground <- function(x, soil, SpParams) {
@@ -217,8 +209,8 @@ fuel_cohortFineFMC <- function(spwb, x) {
     .Call(`_medfate_cohortFineFuelMoistureContent`, spwb, x)
 }
 
-.woodyFuelProfile <- function(z, x, SpParams, gdd = NA_real_) {
-    .Call(`_medfate_woodyFuelProfile`, z, x, SpParams, gdd)
+.woodyFuelProfile <- function(z, x, SpParams, gdd = NA_real_, mode = "MED") {
+    .Call(`_medfate_woodyFuelProfile`, z, x, SpParams, gdd, mode)
 }
 
 .layerCohortFuelLoading <- function(minHeight, maxHeight, cohortLoading, H, CR) {
@@ -245,12 +237,12 @@ fuel_cohortFineFMC <- function(spwb, x) {
     .Call(`_medfate_layerFuelAverageCrownLength`, minHeight, maxHeight, cohortCrownLength, cohortLoading, H, CR)
 }
 
-fuel_stratification <- function(object, SpParams, gdd = NA_real_, heightProfileStep = 10.0, maxHeightProfile = 5000.0, bulkDensityThreshold = 0.05) {
-    .Call(`_medfate_fuelLiveStratification`, object, SpParams, gdd, heightProfileStep, maxHeightProfile, bulkDensityThreshold)
+fuel_stratification <- function(object, SpParams, gdd = NA_real_, mode = "MED", heightProfileStep = 10.0, maxHeightProfile = 5000.0, bulkDensityThreshold = 0.05) {
+    .Call(`_medfate_fuelLiveStratification`, object, SpParams, gdd, mode, heightProfileStep, maxHeightProfile, bulkDensityThreshold)
 }
 
-fuel_FCCS <- function(object, ShrubCover, CanopyCover, SpParams, cohortFMC = as.numeric( c()), gdd = NA_real_, heightProfileStep = 10.0, maxHeightProfile = 5000, bulkDensityThreshold = 0.05) {
-    .Call(`_medfate_FCCSproperties`, object, ShrubCover, CanopyCover, SpParams, cohortFMC, gdd, heightProfileStep, maxHeightProfile, bulkDensityThreshold)
+fuel_FCCS <- function(object, ShrubCover, CanopyCover, SpParams, cohortFMC = as.numeric( c()), gdd = NA_real_, mode = "MED", heightProfileStep = 10.0, maxHeightProfile = 5000, bulkDensityThreshold = 0.05) {
+    .Call(`_medfate_FCCSproperties`, object, ShrubCover, CanopyCover, SpParams, cohortFMC, gdd, mode, heightProfileStep, maxHeightProfile, bulkDensityThreshold)
 }
 
 .growth_defoliationFraction <- function(conc, threshold) {
@@ -305,6 +297,10 @@ hydraulics_E2psiXylem <- function(E, psiUpstream, kxylemmax, c, d, psiCav = 0.0)
     .Call(`_medfate_E2psiXylem`, E, psiUpstream, kxylemmax, c, d, psiCav)
 }
 
+hydraulics_E2psiXylemUp <- function(E, psiDownstream, kxylemmax, c, d, psiCav = 0.0) {
+    .Call(`_medfate_E2psiXylemUp`, E, psiDownstream, kxylemmax, c, d, psiCav)
+}
+
 hydraulics_EVanGenuchten <- function(psiRhizo, psiSoil, krhizomax, n, alpha, l = 0.5) {
     .Call(`_medfate_EVanGenuchten`, psiRhizo, psiSoil, krhizomax, n, alpha, l)
 }
@@ -333,20 +329,16 @@ hydraulics_E2psiAboveground <- function(E, psiRootCrown, kstemmax, stemc, stemd,
     .Call(`_medfate_E2psiAboveground`, E, psiRootCrown, kstemmax, stemc, stemd, kleafmax, leafc, leafd, PLCstem)
 }
 
-hydraulics_E2psiAbovegroundCapacitance <- function(E, psiRootCrown, psiStemPrev, PLCstem, psiLeafPrev, kstemmax, stemc, stemd, kleafmax, leafc, leafd, Vsapwood, stemfapo, stempi0, stemeps, Vleaf, leaffapo, leafpi0, leafeps, tstep = 3600.0) {
-    .Call(`_medfate_E2psiAbovegroundCapacitance`, E, psiRootCrown, psiStemPrev, PLCstem, psiLeafPrev, kstemmax, stemc, stemd, kleafmax, leafc, leafd, Vsapwood, stemfapo, stempi0, stemeps, Vleaf, leaffapo, leafpi0, leafeps, tstep)
+hydraulics_E2psiFineRootLeaf <- function(E, psiFineRoot, krootmax, rootc, rootd, kstemmax, stemc, stemd, kleafmax, leafc, leafd, PLCstem) {
+    .Call(`_medfate_E2psiFineRootLeaf`, E, psiFineRoot, krootmax, rootc, rootd, kstemmax, stemc, stemd, kleafmax, leafc, leafd, PLCstem)
 }
 
-hydraulics_E2psiAbovegroundCapacitanceDisconnected <- function(E, psiStemPrev, PLCstem, RWCsympstemPrev, psiLeafPrev, RWCsympleafPrev, kstemmax, stemc, stemd, kleafmax, leafc, leafd, Vsapwood, stemfapo, stempi0, stemeps, Vleaf, leaffapo, leafpi0, leafeps, klat, tstep = 3600.0) {
-    .Call(`_medfate_E2psiAbovegroundCapacitanceDisconnected`, E, psiStemPrev, PLCstem, RWCsympstemPrev, psiLeafPrev, RWCsympleafPrev, kstemmax, stemc, stemd, kleafmax, leafc, leafd, Vsapwood, stemfapo, stempi0, stemeps, Vleaf, leaffapo, leafpi0, leafeps, klat, tstep)
+hydraulics_E2psiNetworkStem1 <- function(E, psiSoil, krhizomax, nsoil, alphasoil, krootmax, rootc, rootd, kstemmax, stemc, stemd, PLCstem, psiIni = as.numeric( c(0)), ntrial = 10L, psiTol = 0.0001, ETol = 0.0001) {
+    .Call(`_medfate_E2psiNetworkStem1`, E, psiSoil, krhizomax, nsoil, alphasoil, krootmax, rootc, rootd, kstemmax, stemc, stemd, PLCstem, psiIni, ntrial, psiTol, ETol)
 }
 
 hydraulics_E2psiNetwork <- function(E, psiSoil, krhizomax, nsoil, alphasoil, krootmax, rootc, rootd, kstemmax, stemc, stemd, kleafmax, leafc, leafd, PLCstem, psiIni = as.numeric( c(0)), ntrial = 10L, psiTol = 0.0001, ETol = 0.0001) {
     .Call(`_medfate_E2psiNetwork`, E, psiSoil, krhizomax, nsoil, alphasoil, krootmax, rootc, rootd, kstemmax, stemc, stemd, kleafmax, leafc, leafd, PLCstem, psiIni, ntrial, psiTol, ETol)
-}
-
-hydraulics_E2psiNetworkCapacitance <- function(E, psiSoil, psiStemPrev, PLCstem, psiLeafPrev, krhizomax, nsoil, alphasoil, krootmax, rootc, rootd, kstemmax, stemc, stemd, kleafmax, leafc, leafd, Vsapwood, stemfapo, stempi0, stemeps, Vleaf, leaffapo, leafpi0, leafeps, tstep = 3600.0, psiIni = as.numeric( c(0)), ntrial = 10L, psiTol = 0.0001, ETol = 0.0001) {
-    .Call(`_medfate_E2psiNetworkCapacitance`, E, psiSoil, psiStemPrev, PLCstem, psiLeafPrev, krhizomax, nsoil, alphasoil, krootmax, rootc, rootd, kstemmax, stemc, stemd, kleafmax, leafc, leafd, Vsapwood, stemfapo, stempi0, stemeps, Vleaf, leaffapo, leafpi0, leafeps, tstep, psiIni, ntrial, psiTol, ETol)
 }
 
 hydraulics_supplyFunctionOneXylem <- function(psiSoil, v, kstemmax, stemc, stemd, psiCav = 0.0, maxNsteps = 200L, dE = 0.01) {
@@ -369,16 +361,16 @@ hydraulics_supplyFunctionAboveground <- function(Erootcrown, psiRootCrown, kstem
     .Call(`_medfate_supplyFunctionAboveground`, Erootcrown, psiRootCrown, kstemmax, stemc, stemd, kleafmax, leafc, leafd, PLCstem)
 }
 
-hydraulics_supplyFunctionAbovegroundCapacitance <- function(Erootcrown, psiRootCrown, psiStemPrev, PLCstemPrev, psiLeafPrev, kstemmax, stemc, stemd, kleafmax, leafc, leafd, Vsapwood, stemfapo, stempi0, stemeps, Vleaf, leaffapo, leafpi0, leafeps, tstep = 3600.0) {
-    .Call(`_medfate_supplyFunctionAbovegroundCapacitance`, Erootcrown, psiRootCrown, psiStemPrev, PLCstemPrev, psiLeafPrev, kstemmax, stemc, stemd, kleafmax, leafc, leafd, Vsapwood, stemfapo, stempi0, stemeps, Vleaf, leaffapo, leafpi0, leafeps, tstep)
+hydraulics_supplyFunctionFineRootLeaf <- function(psiFineRoot, krootmax, rootc, rootd, kstemmax, stemc, stemd, kleafmax, leafc, leafd, PLCstem, minFlow = 0.0, maxNsteps = 400L, ETol = 0.0001, pCrit = 0.001) {
+    .Call(`_medfate_supplyFunctionFineRootLeaf`, psiFineRoot, krootmax, rootc, rootd, kstemmax, stemc, stemd, kleafmax, leafc, leafd, PLCstem, minFlow, maxNsteps, ETol, pCrit)
+}
+
+hydraulics_supplyFunctionNetworkStem1 <- function(psiSoil, krhizomax, nsoil, alphasoil, krootmax, rootc, rootd, kstemmax, stemc, stemd, PLCstem, minFlow = 0.0, maxNsteps = 400L, ntrial = 200L, psiTol = 0.0001, ETol = 0.0001, pCrit = 0.001) {
+    .Call(`_medfate_supplyFunctionNetworkStem1`, psiSoil, krhizomax, nsoil, alphasoil, krootmax, rootc, rootd, kstemmax, stemc, stemd, PLCstem, minFlow, maxNsteps, ntrial, psiTol, ETol, pCrit)
 }
 
 hydraulics_supplyFunctionNetwork <- function(psiSoil, krhizomax, nsoil, alphasoil, krootmax, rootc, rootd, kstemmax, stemc, stemd, kleafmax, leafc, leafd, PLCstem, minFlow = 0.0, maxNsteps = 400L, ntrial = 200L, psiTol = 0.0001, ETol = 0.0001, pCrit = 0.001) {
     .Call(`_medfate_supplyFunctionNetwork`, psiSoil, krhizomax, nsoil, alphasoil, krootmax, rootc, rootd, kstemmax, stemc, stemd, kleafmax, leafc, leafd, PLCstem, minFlow, maxNsteps, ntrial, psiTol, ETol, pCrit)
-}
-
-hydraulics_supplyFunctionNetworkCapacitance <- function(psiSoil, psiStemPrev, PLCstemPrev, psiLeafPrev, krhizomax, nsoil, alphasoil, krootmax, rootc, rootd, kstemmax, stemc, stemd, kleafmax, leafc, leafd, Vsapwood, stemfapo, stempi0, stemeps, Vleaf, leaffapo, leafpi0, leafeps, tstep = 3600.0, minFlow = 0.0, maxNsteps = 400L, ntrial = 200L, psiTol = 0.0001, ETol = 0.0001, pCrit = 0.001) {
-    .Call(`_medfate_supplyFunctionNetworkCapacitance`, psiSoil, psiStemPrev, PLCstemPrev, psiLeafPrev, krhizomax, nsoil, alphasoil, krootmax, rootc, rootd, kstemmax, stemc, stemd, kleafmax, leafc, leafd, Vsapwood, stemfapo, stempi0, stemeps, Vleaf, leaffapo, leafpi0, leafeps, tstep, minFlow, maxNsteps, ntrial, psiTol, ETol, pCrit)
 }
 
 hydraulics_regulatedPsiXylem <- function(E, psiUpstream, kxylemmax, c, d, psiStep = -0.01) {
@@ -465,8 +457,12 @@ hydrology_snowMelt <- function(tday, rad, LgroundSWR, elevation) {
     .Call(`_medfate_snowMelt`, tday, rad, LgroundSWR, elevation)
 }
 
-hydrology_verticalInputs <- function(soil, soilFunctions, prec, er, tday, rad, elevation, Cm, LgroundPAR, LgroundSWR, runon = 0.0, snowpack = TRUE, drainage = TRUE, modifySoil = TRUE) {
-    .Call(`_medfate_verticalInputs`, soil, soilFunctions, prec, er, tday, rad, elevation, Cm, LgroundPAR, LgroundSWR, runon, snowpack, drainage, modifySoil)
+hydrology_soilWaterInputs <- function(soil, soilFunctions, prec, er, tday, rad, elevation, Cm, LgroundPAR, LgroundSWR, runon = 0.0, snowpack = TRUE, modifySoil = TRUE) {
+    .Call(`_medfate_soilWaterInputs`, soil, soilFunctions, prec, er, tday, rad, elevation, Cm, LgroundPAR, LgroundSWR, runon, snowpack, modifySoil)
+}
+
+hydrology_soilInfiltrationPercolation <- function(soil, soilFunctions, waterInput, drainage = TRUE, modifySoil = TRUE) {
+    .Call(`_medfate_soilInfiltrationPercolation`, soil, soilFunctions, waterInput, drainage, modifySoil)
 }
 
 .incgam <- function(a, x) {
@@ -493,15 +489,15 @@ hydrology_verticalInputs <- function(soil, soilFunctions, prec, er, tday, rad, e
     .Call(`_medfate_swrheight`, heights, SP, H, CR, LAI, SpParams)
 }
 
-.parExtinctionProfile <- function(z, x, SpParams, gdd = NA_real_) {
-    .Call(`_medfate_parExtinctionProfile`, z, x, SpParams, gdd)
+.parExtinctionProfile <- function(z, x, SpParams, gdd = NA_real_, mode = "MED") {
+    .Call(`_medfate_parExtinctionProfile`, z, x, SpParams, gdd, mode)
 }
 
-.swrExtinctionProfile <- function(z, x, SpParams, gdd = NA_real_) {
-    .Call(`_medfate_swrExtinctionProfile`, z, x, SpParams, gdd)
+.swrExtinctionProfile <- function(z, x, SpParams, gdd = NA_real_, mode = "MED") {
+    .Call(`_medfate_swrExtinctionProfile`, z, x, SpParams, gdd, mode)
 }
 
-.cohortAbsorbedSWRFraction <- function(z, x, SpParams, gdd = NA_real_) {
+light_cohortAbsorbedSWRFraction <- function(z, x, SpParams, gdd = NA_real_) {
     .Call(`_medfate_cohortAbsorbedSWRFraction`, z, x, SpParams, gdd)
 }
 
@@ -521,8 +517,8 @@ light_layerSunlitFraction <- function(LAIme, LAImd, kb) {
     .Call(`_medfate_layerSunlitFraction`, LAIme, LAImd, kb)
 }
 
-light_instantaneousLightExtinctionAbsortion <- function(LAIme, LAImd, LAImx, kPAR, gammaSWR, ddd, LWR_diffuse, ntimesteps = 24L, canopyMode = "sunshade", trunkExtinctionFraction = 0.1) {
-    .Call(`_medfate_instantaneousLightExtinctionAbsortion`, LAIme, LAImd, LAImx, kPAR, gammaSWR, ddd, LWR_diffuse, ntimesteps, canopyMode, trunkExtinctionFraction)
+light_instantaneousLightExtinctionAbsortion <- function(LAIme, LAImd, LAImx, kPAR, alphaSWR, gammaSWR, ddd, LWR_diffuse, ntimesteps = 24L, canopyMode = "sunshade", trunkExtinctionFraction = 0.1) {
+    .Call(`_medfate_instantaneousLightExtinctionAbsortion`, LAIme, LAImd, LAImx, kPAR, alphaSWR, gammaSWR, ddd, LWR_diffuse, ntimesteps, canopyMode, trunkExtinctionFraction)
 }
 
 .checkSpeciesParameters <- function(SpParams, params) {
@@ -585,16 +581,16 @@ photo_photosynthesis <- function(Q, Catm, Gc, leaf_temp, Vmax298, Jmax298, verbo
     .Call(`_medfate_leafphotosynthesis`, Q, Catm, Gc, leaf_temp, Vmax298, Jmax298, verbose)
 }
 
-photo_leafPhotosynthesisFunction <- function(E, Catm, Patm, Tair, vpa, u, absRad, Q, Vmax298, Jmax298, Gwmin, Gwmax, leafWidth = 1.0, refLeafArea = 1.0, verbose = FALSE) {
-    .Call(`_medfate_leafPhotosynthesisFunction`, E, Catm, Patm, Tair, vpa, u, absRad, Q, Vmax298, Jmax298, Gwmin, Gwmax, leafWidth, refLeafArea, verbose)
+photo_leafPhotosynthesisFunction <- function(E, Catm, Patm, Tair, vpa, u, absRad, Q, Vmax298, Jmax298, leafWidth = 1.0, refLeafArea = 1.0, verbose = FALSE) {
+    .Call(`_medfate_leafPhotosynthesisFunction`, E, Catm, Patm, Tair, vpa, u, absRad, Q, Vmax298, Jmax298, leafWidth, refLeafArea, verbose)
 }
 
-photo_sunshadePhotosynthesisFunction <- function(E, Catm, Patm, Tair, vpa, SLarea, SHarea, u, absRadSL, absRadSH, QSL, QSH, Vmax298SL, Vmax298SH, Jmax298SL, Jmax298SH, Gwmin, Gwmax, leafWidth = 1.0, verbose = FALSE) {
-    .Call(`_medfate_sunshadePhotosynthesisFunction`, E, Catm, Patm, Tair, vpa, SLarea, SHarea, u, absRadSL, absRadSH, QSL, QSH, Vmax298SL, Vmax298SH, Jmax298SL, Jmax298SH, Gwmin, Gwmax, leafWidth, verbose)
+photo_sunshadePhotosynthesisFunction <- function(E, Catm, Patm, Tair, vpa, SLarea, SHarea, u, absRadSL, absRadSH, QSL, QSH, Vmax298SL, Vmax298SH, Jmax298SL, Jmax298SH, leafWidth = 1.0, verbose = FALSE) {
+    .Call(`_medfate_sunshadePhotosynthesisFunction`, E, Catm, Patm, Tair, vpa, SLarea, SHarea, u, absRadSL, absRadSH, QSL, QSH, Vmax298SL, Vmax298SH, Jmax298SL, Jmax298SH, leafWidth, verbose)
 }
 
-photo_multilayerPhotosynthesisFunction <- function(E, Catm, Patm, Tair, vpa, SLarea, SHarea, u, absRadSL, absRadSH, QSL, QSH, Vmax298, Jmax298, Gwmin, Gwmax, leafWidth = 1.0, verbose = FALSE) {
-    .Call(`_medfate_multilayerPhotosynthesisFunction`, E, Catm, Patm, Tair, vpa, SLarea, SHarea, u, absRadSL, absRadSH, QSL, QSH, Vmax298, Jmax298, Gwmin, Gwmax, leafWidth, verbose)
+photo_multilayerPhotosynthesisFunction <- function(E, Catm, Patm, Tair, vpa, SLarea, SHarea, u, absRadSL, absRadSH, QSL, QSH, Vmax298, Jmax298, leafWidth = 1.0, verbose = FALSE) {
+    .Call(`_medfate_multilayerPhotosynthesisFunction`, E, Catm, Patm, Tair, vpa, SLarea, SHarea, u, absRadSL, absRadSH, QSL, QSH, Vmax298, Jmax298, leafWidth, verbose)
 }
 
 root_conicDistribution <- function(Zcone, d) {
@@ -615,6 +611,10 @@ root_rootLengths <- function(v, d, depthWidthRatio = 1.0) {
 
 root_xylemConductanceProportions <- function(v, d, depthWidthRatio = 1.0) {
     .Call(`_medfate_xylemConductanceProportions`, v, d, depthWidthRatio)
+}
+
+root_rhizosphereOverlapProportions <- function(V, LAIlive, poolOverlapFactor) {
+    .Call(`_medfate_rhizosphereOverlapProportions`, V, LAIlive, poolOverlapFactor)
 }
 
 soil_thetaSATSX <- function(clay, sand, om = NA_real_) {
@@ -697,6 +697,10 @@ soil_water <- function(soil, model = "SX") {
     .Call(`_medfate_water`, soil, model)
 }
 
+soil_rockWeight2Volume <- function(pWeight, bulkDensity, rockDensity = 2.3) {
+    .Call(`_medfate_rockWeight2Volume`, pWeight, bulkDensity, rockDensity)
+}
+
 soil_psi <- function(soil, model = "SX") {
     .Call(`_medfate_psi`, soil, model)
 }
@@ -753,16 +757,16 @@ moisture_tissueFMC <- function(RWC, density, d0 = 1.54) {
     .Call(`_medfate_tissueFMC`, RWC, density, d0)
 }
 
-transp_profitMaximization <- function(supplyFunction, photosynthesisFunction, type, Gwmin, Gwmax, kleafmax = NA_real_) {
-    .Call(`_medfate_profitMaximization`, supplyFunction, photosynthesisFunction, type, Gwmin, Gwmax, kleafmax)
+transp_profitMaximization <- function(supplyFunction, photosynthesisFunction, Gwmin, Gwmax, gainModifier = 1.0, costModifier = 1.0) {
+    .Call(`_medfate_profitMaximization`, supplyFunction, photosynthesisFunction, Gwmin, Gwmax, gainModifier, costModifier)
 }
 
-transp_transpirationSperry <- function(x, soil, meteo, day, latitude, elevation, slope, aspect, canopyEvaporation = 0.0, snowMelt = 0.0, soilEvaporation = 0.0, stepFunctions = NA_integer_, modifyInput = TRUE) {
-    .Call(`_medfate_transpirationSperry`, x, soil, meteo, day, latitude, elevation, slope, aspect, canopyEvaporation, snowMelt, soilEvaporation, stepFunctions, modifyInput)
+transp_transpirationSperry <- function(x, soil, meteo, day, latitude, elevation, slope, aspect, canopyEvaporation = 0.0, snowMelt = 0.0, soilEvaporation = 0.0, stepFunctions = NA_integer_, modifyInputX = TRUE, modifyInputSoil = TRUE) {
+    .Call(`_medfate_transpirationSperry`, x, soil, meteo, day, latitude, elevation, slope, aspect, canopyEvaporation, snowMelt, soilEvaporation, stepFunctions, modifyInputX, modifyInputSoil)
 }
 
-transp_transpirationGranier <- function(x, soil, meteo, day, modifyInput = TRUE) {
-    .Call(`_medfate_transpirationGranier`, x, soil, meteo, day, modifyInput)
+transp_transpirationGranier <- function(x, soil, meteo, day, modifyInputX = TRUE, modifyInputSoil = TRUE) {
+    .Call(`_medfate_transpirationGranier`, x, soil, meteo, day, modifyInputX, modifyInputSoil)
 }
 
 .windSpeedAtCanopyHeight <- function(wind20H, canopyHeight) {

@@ -61,10 +61,6 @@ spwb_resetInputs(x, soil, from = NULL, day = NA)
      \item{\code{"soilInput"}: An (unmodified) copy of the object \code{soil} of class \code{\link{soil}} given as input (note that \code{soil} is modified by the simulation function).}
      \item{\code{"WaterBalance"}: A data frame where different variables (in columns) are given for each simulated day (in rows):}
        \itemize{
-          \item{\code{"GDD"}: Cumulative growth degree days.}
-          \item{\code{"LAIcell"}: The LAI of the stand (accounting for leaf phenology) (in m2/m2).}
-          \item{\code{"Cm"}: The water retention capacity of the stand (in mm) (accounting for leaf phenology).}
-          \item{\code{"Lground"}: The proportion of light that reaches the ground (accounting for leaf phenology).}
           \item{\code{"PET"}: Potential evapotranspiration (in mm).}
           \item{\code{"Precipitation"}: Input precipitation (in mm).}
           \item{\code{"Rain"}: Precipitation as rain (in mm).}
@@ -90,7 +86,18 @@ spwb_resetInputs(x, soil, from = NULL, day = NA)
           \item{\code{"HydraulicInput.1"}, \code{...}, \code{"HydraulicInput.k"}: Water that entered the layer coming from other layers and transported via the plant hydraulic network (in mm) (only for \code{transpirationMode = "Sperry"}).}
           \item{\code{"psi.1"}, \code{...}, \code{"psi.k"}: Soil water potential in each soil layer (in MPa).}
         }
+      \item{\code{"Stand"}: A data frame where different variables (in columns) are given for each simulated day (in rows):}
+      
+       \itemize{
+          \item{\code{"GDD"}: Cumulative growth degree days.}
+          \item{\code{"LAIcell"}: LAI of the stand (accounting for leaf phenology) (in m2/m2).}
+          \item{\code{"LAIcelldead"}: LAI of the stand corresponding to dead leaves (in m2/m2).}
+          \item{\code{"Cm"}: Water retention capacity of the canopy (in mm) (accounting for leaf phenology).}
+          \item{\code{"LgroundPAR"}: The proportion of PAR that reaches the ground (accounting for leaf phenology).}
+          \item{\code{"LgroundSWR"}: The proportion of SWR that reaches the ground (accounting for leaf phenology).}
+      }
      \item{\code{"PlantLAI"}: A data frame with the daily leaf area index for each plant cohort. Days are in rows and plant cohorts are in columns.}
+     \item{\code{"PlantAbsorbedSWRFraction"}: A data frame with the fraction of SWR absorbed by each plant cohort. Days are in rows and plant cohorts are in columns.}
      \item{\code{"PlantTranspiration"}: A data frame with the amount of daily transpiration (in mm) for each plant cohort. Days are in rows and plant cohorts are in columns.}
      \item{\code{"PlantPhotosynthesis"}: A data frame with the amount of daily net photosynthesis (in g C·m-2) for each plant cohort. Days are in rows and plant cohorts are in columns.}
      \item{\code{"PlantPsi"}: A data frame with the average daily water potential of each plant (in MPa). Days are in rows and plant cohorts are in columns. Columns in this data frame correspond to the elements in 'SP'.}
@@ -136,7 +143,7 @@ State variables stored in objects \code{x} and \code{soil} are modified during t
 data(examplemeteo)
 
 #Load example plot plant data
-data(exampleforest)
+data(exampleforestMED)
 
 #Default species parameterization
 data(SpParamsMED)
@@ -148,7 +155,7 @@ examplesoil = soil(defaultSoilParams(2))
 control = defaultControl()
 
 #Initialize input
-x1 = forest2spwbInput(exampleforest,examplesoil, SpParamsMED, control)
+x1 = forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
 
 #Call simulation function
 S1<-spwb(x1, examplesoil, examplemeteo, elevation = 100)
@@ -168,7 +175,7 @@ examplesoil2 = soil(defaultSoilParams(2))
 control$transpirationMode="Sperry"
 
 #Initialize input
-x2 = forest2spwbInput(exampleforest,examplesoil2, SpParamsMED, control)
+x2 = forest2spwbInput(exampleforestMED,examplesoil2, SpParamsMED, control)
 
 #Call simulation function (11 days)
 d = 100:110

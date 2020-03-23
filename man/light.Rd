@@ -5,6 +5,7 @@
 \alias{light_layerIrradianceFractionBottomUp}
 \alias{light_cohortSunlitShadeAbsorbedRadiation}
 \alias{light_instantaneousLightExtinctionAbsortion}
+\alias{light_cohortAbsorbedSWRFraction}
 
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{Light extinction and absortion functions}
@@ -20,11 +21,12 @@ light_layerSunlitFraction(LAIme, LAImd, kb)
 light_cohortSunlitShadeAbsorbedRadiation(Ib0, Id0, Ibf, Idf, beta,
                                          LAIme, LAImd,
                                          kb, kd, alpha, gamma)
-light_instantaneousLightExtinctionAbsortion(LAIme, LAImd, LAImx, 
-                                            kPAR, gammaSWR,
+light_instantaneousLightExtinctionAbsortion(LAIme, LAImd, LAImx,
+                                            kPAR, alphaSWR, gammaSWR,
                                             ddd, LWR_diffuse,
                                             ntimesteps = 24, canopyMode= "sunshade", 
                                             trunkExtinctionFraction = 0.1)
+light_cohortAbsorbedSWRFraction(z, x, SpParams, gdd = NA)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -38,17 +40,21 @@ light_instantaneousLightExtinctionAbsortion(LAIme, LAImd, LAImx,
   \item{Id0}{Above-canopy diffuse incident radiation.}
   \item{Ibf}{Fraction of above-canopy direct radiation reaching each vegetation layer.}
   \item{Idf}{Fraction of above-canopy diffuse radiation reaching each vegetation layer.}
-  \item{alpha}{A vecfor of leaf absorvance by species.}
+  \item{alpha}{A vecfor of leaf absorbance by species.}
   \item{beta}{Solar elevation (in radians).}
   \item{gamma}{Vector of canopy reflectance values.}
   \item{kPAR}{A vector of visible light extinction coefficients for each cohort.}
+  \item{alphaSWR}{A vecfor of hort-wave absorbance coefficients for each cohort.}
   \item{gammaSWR}{A vector of short-wave reflectance coefficients (albedo) for each cohort.}
   \item{ddd}{A dataframe with direct and diffuse radiation for different subdaily time steps (see function \code{radiation_directDiffuseDay} in package meteoland).}
   \item{LWR_diffuse}{A vector with diffuse longwave radiation for different subdaily time steps.}
   \item{ntimesteps}{Number of subdaily time steps.}
   \item{canopyMode}{Indicates how crowns should be described to calculate photosynthesis/extinction. Accepted values are \code{"sunshade"} (distinguishes photosynthesis in sun leaves from shade leaves) and \code{"multilayer"} (distinguishes photosynthesis of sun leaves and shade leaves in each canopy layer).}
   \item{trunkExtinctionFraction}{Fraction of extinction due to trunks (for winter deciduous forests).}
-
+  \item{x}{An object of class \code{\link{forest}}}
+  \item{SpParams}{A data frame with species parameters (see \code{\link{SpParamsMED}}).}
+  \item{z}{A numeric vector with height values.}
+  \item{gdd}{Growth degree days.}
 }
 \details{
 Function codification adapted from Anten & Bastiaans (2016). Vegetation layers are assumed to be ordered from bottom to top.
@@ -60,7 +66,7 @@ Functions \code{light_layerIrradianceFraction}, \code{light_layerIrradianceFract
 Anten, N.P.R., Bastiaans, L., 2016. The use of canopy models to analyze light competition among plants, in: Hikosaka, K., Niinemets, U., Anten, N.P.R. (Eds.), Canopy Photosynthesis: From Basics to Application. Springer, pp. 379–398.
 }
 \author{
-Miquel De \enc{Cáceres}{Caceres} Ainsa, Centre Tecnologic Forestal de Catalunya
+Miquel De \enc{Cáceres}{Caceres} Ainsa, CTFC
 }
 \seealso{
  \code{\link{spwb}}
