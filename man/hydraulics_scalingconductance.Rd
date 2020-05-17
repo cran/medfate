@@ -11,7 +11,6 @@
 \alias{hydraulics_terminalConduitRadius}
 \alias{hydraulics_stemWaterCapacity}
 \alias{hydraulics_leafWaterCapacity}
-%- Also NEED an '\alias' for EACH other topic documented here.
 \title{
 Scaling from conductivity to conductance
 }
@@ -38,7 +37,7 @@ hydraulics_findRhizosphereMaximumConductance(averageResistancePercent, n, alpha,
 hydraulics_maximumRootHydraulicConductance(xylemConductivity, Al2As, 
                                            v, widths, depthWidthRatio = 1.0)
 hydraulics_maximumStemHydraulicConductance(xylemConductivity, refheight, Al2As, height, 
-                                           angiosperm = TRUE, taper = FALSE)
+                                           taper = FALSE)
 hydraulics_referenceConductivityHeightFactor(refheight, height)
 hydraulics_terminalConduitRadius(height)
 hydraulics_taperFactorSavage(height)
@@ -46,7 +45,6 @@ hydraulics_stemWaterCapacity(Al2As, height, wd)
 hydraulics_leafWaterCapacity(SLA, ld)
 }
 
-%- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{psiSoil}{Soil water potential (in MPa). A scalar or a vector depending on the function.}
   \item{psiRhizo}{Water potential (in MPa) in the rhizosphere (root surface).}
@@ -67,8 +65,7 @@ hydraulics_leafWaterCapacity(SLA, ld)
   \item{xylemConductivity}{Xylem conductivity as flow per length of conduit and pressure drop (in kg·m-1·s-1·MPa-1).}
   \item{Al2As}{Leaf area to sapwood area (in m2·m-2).}
   \item{height}{Plant height (in cm).}
-  \item{refheight}{Reference plant height (in cm).}
-  \item{angiosperm}{A boolean flag to indicate an angiosperm species.}
+  \item{refheight}{Reference plant height of measurement of xylem conductivity (in cm).}
   \item{taper}{A boolean flag to indicate correction by taper of xylem conduits (Christoffersen et al. 2017).}
   \item{widths}{Soil layer depths (in mm).}
   \item{depthWidthRatio}{Ratio between radius of the soil layer with the largest radius and maximum rooting depth.}
@@ -96,7 +93,7 @@ Savage, V. M., L. P. Bentley, B. J. Enquist, J. S. Sperry, D. D. Smith, P. B. Re
 Olson, M.E., Anfodillo, T., Rosell, J.A., Petit, G., Crivellaro, A., Isnard, S., León-Gómez, C., Alvarado-Cárdenas, L.O., & Castorena, M. 2014. Universal hydraulics of the flowering plants: Vessel diameter scales with stem length across angiosperm lineages, habits and climates. Ecology Letters 17: 988–997.
 }
 \author{
-Miquel De \enc{Cáceres}{Caceres} Ainsa, Centre Tecnologic Forestal de Catalunya
+Miquel De \enc{Cáceres}{Caceres} Ainsa, CTFC
 }
 \seealso{
 \code{\link{hydraulics_psi2K}}, \code{\link{hydraulics_supplyFunctionPlot}}, \code{\link{spwb}}, \code{\link{soil}}

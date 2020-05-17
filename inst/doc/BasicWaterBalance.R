@@ -69,7 +69,7 @@ control
 x = spwbInput(above, below, examplesoil, SpParamsMED, control)
 
 ## -----------------------------------------------------------------------------
-x
+names(x)
 
 ## -----------------------------------------------------------------------------
 x = forest2spwbInput(exampleforestMED, examplesoil, SpParamsMED, control)
@@ -91,15 +91,13 @@ sd1
 
 ## -----------------------------------------------------------------------------
 examplesoil$W
-x$canopy$gdd
 
 ## -----------------------------------------------------------------------------
-spwb_resetInputs(x, examplesoil)
+resetInputs(x, examplesoil)
 examplesoil$W
-x$canopy$gdd
 
 ## -----------------------------------------------------------------------------
-S = spwb(x, examplesoil, examplemeteo, elevation = 100)
+S = spwb(x, examplesoil, examplemeteo, latitude = 41.82592, elevation = 100)
 
 ## -----------------------------------------------------------------------------
 class(S)
@@ -114,7 +112,7 @@ names(S$spwbInput)
 head(S$WaterBalance)
 
 ## -----------------------------------------------------------------------------
-head(S$PlantPsi)
+head(S$Plants$PlantPsi)
 
 ## ---- fig=TRUE, fig.align="center", fig.width=5, fig.height = 3.5-------------
 plot(S, type = "PET_Precipitation")

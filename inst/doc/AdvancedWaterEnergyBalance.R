@@ -63,7 +63,7 @@ hydraulics_vulnerabilityCurvePlot(x, examplesoil, type="rhizo")
 hydraulics_supplyFunctionPlot(x, examplesoil, type="E")
 hydraulics_supplyFunctionPlot(x, examplesoil, type="ERhizo")
 hydraulics_supplyFunctionPlot(x, examplesoil, type="dEdP")
-hydraulics_supplyFunctionPlot(x, examplesoil, type="psiStem")
+hydraulics_supplyFunctionPlot(x, examplesoil, type="StemPsi")
 
 ## ---- fig=TRUE, fig.align="center", fig.width=7, fig.height = 3.5-------------
 d = 100
@@ -114,8 +114,8 @@ sd1$Plants
 
 ## ---- fig=TRUE, fig.align="center", fig.width=5, fig.height = 4---------------
 plot(sd1, type = "PlantTranspiration", bySpecies = T)
-plot(sd1, type = "PlantTranspirationPerLeaf", bySpecies = T)
-plot(sd1, type = "PlantPhotosynthesis", bySpecies = T)
+plot(sd1, type = "TranspirationPerLeaf", bySpecies = T)
+plot(sd1, type = "NetPhotosynthesis", bySpecies = T)
 plot(sd1, type = "LeafPsiAverage", bySpecies = T)
 
 ## -----------------------------------------------------------------------------
@@ -126,7 +126,10 @@ sd1$ShadeLeaves
 plot(sd1, type = "LeafTemperature", bySpecies=TRUE)
 
 ## ---- fig=TRUE, fig.align="center", fig.width=7, fig.height = 4---------------
-plot(sd1, type = "LeafPhotosynthesis", bySpecies=TRUE)
+plot(sd1, type = "LeafGrossPhotosynthesis", bySpecies=TRUE)
+
+## ---- fig=TRUE, fig.align="center", fig.width=7, fig.height = 4---------------
+plot(sd1, type = "LeafNetPhotosynthesis", bySpecies=TRUE)
 
 ## ---- fig=TRUE, fig.align="center", fig.width=7, fig.height = 4---------------
 plot(sd1, type = "LeafStomatalConductance", bySpecies=TRUE)
@@ -153,7 +156,7 @@ examplesoil$Temp
 x$canopy
 
 ## -----------------------------------------------------------------------------
-spwb_resetInputs(x, examplesoil)
+resetInputs(x, examplesoil)
 examplesoil$W
 examplesoil$Temp
 x$canopy
@@ -171,7 +174,7 @@ names(S$spwbInput)
 head(S$WaterBalance)
 
 ## -----------------------------------------------------------------------------
-head(S$LeafPsi)
+head(S$Plants$LeafPsiMin)
 
 ## ---- fig=TRUE, fig.align="center", fig.width=7, fig.height = 3.5-------------
 plot(S, type="Evapotranspiration")

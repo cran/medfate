@@ -58,9 +58,6 @@ control = defaultControl()
 names(control)
 
 ## -----------------------------------------------------------------------------
-control$storagePool = "two"
-
-## -----------------------------------------------------------------------------
 x = growthInput(above, Z, below, examplesoil, SpParamsMED, control)
 
 ## -----------------------------------------------------------------------------
@@ -71,9 +68,6 @@ names(x)
 
 ## -----------------------------------------------------------------------------
 x$cohorts
-
-## -----------------------------------------------------------------------------
-x$canopy
 
 ## -----------------------------------------------------------------------------
 x$above
@@ -89,30 +83,38 @@ x$paramsGrowth
 x$paramsAllometries
 
 ## -----------------------------------------------------------------------------
-G1<-growth(x, examplesoil, examplemeteo, elevation = 100)
+G1<-growth(x, examplesoil, examplemeteo, latitude = 41.82592, elevation = 100)
 
 
-## ---- fig=TRUE, echo=FALSE, fig.width=7, fig.height=4-------------------------
-plot(G1, "PlantPhotosynthesisPerLeaf")
-plot(G1, "PlantTranspirationPerLeaf")
+## ---- fig=TRUE, echo=TRUE, fig.width=7, fig.height=3--------------------------
+plot(G1, "GrossPhotosynthesis", bySpecies = T)
 
-## ---- fig=TRUE, echo=FALSE, fig.width=7, fig.height=4-------------------------
-plot(G1, "PlantRespiration")
-plot(G1, "PlantRespirationPerLeaf")
-plot(G1, "PlantRespirationPerIndividual")
-plot(G1, "PlantCBalance")
-plot(G1, "PlantCBalancePerLeaf")
-plot(G1, "PlantCBalancePerIndividual")
+## ---- fig=TRUE, echo=TRUE, fig.width=7, fig.height=3--------------------------
+plot(G1, "MaintenanceRespiration", bySpecies = T)
+plot(G1, "GrowthRespiration", bySpecies = T)
 
-## ---- fig=TRUE, echo=FALSE, fig.width=7, fig.height=4-------------------------
-plot(G1, "PlantSAgrowth")
-plot(G1, "PlantRelativeSAgrowth")
+## ---- fig=TRUE, echo=TRUE, fig.width=7, fig.height=3--------------------------
+plot(G1, "CarbonBalance", bySpecies = T)
 
-## ---- fig=TRUE, echo=FALSE, fig.width=7, fig.height=4-------------------------
-plot(G1, "PlantLAIlive")
-plot(G1, "PlantLAIdead")
+## ---- fig=TRUE, echo=TRUE, fig.width=7, fig.height=3--------------------------
+plot(G1, "SugarLeaf", bySpecies = T)
+plot(G1, "StarchLeaf", bySpecies = T)
 
-## ---- fig=TRUE, echo=FALSE, fig.width=7.5, fig.height=3.5---------------------
-plot(G1, "PlantCstorageFast")
-plot(G1, "PlantCstorageSlow")
+## ---- fig=TRUE, echo=TRUE, fig.width=7, fig.height=3--------------------------
+plot(G1, "SugarSapwood", bySpecies = T)
+plot(G1, "StarchSapwood", bySpecies = T)
+
+## ---- fig=TRUE, echo=TRUE, fig.width=7, fig.height=3--------------------------
+plot(G1, "LeafArea", bySpecies = T)
+plot(G1, "SapwoodArea", bySpecies = T)
+
+## ---- fig=TRUE, echo=TRUE, fig.width=7, fig.height=3--------------------------
+plot(G1, "LAgrowth", bySpecies = T)
+plot(G1, "SAgrowth", bySpecies = T)
+
+## ---- fig=TRUE, echo=TRUE, fig.width=7, fig.height=3--------------------------
+G1$StandStructures
+
+## ---- fig=TRUE, echo=TRUE, fig.width=7, fig.height=3--------------------------
+G1$StandStructures
 

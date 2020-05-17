@@ -1,8 +1,10 @@
-#include <numeric>
 #include <Rcpp.h>
+#include <numeric>
 using namespace Rcpp;
 using namespace std;
-
+using std::exp;
+using std::log;
+using std::sqrt;
 
 
 
@@ -141,6 +143,40 @@ NumericMatrix rootDistribution(NumericVector z, List x) {
 }
 
 /**
+ *  Root axials lengths
+ * 
+ *  returns root axial lengths in mm (same units as d)
+ */
+NumericVector rootRadialLengths(double Z95, NumericVector v, NumericVector d, double depthWidthRatio = 1.0) {
+  int nlayers = v.size();
+  //Radial lengths
+  NumericVector r(nlayers), rl(nlayers);
+  double maxr = 0.0;
+  for(int i=0;i<nlayers;i++) {
+    r[i] = sqrt(v[i]/(d[i]*PI));
+    maxr = std::max(r[i],maxr); 
+  }
+  for(int i=0;i<nlayers;i++) {
+    rl[i] = Z95*depthWidthRatio*(r[i]/maxr);
+    // Rcout<<rl[i]<<" ";
+  }
+  return(rl);
+}
+
+/**
+ * Stand area covered by roots (in m2/ha)
+ */
+NumericVector areaWithRoots(double N, double Z95, NumericVector v, NumericVector d, double depthWidthRatio = 1.0) {
+  NumericVector rl = rootRadialLengths(Z95,v,d,depthWidthRatio);
+  int nlayer = rl.size();
+  NumericVector area(nlayer, 0.0);
+  for(int i=0;i<nlayer;i++) {
+    area[i] = std::min(pow(rl[i]/1000.0,2.0)*PI*N,10000.0);
+  }
+  return(area);
+}
+
+/**
  *  Root lengths
  * 
  * Calculates the sum of radial and vertical root lengths.
@@ -229,27 +265,69 @@ NumericVector xylemConductanceProportions(NumericVector v, NumericVector d, doub
 }
 
 
-// [[Rcpp::export("root_rhizosphereOverlapProportions")]]
-NumericMatrix rhizosphereOverlapProportions(NumericMatrix V, NumericVector LAIlive, double poolOverlapFactor) {
+List horizontalProportionsNew(NumericMatrix V, NumericVector N, NumericVector Z95, NumericVector LAIlive,
+                              NumericVector d, double depthWidthRatio = 1.0) {
   int numCohorts = V.nrow();
   int numlayers = V.ncol();
-  double LAIcelllive = 0.0;
-  for(int c=0;c<numCohorts;c++) LAIcelllive +=LAIlive[c];
-  double ropmax = (1.0 - exp(-(poolOverlapFactor*LAIcelllive)));
-  NumericMatrix ROP(numCohorts,numlayers);
-  for(int c=0;c<numCohorts;c++) {
+  double LAIcelllive = sum(LAIlive);
+  NumericVector poolProportions(numCohorts);
+  for(int c=0;c<numCohorts;c++) poolProportions[c] = LAIlive[c]/LAIcelllive;
+  List l(numCohorts);
+  for(int coh=0;coh<numCohorts;coh++) {
+    NumericVector awr = areaWithRoots(N[coh], Z95[coh], V(coh,_),d, depthWidthRatio);
+    NumericMatrix RHOP(numCohorts,numlayers);
+    double poolarea = poolProportions[coh];
     for(int l=0;l<numlayers;l++) {
-      double rdl = 0.0;
-      double rds = 0.0;
-      for(int c2=0;c2<numCohorts;c2++) {
-        if(c2!=c) {
-          rdl += (V(c,l)*V(c2,l));
-          rds += V(c2,l);
+      double pal = awr[l]/10000.0;
+      // Rcout<<coh<< "  "<< l <<" "<<poolarea<< " "<<pal<<"\n";
+      double sv = 0.0;
+      for(int j=0;j<numCohorts;j++) if(j!=coh) sv += V(j,l);
+      for(int j=0;j<numCohorts;j++) {
+        if(j==coh) {
+          RHOP(coh,l) = std::min(poolarea,pal)/pal;
+        } else if(pal>poolarea) {
+          RHOP(j,l) = ((pal-poolarea)/pal)*V(j,l)/sv;
+        } else {
+          RHOP(j,l) = 0.0;
         }
       }
-      ROP(c,l) = (rdl/rds)*ropmax*(1.0 - (LAIlive[c]/LAIcelllive));
     }
+    RHOP.attr("dimnames") = V.attr("dimnames");
+    l[coh] = RHOP;
   }
-  ROP.attr("dimnames") = V.attr("dimnames");
-  return(ROP);
+  l.attr("names") = rownames(V);
+  return(l);
+}
+
+
+// [[Rcpp::export("root_horizontalProportions")]]
+List horizontalProportions(NumericMatrix V, NumericVector LAIlive, double poolOverlapFactor) {
+  int numCohorts = V.nrow();
+  int numlayers = V.ncol();
+  double LAIcelllive = sum(LAIlive);
+  double ropmax = (1.0 - exp(-(poolOverlapFactor*LAIcelllive)));
+  NumericVector poolProportions(numCohorts);
+  for(int c=0;c<numCohorts;c++) poolProportions[c] = LAIlive[c]/LAIcelllive;
+  List l(numCohorts);
+  for(int coh=0;coh<numCohorts;coh++) {
+    NumericMatrix RHOP(numCohorts,numlayers);
+    double Vmax = 0.0;
+    for(int l=0;l<numlayers;l++) {
+      Vmax = std::max(Vmax, V(coh,l));
+    }
+    for(int l=0;l<numlayers;l++) {
+      double s = 0.0;
+      for(int c=0;c<numCohorts;c++) {
+        if(c!=coh) {
+          RHOP(c,l) = poolProportions[c]*ropmax*sqrt(V(coh,l)*V(c,l))/Vmax;
+          s +=RHOP(c,l);
+        } 
+      }
+      RHOP(coh,l) = 1.0 - s;
+    }
+    RHOP.attr("dimnames") = V.attr("dimnames");
+    l[coh] = RHOP;
+  }
+  l.attr("names") = rownames(V);
+  return(l);
 }
