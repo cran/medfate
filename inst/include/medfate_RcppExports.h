@@ -192,7 +192,7 @@ namespace medfate {
         return Rcpp::as<NumericVector >(rcpp_result_gen);
     }
 
-    inline NumericVector hydrology_soilInfiltrationPercolation(List soil, String soilFunctions, double waterInput, bool drainage = true, bool modifySoil = true) {
+    inline NumericVector hydrology_soilInfiltrationPercolation(List soil, String soilFunctions, double waterInput, bool rockyLayerDrainage = true, bool modifySoil = true) {
         typedef SEXP(*Ptr_hydrology_soilInfiltrationPercolation)(SEXP,SEXP,SEXP,SEXP,SEXP);
         static Ptr_hydrology_soilInfiltrationPercolation p_hydrology_soilInfiltrationPercolation = NULL;
         if (p_hydrology_soilInfiltrationPercolation == NULL) {
@@ -202,7 +202,7 @@ namespace medfate {
         RObject rcpp_result_gen;
         {
             RNGScope RCPP_rngScope_gen;
-            rcpp_result_gen = p_hydrology_soilInfiltrationPercolation(Shield<SEXP>(Rcpp::wrap(soil)), Shield<SEXP>(Rcpp::wrap(soilFunctions)), Shield<SEXP>(Rcpp::wrap(waterInput)), Shield<SEXP>(Rcpp::wrap(drainage)), Shield<SEXP>(Rcpp::wrap(modifySoil)));
+            rcpp_result_gen = p_hydrology_soilInfiltrationPercolation(Shield<SEXP>(Rcpp::wrap(soil)), Shield<SEXP>(Rcpp::wrap(soilFunctions)), Shield<SEXP>(Rcpp::wrap(waterInput)), Shield<SEXP>(Rcpp::wrap(rockyLayerDrainage)), Shield<SEXP>(Rcpp::wrap(modifySoil)));
         }
         if (rcpp_result_gen.inherits("interrupted-error"))
             throw Rcpp::internal::InterruptedException();
@@ -211,6 +211,27 @@ namespace medfate {
         if (rcpp_result_gen.inherits("try-error"))
             throw Rcpp::exception(Rcpp::as<std::string>(rcpp_result_gen).c_str());
         return Rcpp::as<NumericVector >(rcpp_result_gen);
+    }
+
+    inline double soil_saturatedConductivitySX(double clay, double sand, double om = NA_REAL, bool mmol = true) {
+        typedef SEXP(*Ptr_soil_saturatedConductivitySX)(SEXP,SEXP,SEXP,SEXP);
+        static Ptr_soil_saturatedConductivitySX p_soil_saturatedConductivitySX = NULL;
+        if (p_soil_saturatedConductivitySX == NULL) {
+            validateSignature("double(*soil_saturatedConductivitySX)(double,double,double,bool)");
+            p_soil_saturatedConductivitySX = (Ptr_soil_saturatedConductivitySX)R_GetCCallable("medfate", "_medfate_soil_saturatedConductivitySX");
+        }
+        RObject rcpp_result_gen;
+        {
+            RNGScope RCPP_rngScope_gen;
+            rcpp_result_gen = p_soil_saturatedConductivitySX(Shield<SEXP>(Rcpp::wrap(clay)), Shield<SEXP>(Rcpp::wrap(sand)), Shield<SEXP>(Rcpp::wrap(om)), Shield<SEXP>(Rcpp::wrap(mmol)));
+        }
+        if (rcpp_result_gen.inherits("interrupted-error"))
+            throw Rcpp::internal::InterruptedException();
+        if (Rcpp::internal::isLongjumpSentinel(rcpp_result_gen))
+            throw Rcpp::LongjumpException(rcpp_result_gen);
+        if (rcpp_result_gen.inherits("try-error"))
+            throw Rcpp::exception(Rcpp::as<std::string>(rcpp_result_gen).c_str());
+        return Rcpp::as<double >(rcpp_result_gen);
     }
 
     inline double soil_thetaSATSX(double clay, double sand, double om = NA_REAL) {

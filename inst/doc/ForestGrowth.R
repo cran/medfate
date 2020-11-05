@@ -39,7 +39,7 @@ above
 ## -----------------------------------------------------------------------------
 Z = c(exampleforestMED$treeData$Z95, exampleforestMED$shrubData$Z)
 Z
-below = forest2belowground(exampleforestMED, examplesoil, SpParamsMED)
+below = forest2belowground(exampleforestMED, examplesoil)
 below
 
 ## -----------------------------------------------------------------------------
@@ -58,7 +58,9 @@ control = defaultControl()
 names(control)
 
 ## -----------------------------------------------------------------------------
-x = growthInput(above, Z, below, examplesoil, SpParamsMED, control)
+Z50 = c(exampleforestMED$treeData$Z50, exampleforestMED$shrubData$Z50)
+Z95 = c(exampleforestMED$treeData$Z95, exampleforestMED$shrubData$Z95)
+x = growthInput(above, Z50, Z95, examplesoil, SpParamsMED, control)
 
 ## -----------------------------------------------------------------------------
 x = forest2growthInput(exampleforestMED, examplesoil, SpParamsMED, control)

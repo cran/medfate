@@ -1,8 +1,8 @@
 Package: medfate
 Type: Package
 Title: Mediterranean Forest Simulation
-Version: 1.0.0
-Date: 2020-05-17
+Version: 1.1.0
+Date: 2020-11-05
 Authors@R: c(
 	person('Miquel', 'De Cáceres', role=c('aut','cre'),
 	email='miquelcaceres@gmail.com'),
@@ -12,20 +12,20 @@ Authors@R: c(
 	person('Jordi', 'Martínez-Vilalta', role='ctb'),
 	person('Maurizio', 'Mencuccini', role='ctb'),
 	person('Nicolas', 'Martin-StPaul', role='ctb'))
-Description: Functions to simulate Mediterranean forest functioning and dynamics using cohort-based description of vegetation [De Caceres et al. (2015) <doi:10.1016/j.agrformet.2015.06.012>].
+Description: Functions to simulate Mediterranean forest functioning and dynamics using cohort-based description of vegetation [De Caceres et al. (2015) <doi:10.1016/j.agrformet.2015.06.012>; De Caceres et al. (2021) <doi:10.1016/j.agrformet.2020.108233>].
 License: GPL (>= 2)
-URL: https://vegmod.github.io/software/medfate
+URL: https://vegmod.ctfc.cat/software/medfate/
 LazyLoad: yes
 Depends: R (>= 3.5.0), sp
-Imports: spdep, ggplot2, methods, meteoland (>= 0.8.1), Rcpp (>=
-        0.12.12)
-Suggests: knitr, GSIF, rmarkdown, rjson
+Imports: spdep, ggplot2, methods, httr, jsonlite, meteoland (>= 0.8.1),
+        Rcpp (>= 0.12.12)
+Suggests: knitr, rmarkdown
 LinkingTo: Rcpp, meteoland
 Encoding: UTF-8
 NeedsCompilation: yes
 VignetteBuilder: utils, knitr
 RoxygenNote: 6.1.1
-Packaged: 2020-05-17 15:36:42 UTC; miquel
+Packaged: 2020-11-05 13:03:17 UTC; miquel.decaceres
 Author: Miquel De Cáceres [aut, cre],
   Shengli Huang [aut],
   Víctor Granda [aut],
@@ -35,4 +35,4 @@ Author: Miquel De Cáceres [aut, cre],
   Nicolas Martin-StPaul [ctb]
 Maintainer: Miquel De Cáceres <miquelcaceres@gmail.com>
 Repository: CRAN
-Date/Publication: 2020-05-17 17:40:03 UTC
+Date/Publication: 2020-11-05 17:30:06 UTC

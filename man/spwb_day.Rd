@@ -27,7 +27,7 @@ growth_day(x, soil, date, tmin, tmax, rhmin, rhmax, rad, wind,
   \item{runon}{Surface water amount running on the target area from upslope (in mm).}
 }
 \details{
-  Detailed model description is available in the vignettes section. The model using 'Granier' transpiration mode is described in De Caceres et al. (2015). Simulations using the 'Sperry' transpiration mode are computationally much more expensive. 
+  Detailed model description is available in the vignettes section. The model using 'Granier' transpiration mode is described in De Caceres et al. (2015). Simulations using the 'Sperry' transpiration mode are computationally much more expensive, are described in De Cáceres et al. (2021) and are illustrated by function \code{\link{transp_transpirationSperry}}. 
 }
 \value{
 Function \code{spwb_day()} returns a list of class \code{spwb_day} with the following elements:
@@ -61,7 +61,7 @@ The following items are only returned when \code{transpirationMode = "Sperry"}:
 \references{
 De \enc{Cáceres}{Caceres} M, \enc{Martínez}{Martinez}-Vilalta J, Coll L, Llorens P, Casals P, Poyatos R, Pausas JG, Brotons L. (2015) Coupling a water balance model with forest inventory data to predict drought stress: the role of forest structural changes vs. climate changes. Agricultural and Forest Meteorology (doi:10.1016/j.agrformet.2015.06.012).
 
-De \enc{Cáceres}{Caceres} M, Mencuccini M, Martin-StPaul N, Limousin JM, Coll L, Poyatos R, Cabon A, Granda V, Forner A, Valladares F, \enc{Martínez}{Martinez}-Vilalta J (submitted) Unravelling the effect of species mixing on water use and drought stress in holm oak forests: a modelling approach. 
+De \enc{Cáceres}{Caceres} M, Mencuccini M, Martin-StPaul N, Limousin JM, Coll L, Poyatos R, Cabon A, Granda V, Forner A, Valladares F, \enc{Martínez}{Martinez}-Vilalta J (2021) Unravelling the effect of species mixing on water use and drought stress in holm oak forests: a modelling approach. Agricultural and Forest Meteorology 296 (doi: 10.1016/j.agrformet.2020.108233).
 }
 \author{
 Miquel De \enc{Cáceres}{Caceres} Ainsa, CTFC

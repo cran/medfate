@@ -2,8 +2,8 @@
 \name{soil}
 \alias{soil}
 \alias{print.soil}
+\alias{redefineSoilLayers}
 
-%- Also NEED an '\alias' for EACH other topic documented here.
 \title{Soil initialization}
 \description{
 Initializes soil parameters and state variables for its use in simulations.
@@ -11,22 +11,23 @@ Initializes soil parameters and state variables for its use in simulations.
 \usage{
 soil(SoilParams, VG_PTF = "Toth", W = as.numeric(c(1)), SWE = 0)
 \method{print}{soil}(x, model="SX", ...)
+redefineSoilLayers(SoilParams, widths = c(300, 700, 1000, 2000))
 }
-%- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{SoilParams}{A list of soil parameters (see \code{\link{defaultSoilParams}}).}
+  \item{SoilParams}{A data frame of soil parameters (see an example in \code{\link{defaultSoilParams}}).}
   \item{VG_PTF}{Pedotransfer functions to obtain parameters for the van Genuchten-Mualem equations. Either \code{"Carsel"} (Carsel & Parrish 1988) or \code{"Toth"} (Toth et al. 2015).}
   \item{W}{A numerical vector with the initial relative water content of each soil layer.}
   \item{SWE}{Initial snow water equivalent of the snow pack on the soil surface (mm).}
   \item{x}{An object of class \code{soil}.}
   \item{model}{Either 'SX' or 'VG' for Saxton or Van Genuchten pedotransfer models.}
+  \item{widths}{A numeric vector indicating the desired layer widths, in \emph{mm}.}
   \item{...}{Additional parameters to \code{print}.}
 }
 \details{
-Function \code{print} prompts a description of soil characteristics and state variables (water content and temperature) according to a water retention curve (either Saxton's or Van Genuchten's). Volume at field capacity is calculated assuming a soil water potential equal to -0.033 MPa. Parameter \code{Temp} is initialized as missing for all soil layers.
+Function \code{print} prompts a description of soil characteristics and state variables (water content and temperature) according to a water retention curve (either Saxton's or Van Genuchten's). Volume at field capacity is calculated assuming a soil water potential equal to -0.033 MPa. Parameter \code{Temp} is initialized as missing for all soil layers. Function \code{redefineSoilLayers} allows redefining soil layer widths of an input data frame of soil parameters.
 }
 \value{
-An list of class \code{soil} with the following elements:
+Function \code{soil} returns a list of class \code{soil} with the following elements:
 \itemize{
 \item{\code{SoilDepth}: Soil depth (in mm).}
 \item{\code{W}: State variable with relative water content of each layer (in as proportion relative to FC).}
@@ -37,10 +38,11 @@ An list of class \code{soil} with the following elements:
 \item{\code{sand}: Sand percentage for each layer (in percent volume).}
 \item{\code{clay}: Clay percentage for each layer (in percent volume).}
 \item{\code{om}: Organic matter percentage for each layer (in percent volume).}
-\item{\code{usda_Type}: USDA texture type.}
 \item{\code{VG_alpha}, \code{VG_n}, \code{VG_theta_res}, \code{VG_theta_sat}: Parameters for van Genuchten's pedotransfer functions, for each layer, corresponding to the USDA texture type.}
+\item{\code{Ksat}: Saturated soil conductivity for each layer (estimated using function \code{\link{soil_saturatedConductivitySX}}.}
 \item{\code{macro}: Macroporosity for each layer (estimated using Stolf et al. 2011).}
 \item{\code{rfc}: Percentage of rock fragment content for each layer.}
+\item{\code{Kdrain}: Saturated vertical hydraulic conductivity (mm/day) (i.e. how easy is deep drainage towards groundwater). Function \code{soil} estimates it as a function of soil saturated hydraulic conductivity, but should be parametrized as a function of bedrock material. }
 }
 }
 \author{
@@ -67,5 +69,3 @@ print(s, model="SX")
 print(s, model="VG")
 
 }
-% Add one or more standard keywords, see file 'KEYWORDS' in the
-% R documentation directory.

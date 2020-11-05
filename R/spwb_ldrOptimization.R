@@ -135,19 +135,13 @@ spwb_ldrExploration<-function(x, soil, meteo, cohorts = NULL,
       s.[["VG_alpha"]] <- s.[["VG_alpha"]][1:nl]
       s.[["VG_theta_res"]] <- s.[["VG_theta_res"]][1:nl]
       s.[["VG_theta_sat"]] <- s.[["VG_theta_sat"]][1:nl]
-      s.[["usda_Type"]] <- s.[["usda_Type"]][1:nl]
+      s.[["Ksat"]] <- s.[["Ksat"]][1:nl]
       
       V[,i,j] <- 0
       x_1sp$below$V = x$below$V[sp,1:nl,drop = FALSE]
       x_1sp$below$V[1,] <- root_ldrDistribution(Z50 = Z50[i,j], Z95 = RZ[j], d=s.$dVec)
       V[1:length(x_1sp$below$V),i,j] <- x_1sp$below$V
-      if(x_1sp$control$transpirationMode=="Sperry"){
-        x_1sp$below$VCroot_kmax = x$below$VCroot_kmax[sp,1:nl,drop = FALSE]
-        x_1sp$below$VGrhizo_kmax = x$below$VGrhizo_kmax[sp,1:nl,drop = FALSE]
-        x_1sp$below$VCroot_kmax[1,] = x_1sp$paramsTransp$VCroot_kmax*root_xylemConductanceProportions(x_1sp$below$V, s.$dVec)
-        x_1sp$below$VGrhizo_kmax[1,] = x_1sp$below$V*sum(x$below$VGrhizo_kmax[sp,])
-      }
-      
+
       s_res <- spwb(x = x_1sp, meteo = meteo, soil = s., ...)
       
       # Outputs

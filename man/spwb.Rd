@@ -44,7 +44,7 @@ pwb(x, soil, meteo, W, latitude, elevation = NA, slope = NA, aspect = NA,
   \item{snowMelt}{A vector of daily snow melt values (mm). The length should match the number of rows in \code{meteo}.}
 }
 \details{
-  The model using 'Granier' transpiration mode is illustrated by function \code{\link{transp_transpirationGranier}} and described in De Caceres et al. (2015). Simulations using the 'Sperry' transpiration mode are computationally much more expensive, are described in De Cáceres et al. (submitted) and are illustrated by function \code{\link{transp_transpirationSperry}}. 
+  The model using 'Granier' transpiration mode is illustrated by function \code{\link{transp_transpirationGranier}} and described in De Caceres et al. (2015). Simulations using the 'Sperry' transpiration mode are computationally much more expensive, are described in De Cáceres et al. (2021) and are illustrated by function \code{\link{transp_transpirationSperry}}. 
 }
 \value{
   Function \code{spwb} returns a list of class 'spwb' whereas Function \code{pwb} returns a list of class 'pwb'. There are many elements in common in these lists, so they are listed here together:
@@ -138,7 +138,7 @@ If \code{transpirationMode="Sperry"}, element \code{"Plants"} is a list with the
 \references{
 De \enc{Cáceres}{Caceres} M, \enc{Martínez}{Martinez}-Vilalta J, Coll L, Llorens P, Casals P, Poyatos R, Pausas JG, Brotons L. (2015) Coupling a water balance model with forest inventory data to predict drought stress: the role of forest structural changes vs. climate changes. Agricultural and Forest Meteorology 213: 77-90 (doi:10.1016/j.agrformet.2015.06.012).
 
-De \enc{Cáceres}{Caceres} M, Mencuccini M, Martin-StPaul N, Limousin JM, Coll L, Poyatos R, Cabon A, Granda V, Forner A, Valladares F, \enc{Martínez}{Martinez}-Vilalta J (submitted) Unravelling the effect of species mixing on water use and drought stress in holm oak forests: a modelling approach. 
+De \enc{Cáceres}{Caceres} M, Mencuccini M, Martin-StPaul N, Limousin JM, Coll L, Poyatos R, Cabon A, Granda V, Forner A, Valladares F, \enc{Martínez}{Martinez}-Vilalta J (2021) Unravelling the effect of species mixing on water use and drought stress in holm oak forests: a modelling approach. Agricultural and Forest Meteorology 296 (doi:10.1016/j.agrformet.2020.108233).
 }
 \author{
 Miquel De \enc{Cáceres}{Caceres} Ainsa, CTFC
@@ -160,17 +160,17 @@ data(exampleforestMED)
 #Default species parameterization
 data(SpParamsMED)
 
-#Initialize soil with default soil params (2 layers)
-examplesoil = soil(defaultSoilParams(2))
+#Initialize soil with default soil params (4 layers)
+examplesoil1 = soil(defaultSoilParams(4))
 
 #Initialize control parameters
 control = defaultControl()
 
 #Initialize input
-x1 = forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
+x1 = forest2spwbInput(exampleforestMED,examplesoil1, SpParamsMED, control)
 
 #Call simulation function
-S1<-spwb(x1, examplesoil, examplemeteo, latitude = 41.82592, elevation = 100)
+S1<-spwb(x1, examplesoil1, examplemeteo, latitude = 41.82592, elevation = 100)
         
 #Plot results
 plot(S1)
@@ -180,8 +180,7 @@ summary(S1, freq="months",FUN=mean, output="Soil")
 
 
 \dontrun{
-#Initialize soil with default soil params (2 layers)
-examplesoil2 = soil(defaultSoilParams(2))
+examplesoil2 = soil(defaultSoilParams(4))
 
 #Switch to 'Sperry' transpiration mode
 control$transpirationMode="Sperry"

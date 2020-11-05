@@ -46,13 +46,8 @@ vprofile_leafAreaDensity(above, byCohorts = F)
 vprofile_leafAreaDensity(above, byCohorts = T)
 
 ## -----------------------------------------------------------------------------
-below = forest2belowground(exampleforestMED, examplesoil, SpParamsMED)
-below
-
-## -----------------------------------------------------------------------------
-root_ldrDistribution(exampleforestMED$treeData$Z50[1], 
-                     exampleforestMED$treeData$Z95[1],
-                     examplesoil$dVec)
+Z50 = c(exampleforestMED$treeData$Z50, exampleforestMED$shrubData$Z50)
+Z95 = c(exampleforestMED$treeData$Z95, exampleforestMED$shrubData$Z95)
 
 ## ---- fig = TRUE, fig.width= 5, fig.height=3, fig.align= 'center', echo=TRUE----
 vprofile_rootDistribution(exampleforestMED, SpParamsMED)
@@ -66,7 +61,7 @@ control = defaultControl()
 control
 
 ## -----------------------------------------------------------------------------
-x = spwbInput(above, below, examplesoil, SpParamsMED, control)
+x = spwbInput(above, Z50, Z95, examplesoil, SpParamsMED, control)
 
 ## -----------------------------------------------------------------------------
 names(x)

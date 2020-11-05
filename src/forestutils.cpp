@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include "phenology.h"
 #include "root.h"
+#include "soil.h"
 #include "incgamma.h"
 using namespace Rcpp;
 
@@ -455,7 +456,7 @@ double crownCompetitionFactorUS(NumericVector N, NumericVector dbh, NumericVecto
   double ccf = 0.0;
   for(int i=0;i<ntree;i++) {
     if(!NumericVector::is_na(dbh[i])) {
-      double cw = CrownWidth[i]; //Shengli: This is tree crown width. We will get the info from treedata, so I modify the sentence here. Note Crown width (unit in meter) that a tree of cohort i would have in open-ground conditions see https://vegmod.ctfc.cat/frames/medfatebook/
+      double cw = CrownWidth[i]; //Shengli: This is tree crown width. We will get the info from treedata, so I modify the sentence here. Note Crown width (unit in meter) that a tree of cohort i would have in open-ground conditions
       ccf = ccf + (N[i]*PI*pow(cw/2.0,2.0)/100.0);  //I do not understand why there is 100.0 in this sentence. I believe the cw unit in medfate in meter (see I need to ask what is the cw unit in medfate.)
     }
   }
@@ -1313,35 +1314,16 @@ DataFrame forest2aboveground(List x, DataFrame SpParams, double gdd = NA_REAL, S
 
 
 // [[Rcpp::export("forest2belowground")]]
-NumericMatrix forest2belowground(List x, List soil, DataFrame SpParams) {
+NumericMatrix forest2belowground(List x, List soil) {
   DataFrame treeData = Rcpp::as<Rcpp::DataFrame>(x["treeData"]);
   DataFrame shrubData = Rcpp::as<Rcpp::DataFrame>(x["shrubData"]);
   NumericVector d = soil["dVec"];
-  int ntree = treeData.nrows();
-  int nshrub = shrubData.nrows();
-  
   int nlayers = d.size();
-  NumericMatrix V(ntree+nshrub,nlayers);
   NumericVector treeZ50 = treeData["Z50"];
   NumericVector treeZ95 = treeData["Z95"];
   NumericVector shrubZ50 = shrubData["Z50"];  
   NumericVector shrubZ95 = shrubData["Z95"];  
-  NumericVector Vi;
-  CharacterVector ln(nlayers);
-  for(int l=0;l<nlayers;l++){
-    char Result[16]; 
-    sprintf(Result, "%d", l+1);
-    ln[l] = Result;
-  }
-  
-  for(int i=0;i<ntree;i++) {
-    Vi = ldrRS_one(treeZ50[i], treeZ95[i],d);
-    V(i,_) = Vi;
-  }
-  for(int i=0;i<nshrub;i++) {
-    Vi = ldrRS_one(shrubZ50[i],shrubZ95[i],d);
-    V(ntree+i,_) = Vi;
-  }
-  V.attr("dimnames") = List::create(cohortIDs(x),ln);
+  NumericMatrix V = ldrDistribution(treeZ50, shrubZ50, treeZ95, shrubZ95, d);
+  V.attr("dimnames") = List::create(cohortIDs(x), layerNames(nlayers));
   return(V);
 }

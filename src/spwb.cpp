@@ -24,15 +24,15 @@ List spwbDay1(List x, List soil, double tday, double pet, double prec, double er
   //Control parameters
   List control = x["control"];
   bool snowpack = control["snowpack"];
-  bool drainage = control["drainage"];
+  bool rockyLayerDrainage = control["rockyLayerDrainage"];
   bool plantWaterPools = control["plantWaterPools"];
   String soilFunctions = control["soilFunctions"];
 
   //Number of soil layers
   int nlayers = Rcpp::as<Rcpp::NumericVector>(soil["dVec"]).size();
   
-  List below = x["below"];
-  NumericMatrix Wpool = below["Wpool"];
+  List belowLayers = x["belowLayers"];
+  NumericMatrix Wpool = Rcpp::as<Rcpp::NumericMatrix>(belowLayers["Wpool"]);
   NumericVector Wsoil = soil["W"];
 
   //Vegetation input
@@ -79,7 +79,7 @@ List spwbDay1(List x, List soil, double tday, double pet, double prec, double er
     //Soil infiltration and percolation
     infilPerc = soilInfiltrationPercolation(soil, soilFunctions, 
                                             hydroInputs["Input"],
-                                            drainage, true);
+                                            rockyLayerDrainage, true);
     //Evaporation from bare soil (if there is no snow)
     EsoilVec = soilEvaporation(soil, soilFunctions, pet, LgroundSWR, true);
     
@@ -105,7 +105,7 @@ List spwbDay1(List x, List soil, double tday, double pet, double prec, double er
       //Soil_c infiltration and percolation
       NumericVector infilPerc_c = soilInfiltrationPercolation(soil_c, soilFunctions, 
                                               hydroInputs["Input"],
-                                              drainage, true);
+                                              rockyLayerDrainage, true);
       //Evaporation from bare soil_c (if there is no snow)
       NumericVector EsoilVec_c = soilEvaporation(soil_c, soilFunctions, pet, LgroundSWR, true);
       //Copy result vectors
@@ -162,7 +162,7 @@ List spwbDay2(List x, List soil, double tmin, double tmax, double tminPrev, doub
   
   //Control parameters
   List control = x["control"];
-  bool drainage = control["drainage"];
+  bool rockyLayerDrainage = control["rockyLayerDrainage"];
   bool snowpack = control["snowpack"];
   bool plantWaterPools = control["plantWaterPools"];
   String soilFunctions = control["soilFunctions"];
@@ -171,8 +171,8 @@ List spwbDay2(List x, List soil, double tmin, double tmax, double tminPrev, doub
   //Number of soil layers
   int nlayers = Rcpp::as<Rcpp::NumericVector>(soil["dVec"]).size();
 
-  List below = x["below"];
-  NumericMatrix Wpool = below["Wpool"];
+  List belowLayers = x["belowLayers"];
+  NumericMatrix Wpool = belowLayers["Wpool"];
   NumericVector Wsoil = soil["W"];
   
   //Vegetation input
@@ -219,7 +219,7 @@ List spwbDay2(List x, List soil, double tmin, double tmax, double tminPrev, doub
     //A.2 - Soil infiltration and percolation
     infilPerc = soilInfiltrationPercolation(soil, soilFunctions, 
                                             hydroInputs["Input"],
-                                                       drainage, true);
+                                            rockyLayerDrainage, true);
     //B.1 - Evaporation from bare soil if there is no snow
     EsoilVec = soilEvaporation(soil, soilFunctions, pet, LgroundSWR, true);
     
@@ -245,7 +245,7 @@ List spwbDay2(List x, List soil, double tmin, double tmax, double tminPrev, doub
       //Soil_c infiltration and percolation
       NumericVector infilPerc_c = soilInfiltrationPercolation(soil_c, soilFunctions, 
                                                               hydroInputs["Input"],
-                                                                         drainage, true);
+                                                              rockyLayerDrainage, true);
       //Evaporation from bare soil_c (if there is no snow)
       NumericVector EsoilVec_c = soilEvaporation(soil_c, soilFunctions, pet, LgroundSWR, true);
       //Copy result vectors
@@ -392,12 +392,12 @@ void checkspwbInput(List x, List soil, String transpirationMode, String soilFunc
   if(!above.containsElementNamed("CR")) stop("CR missing in spwbInput$above");
   if(!above.containsElementNamed("H")) stop("H missing in spwbInput$above");
   
-  if(!x.containsElementNamed("below")) stop("below missing in spwbInput");
-  List below = Rcpp::as<Rcpp::List>(x["below"]);
-  if(!below.containsElementNamed("V")) stop("V missing in spwbInput$below");
+  if(!x.containsElementNamed("belowLayers")) stop("belowLayers missing in spwbInput");
+  List belowLayers = Rcpp::as<Rcpp::List>(x["belowLayers"]);
+  if(!belowLayers.containsElementNamed("V")) stop("V missing in spwbInput$belowLayers");
   if(transpirationMode=="Sperry"){
-    if(!below.containsElementNamed("VGrhizo_kmax")) stop("VGrhizo_kmax missing in spwbInput$below");
-    if(!below.containsElementNamed("VCroot_kmax")) stop("VCroot_kmax missing in spwbInput$below");
+    if(!belowLayers.containsElementNamed("VGrhizo_kmax")) stop("VGrhizo_kmax missing in spwbInput$belowLayers");
+    if(!belowLayers.containsElementNamed("VCroot_kmax")) stop("VCroot_kmax missing in spwbInput$belowLayers");
   }  
   
   if(!x.containsElementNamed("paramsPhenology")) stop("paramsPhenology missing in spwbInput");
