@@ -51,7 +51,7 @@ The following plots are currently available for \code{spwb_day} and \code{pwb_da
     \item{\code{"LeafGrossPhotosynthesis"}:}{ Instantaneous gross photosynthesis per leaf area (differentiates sunlit and shade leaves).}
     \item{\code{"LeafNetPhotosynthesis"}:}{ Instantaneous net photosynthesis per leaf area (differentiates sunlit and shade leaves).}
     \item{\code{"LeafAbsorbedSWR"}:}{ Absorbed short wave radiation per leaf area (differentiates sunlit and shade leaves).}
-    \item{\code{"LeafAbsorbedLWR"}:}{ Absorbed long wave radiation per leaf area (differentiates sunlit and shade leaves).}
+    \item{\code{"LeafNetLWR"}:}{ Net long wave radiation per leaf area (differentiates sunlit and shade leaves).}
     \item{\code{"LeafCi"}:}{ Leaf intercellular CO2 concentration (differentiates sunlit and shade leaves).}
     \item{\code{"LeafIntrinsicWUE"}:}{ Leaf intrinsic water use efficiency, i.e. the ratio between instantaneous photosynthesis and stomatal conductance (differentiates sunlit and shade leaves).}
     \item{\code{"LeafVPD"}:}{ Leaf vapour pressure deficit (differentiates sunlit and shade leaves).}
@@ -69,7 +69,7 @@ The following plots are currently available for \code{spwb_day} and \code{pwb_da
 Only for soil plant water balance simulations using \code{transpirationMode = "Sperry"}. This function can be used to display subdaily dynamics of corresponding to single days on \code{\link{spwb}} runs, if control option \code{subdailyResults} is set to \code{TRUE}. See also option \code{subdaily} in \code{\link{plot.spwb}}.
 }
 \author{
-Miquel De \enc{Cáceres}{Caceres} Ainsa, CTFC
+Miquel De \enc{Cáceres}{Caceres} Ainsa, CREAF
 }
 \seealso{
  \code{\link{spwb_day}}, \code{\link{plot.spwb}}
@@ -85,7 +85,7 @@ data(exampleforestMED)
 data(SpParamsMED)
 
 #Initialize control parameters
-control = defaultControl()
+control = defaultControl("Granier")
 control$ndailysteps = 24  
 
 #Initialize soil with default soil params (2 layers)
@@ -93,12 +93,12 @@ examplesoil = soil(defaultSoilParams(2), W=c(0.5,0.5))
 
 
 #Switch to 'Sperry' transpiration mode
-control$transpirationMode="Sperry"
+control = defaultControl("Sperry")
 
 #Simulate one day only
 x2 = forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
 d = 100
-sd2<-spwb_day(x2, examplesoil, rownames(examplemeteo)[d], 
+sd2<-spwb_day(x2, rownames(examplemeteo)[d], 
              examplemeteo$MinTemperature[d], examplemeteo$MaxTemperature[d], 
              examplemeteo$MinRelativeHumidity[d], examplemeteo$MaxRelativeHumidity[d], 
              examplemeteo$Radiation[d], examplemeteo$WindSpeed[d], 

@@ -1,59 +1,98 @@
-defaultControl<-function() {
+defaultControl<-function(transpirationMode = "Granier") {
   return(list(
-    #For all
+    #For all functions
+    modifyInput = TRUE,
     verbose = TRUE,
     subdailyResults = FALSE,
-    defaultWindSpeed = 2.5, #m/s
-    soilFunctions = "SX",
     
     # For water balance
+    transpirationMode = transpirationMode,
+    soilFunctions = ifelse(transpirationMode=="Sperry", "VG", "SX"),
+    defaultWindSpeed = 2.5, #m/s
     snowpack = TRUE,
+    leafPhenology = TRUE,
     rockyLayerDrainage = TRUE,
     unlimitedSoilWater = FALSE,
     plantWaterPools = FALSE,
-    leafPhenology = TRUE,
     unfoldingDD = 300,
-    transpirationMode = "Granier",
-    cavitationRefill = "total",
-    refillMaximumRate = 0.05,
     verticalLayerSize = 100,
+    windMeasurementHeight = 200,
+    cavitationRefill = "total",
     
     #spwb with sperry
+    ndailysteps = 24,
+    nsubsteps = 3600,
+    cochard = FALSE,
+    capacitance = FALSE,
+    taper = TRUE,
+    multiLayerBalance = FALSE,
     gainModifier = 1, 
     costModifier = 1, 
     costWater = "dEdP",
-    cochard = FALSE,
-    capacitance = FALSE,
     klatstem = 0.01, # stem symplastic-apoplastic lateral conductance
     klatleaf = 0.01, # leaf symplastic-apoplastic lateral conductance
-    taper = TRUE,
     numericParams=list(maxNsteps = 400, ntrial = 200, psiTol = 0.0001, ETol = 0.0000001),
     fracLeafResistance = NA,
     fracRootResistance = 0.4,
     averageFracRhizosphereResistance = 0.15,
     Catm = 386,
-    ndailysteps = 24,
     thermalCapacityLAI = 1000000,
+    boundaryLayerSize = 2000,
+    refillMaximumRate = 0.05,
     
-    # growth
+    # growth/mortality
+    allowDessication = TRUE,
+    allowStarvation = TRUE,
+    allowDefoliation = TRUE,
+    sinkLimitation = TRUE,
+    shrubDynamics = FALSE,
     allocationStrategy = "Plant_kmax",
     nonStomatalPhotosynthesisLimitation = TRUE,
-    floemConductanceFactor = 0.2, # floem conductance per leaf area basis (l*m-2*MPa-1*s-1)
+    phloemConductanceFactor = 0.2, # phloem conductance per leaf area basis (l*m-2*MPa-1*s-1)
     nonSugarConcentration = 0.25, # mol · l-1
-    equilibriumOsmoticConcentration = c(leaf = 0.8, sapwood = 0.6),  # (Paljakka et al. 2017)
-    minimumSugarForGrowth = c(leaf = 0.25, sapwood=0.25, fineroot = 0.25),
+    equilibriumOsmoticConcentration = list(leaf = 0.8, sapwood = 0.6),  # (Paljakka et al. 2017)
+    minimumRelativeSugarForGrowth = 0.5,
     # Ogle and Pacala 2010, Tree Physiology 29, 587–605
-    respirationRates = c(leaf = 0.00260274, sapwood = 6.849315e-05, fineroot = 0.002054795), # g gluc · g dw -1 · day -1
-    turnoverRates = c(sapwood = 0.0001261398, # day-1 Equivalent to annual 4.5% 1-(1-0.045)^(1.0/365)
+    respirationRates = list(leaf = 0.00260274, 
+                            sapwood = 6.849315e-05, 
+                            fineroot = 0.002054795), # g gluc · g dw -1 · day -1
+    turnoverRates = list(sapwood = 0.0001261398, # day-1 Equivalent to annual 4.5% 1-(1-0.045)^(1.0/365)
                       fineroot = 0.001897231), #day-1 Equivalent to annual 50% 1-(1-0.5)^(1.0/365)
-    constructionCosts = c(leaf = 1.5, sapwood = 1.47, fineroot = 1.30), #  g gluc · g dw -1
-    maximumRelativeGrowthRates = c(leaf = 0.01, # m2 leaf ·cm-2 sapwood· day-1
-                                   sapwood = 0.001, # cm2 sapwood ·cm-2 sapwood· day-1
-                                   fineroot = 0.1) # g dw · g dw -1 · day -1
+    constructionCosts = list(leaf = 1.5, 
+                             sapwood = 1.47, 
+                             fineroot = 1.30), #  g gluc · g dw -1
+    maximumRelativeGrowthRates = list(leaf = 0.01, # m2 leaf ·cm-2 sapwood· day-1
+                                      sapwood = 0.002, # cm2 sapwood ·cm-2 sapwood· day-1
+                                      fineroot = 0.1), # g dw · g dw -1 · day -1
+    mortalityMode = "density/deterministic",
+    mortalityBaselineRate = 0.01,
+    mortalityRelativeSugarThreshold = 0.3,
+    mortalityRWCThreshold = 0.3,
+    
+    #dynamics
+    recruitmentMode = "deterministic",
+    removeDeadCohorts=TRUE,
+    minimumCohortDensity = 1,
+    seedRain = NULL,
+    seedProductionTreeHeight = 300,
+    seedProductionShrubHeight = 30,
+    minTempRecr	= 0,
+    minMoistureRecr	= 0.3,
+    minFPARRecr = 10,
+    recrTreeDBH = 1,
+    recrTreeDensity = 100,
+    recrTreeHeight = 100,
+    recrShrubCover = 1,
+    recrShrubHeight = 10,
+    recrTreeZ50 = 100,
+    recrShrubZ50 = 50,
+    recrTreeZ95 = 1000,
+    recrShrubZ95 = 500
+    
+    
     #For forest dynamics
 #     freqZopt = 20,
 #     sap2tree=TRUE,
-#     mergeCohorts=TRUE,
 #     removeDeadCohorts=TRUE,
 #     initRadius = 5000,
 #     setDefaults = TRUE,

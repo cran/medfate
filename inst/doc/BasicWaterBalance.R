@@ -4,74 +4,33 @@ library(medfate)
 
 ## -----------------------------------------------------------------------------
 spar = defaultSoilParams(2)
-print(spar)
 
 ## -----------------------------------------------------------------------------
 examplesoil = soil(spar)
-class(examplesoil)
-
-## -----------------------------------------------------------------------------
-names(examplesoil)
-
-## -----------------------------------------------------------------------------
-examplesoil$W
-
-## -----------------------------------------------------------------------------
-print(examplesoil, model = "SX")
-
-## -----------------------------------------------------------------------------
-print(examplesoil, model="VG")
-
-## ---- fig = TRUE, fig.width= 5, fig.height=3, fig.align= 'center', echo=TRUE----
-soil_retentionCurvePlot(examplesoil, model="both")
-
-## -----------------------------------------------------------------------------
-data("SpParamsMED")
-
-## -----------------------------------------------------------------------------
-names(SpParamsMED)
 
 ## -----------------------------------------------------------------------------
 data(exampleforestMED)
 exampleforestMED
 
 ## -----------------------------------------------------------------------------
-above = forest2aboveground(exampleforestMED, SpParamsMED)
-above
-
-## ---- fig = TRUE, fig.width= 4, fig.height=3, fig.align= 'center', echo=TRUE----
-vprofile_leafAreaDensity(above, byCohorts = F)
-
-## ---- fig = TRUE, fig.width= 5, fig.height=3, fig.align= 'center', echo=TRUE----
-vprofile_leafAreaDensity(above, byCohorts = T)
-
-## -----------------------------------------------------------------------------
-Z50 = c(exampleforestMED$treeData$Z50, exampleforestMED$shrubData$Z50)
-Z95 = c(exampleforestMED$treeData$Z95, exampleforestMED$shrubData$Z95)
-
-## ---- fig = TRUE, fig.width= 5, fig.height=3, fig.align= 'center', echo=TRUE----
-vprofile_rootDistribution(exampleforestMED, SpParamsMED)
-
-## -----------------------------------------------------------------------------
 data(examplemeteo)
 head(examplemeteo)
 
 ## -----------------------------------------------------------------------------
-control = defaultControl()
-control
+data("SpParamsMED")
 
 ## -----------------------------------------------------------------------------
-x = spwbInput(above, Z50, Z95, examplesoil, SpParamsMED, control)
-
-## -----------------------------------------------------------------------------
-names(x)
+control = defaultControl("Granier")
 
 ## -----------------------------------------------------------------------------
 x = forest2spwbInput(exampleforestMED, examplesoil, SpParamsMED, control)
 
 ## -----------------------------------------------------------------------------
+names(x)
+
+## -----------------------------------------------------------------------------
 d = 100
-sd1<-spwb_day(x, examplesoil, rownames(examplemeteo)[d],  
+sd1<-spwb_day(x, rownames(examplemeteo)[d],  
              examplemeteo$MinTemperature[d], examplemeteo$MaxTemperature[d], 
              examplemeteo$MinRelativeHumidity[d], examplemeteo$MaxRelativeHumidity[d], 
              examplemeteo$Radiation[d], examplemeteo$WindSpeed[d], 
@@ -85,14 +44,14 @@ names(sd1)
 sd1
 
 ## -----------------------------------------------------------------------------
-examplesoil$W
+x$soil$W
 
 ## -----------------------------------------------------------------------------
-resetInputs(x, examplesoil)
-examplesoil$W
+resetInputs(x)
+x$soil$W
 
 ## -----------------------------------------------------------------------------
-S = spwb(x, examplesoil, examplemeteo, latitude = 41.82592, elevation = 100)
+S = spwb(x, examplemeteo, latitude = 41.82592, elevation = 100)
 
 ## -----------------------------------------------------------------------------
 class(S)
@@ -124,8 +83,8 @@ plot(S, type="SoilPsi")
 plot(S, type="SoilVol")
 
 ## ---- fig=TRUE, fig.align="center", fig.width=7, fig.height = 4---------------
-plot(S, type="PlantTranspiration")
-plot(S, type="PlantPhotosynthesis")
+plot(S, type="Transpiration")
+plot(S, type="GrossPhotosynthesis")
 plot(S, type="PlantPsi")
 plot(S, type="PlantStress")
 
@@ -149,5 +108,5 @@ spwb_stress(S, index = "MDS", freq = "years", draw=FALSE)
 spwb_stress(S, index = "WSI", freq = "months", draw=TRUE)
 
 ## -----------------------------------------------------------------------------
-spwb_waterUseEfficiency(S, type = "Stand An/E", freq = "months", draw=FALSE)
+spwb_waterUseEfficiency(S, type = "Stand Ag/E", freq = "months", draw=FALSE)
 

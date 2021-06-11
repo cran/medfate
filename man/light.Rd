@@ -6,9 +6,8 @@
 \alias{light_cohortSunlitShadeAbsorbedRadiation}
 \alias{light_instantaneousLightExtinctionAbsortion}
 \alias{light_cohortAbsorbedSWRFraction}
-
-%- Also NEED an '\alias' for EACH other topic documented here.
-\title{Light extinction and absortion functions}
+\alias{light_longwaveRadiationSHAW}
+\title{Radiation transfer functions}
 \description{
 Functions \code{light_layerIrradianceFraction} and \code{light_layerIrradianceFractionBottomUp} calculate the fraction of above-canopy irradiance (and the soil irradiance, respectively) reaching each vegetation layer. Function \code{light_layerSunlitFraction} calculates the proportion of sunlit leaves in each vegetation layer. Function \code{light_cohortSunlitShadeAbsorbedRadiation} calculates the amount of radiation absorved by cohort and vegetation layers, while differentiating between sunlit and shade leaves.
 }
@@ -23,12 +22,12 @@ light_cohortSunlitShadeAbsorbedRadiation(Ib0, Id0, Ibf, Idf, beta,
                                          kb, kd, alpha, gamma)
 light_instantaneousLightExtinctionAbsortion(LAIme, LAImd, LAImx,
                                             kPAR, alphaSWR, gammaSWR,
-                                            ddd, LWR_diffuse,
-                                            ntimesteps = 24, canopyMode= "sunshade", 
+                                            ddd, ntimesteps = 24, 
                                             trunkExtinctionFraction = 0.1)
+light_longwaveRadiationSHAW(LAIme, LAImd, LAImx, 
+                            LWRatm, Tsoil, Tair, trunkExtinctionFraction = 0.1)
 light_cohortAbsorbedSWRFraction(z, x, SpParams, gdd = NA)
 }
-%- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{LAIme}{A numeric matrix of live expanded LAI values per vegetation layer (row) and cohort (column).}
   \item{LAImd}{A numeric matrix of dead LAI values per vegetation layer (row) and cohort (column).}
@@ -47,26 +46,29 @@ light_cohortAbsorbedSWRFraction(z, x, SpParams, gdd = NA)
   \item{alphaSWR}{A vecfor of hort-wave absorbance coefficients for each cohort.}
   \item{gammaSWR}{A vector of short-wave reflectance coefficients (albedo) for each cohort.}
   \item{ddd}{A dataframe with direct and diffuse radiation for different subdaily time steps (see function \code{radiation_directDiffuseDay} in package meteoland).}
-  \item{LWR_diffuse}{A vector with diffuse longwave radiation for different subdaily time steps.}
   \item{ntimesteps}{Number of subdaily time steps.}
-  \item{canopyMode}{Indicates how crowns should be described to calculate photosynthesis/extinction. Accepted values are \code{"sunshade"} (distinguishes photosynthesis in sun leaves from shade leaves) and \code{"multilayer"} (distinguishes photosynthesis of sun leaves and shade leaves in each canopy layer).}
   \item{trunkExtinctionFraction}{Fraction of extinction due to trunks (for winter deciduous forests).}
+  \item{LWRatm}{Atmospheric downward long-wave radiation (W/m2).}
+  \item{Tsoil}{Soil temperature (Celsius).}
+  \item{Tair}{Canopy layer air temperature vector (Celsius).}
   \item{x}{An object of class \code{\link{forest}}}
   \item{SpParams}{A data frame with species parameters (see \code{\link{SpParamsMED}}).}
   \item{z}{A numeric vector with height values.}
   \item{gdd}{Growth degree days.}
 }
 \details{
-Function codification adapted from Anten & Bastiaans (2016). Vegetation layers are assumed to be ordered from bottom to top.
+Functions for short-wave radiation are adapted from Anten & Bastiaans (2016), whereas long-wave radiation balance follows Flerchinger et al. (2009). Vegetation layers are assumed to be ordered from bottom to top.
 }
 \value{
 Functions \code{light_layerIrradianceFraction}, \code{light_layerIrradianceFractionBottomUp}  and \code{light_layerSunlitFraction} return a numeric vector of length equal to the number of vegetation layers. Function \code{light_cohortSunlitShadeAbsorbedRadiation} returns a list with two elements (matrices): \code{I_sunlit} and \code{I_shade}.
 }
 \references{
 Anten, N.P.R., Bastiaans, L., 2016. The use of canopy models to analyze light competition among plants, in: Hikosaka, K., Niinemets, U., Anten, N.P.R. (Eds.), Canopy Photosynthesis: From Basics to Application. Springer, pp. 379–398.
+
+Flerchinger, G. N., Xiao, W., Sauer, T. J., Yu, Q. 2009. Simulation of within-canopy radiation exchange. NJAS - Wageningen Journal of Life Sciences 57 (1): 5–15. https://doi.org/10.1016/j.njas.2009.07.004.
 }
 \author{
-Miquel De \enc{Cáceres}{Caceres} Ainsa, CTFC
+Miquel De \enc{Cáceres}{Caceres} Ainsa, CREAF
 }
 \seealso{
  \code{\link{spwb}}

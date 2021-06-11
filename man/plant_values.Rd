@@ -21,7 +21,6 @@
 \alias{plant_species}
 \alias{plant_speciesName}
 
-%- Also NEED an '\alias' for EACH other topic documented here.
 \title{Plant description functions}
 \description{
 Functions to calculate attributes of plants in a \code{\link{forest}} object.
@@ -35,13 +34,13 @@ plant_crownBaseHeight(x, SpParams, mode = "MED")
 plant_crownLength(x, SpParams, mode = "MED")
 plant_crownRatio(x, SpParams, mode = "MED")
 plant_density(x, SpParams, mode = "MED")
-plant_equilibriumLeafLitter(x, SpParams, AET = 800)
+plant_equilibriumLeafLitter(x, SpParams, AET = 800, mode = "MED")
 plant_equilibriumSmallBranchLitter(x, SpParams, 
-                                   smallBranchDecompositionRate = 0.81)
+                                   smallBranchDecompositionRate = 0.81, mode = "MED")
 plant_foliarBiomass(x, SpParams, gdd = NA, mode = "MED")
 plant_fuel(x, SpParams, gdd = NA, includeDead = TRUE, mode = "MED")
 plant_height(x)
-plant_ID(x)
+plant_ID(x, treeOffset = 0, shrubOffset = 0)
 plant_LAI(x, SpParams, gdd = NA, mode = "MED")
 plant_parameter(x, SpParams, parName)
 plant_phytovolume(x, SpParams)
@@ -57,6 +56,7 @@ plant_speciesName(x, SpParams)
   \item{AET}{Actual annual evapotranspiration (in mm).}
   \item{smallBranchDecompositionRate}{Decomposition rate of small branches.}
   \item{includeDead}{A flag to indicate that standing dead fuels (dead branches) are included.}
+  \item{treeOffset, shrubOffset}{Integers to offset cohort IDs.}
 }
 \value{
 A vector with values for each plant of the input \code{\link{forest}} object:
@@ -83,7 +83,7 @@ A vector with values for each plant of the input \code{\link{forest}} object:
 }
 }
 \author{
-Miquel De \enc{Cáceres}{Caceres} Ainsa, CTFC
+Miquel De \enc{Cáceres}{Caceres} Ainsa, CREAF
 }
 \seealso{
  \code{\link{spwb}}, \code{\link{forest}}, \code{\link{summary.forest}}

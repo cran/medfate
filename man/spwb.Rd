@@ -8,15 +8,14 @@
 Function \code{spwb()} is a water balance model that determines changes in soil moisture, soil water potentials, plant transpiration and drought stress at daily steps for a given forest stand during a period specified in the input climatic data. Function \code{pwb()} performs plant water balance only (i.e. soil moisture dynamics is an input) at daily steps for a given forest stand during a period specified in the input climatic data. On both simulation functions plant transpiration and photosynthesis processes are conducted with different level of detail depending on the transpiration mode.
 }
 \usage{
-spwb(x, soil, meteo,  latitude , elevation = NA, slope = NA, aspect = NA)
-pwb(x, soil, meteo, W, latitude, elevation = NA, slope = NA, aspect = NA,
+spwb(x, meteo,  latitude , elevation = NA, slope = NA, aspect = NA)
+pwb(x, meteo, W, latitude, elevation = NA, slope = NA, aspect = NA,
     canopyEvaporation = numeric(0), 
     snowMelt = numeric(0), 
     soilEvaporation = numeric(0))
 }
 \arguments{
   \item{x}{An object of class \code{\link{spwbInput}}.}
-  \item{soil}{A list containing the description of the soil (see \code{\link{soil}}).}
   \item{meteo}{A data frame with daily meteorological data series. Row names of the data frame should correspond to date strings with format "yyyy-mm-dd" (see \code{\link{Date}}). When using the 'Granier' transpiration mode the following columns are required:
    \itemize{
      \item{\code{MeanTemperature}: Mean temperature (in degrees Celsius).}
@@ -52,7 +51,6 @@ pwb(x, soil, meteo, W, latitude, elevation = NA, slope = NA, aspect = NA,
      \item{\code{"latitude"}: Latitude (in degrees) given as input.} 
      \item{\code{"topography"}: Vector with elevation, slope and aspect given as input.} 
      \item{\code{"spwbInput"}: An (unmodified) copy of the object \code{x} of class \code{\link{spwbInput}} given as input  (note that \code{x} is modified by the simulation function).}
-     \item{\code{"soilInput"}: An (unmodified) copy of the object \code{soil} of class \code{\link{soil}} given as input (note that \code{soil} is modified by the simulation function).}
      \item{\code{"WaterBalance"}: A data frame where different variables (in columns) are given for each simulated day (in rows):}
        \itemize{
           \item{\code{"PET"}: Potential evapotranspiration (in mm).}
@@ -102,7 +100,7 @@ pwb(x, soil, meteo, W, latitude, elevation = NA, slope = NA, aspect = NA,
      \item{\code{"LAI"}: A data frame with the daily leaf area index for each plant cohort.}
      \item{\code{"AbsorbedSWRFraction"}: A data frame with the fraction of SWR absorbed by each plant cohort. }
      \item{\code{"Transpiration"}: A data frame with the amount of daily transpiration (in mm) for each plant cohort.}
-     \item{\code{"Photosynthesis"}: A data frame with the amount of daily net photosynthesis (in g C·m-2) for each plant cohort. }
+     \item{\code{"GrossPhotosynthesis"}: A data frame with the amount of daily gross photosynthesis (in g C·m-2) for each plant cohort. }
      \item{\code{"PlantPsi"}: A data frame with the average daily water potential of each plant (in MPa).}
      \item{\code{"PlantStress"}: A data frame with the amount of daily stress [0-1] suffered by each plant cohort (relative whole-plant conductance).}
 }
@@ -110,7 +108,7 @@ If \code{transpirationMode="Sperry"}, element \code{"Plants"} is a list with the
  \itemize{
    \item{\code{"LAI"}: A data frame with the daily leaf area index for each plant cohort.}
    \item{\code{"AbsorbedSWR"}: A data frame with the daily SWR absorbed by each plant cohort.}
-   \item{\code{"AbsorbedLWR"}: A data frame with the daily LWR absorbed by each plant cohort.}
+   \item{\code{"NetLWR"}: A data frame with the daily net LWR by each plant cohort.}
    \item{\code{"Transpiration"}: A data frame with the amount of daily transpiration (in mm) for each plant cohorts.}
    \item{\code{"GrossPhotosynthesis"}: A data frame with the amount of daily gross photosynthesis (in g C·m-2) for each plant cohort. }
    \item{\code{"NetPhotosynthesis"}: A data frame with the amount of daily net photosynthesis (in g C·m-2) for each plant cohort. }
@@ -141,10 +139,10 @@ De \enc{Cáceres}{Caceres} M, \enc{Martínez}{Martinez}-Vilalta J, Coll L, Llore
 De \enc{Cáceres}{Caceres} M, Mencuccini M, Martin-StPaul N, Limousin JM, Coll L, Poyatos R, Cabon A, Granda V, Forner A, Valladares F, \enc{Martínez}{Martinez}-Vilalta J (2021) Unravelling the effect of species mixing on water use and drought stress in holm oak forests: a modelling approach. Agricultural and Forest Meteorology 296 (doi:10.1016/j.agrformet.2020.108233).
 }
 \author{
-Miquel De \enc{Cáceres}{Caceres} Ainsa, CTFC
+Miquel De \enc{Cáceres}{Caceres} Ainsa, CREAF
 }
 \note{
-State variables stored in objects \code{x} and \code{soil} are modified during the simulation.  
+State variables stored in objects \code{x} are modified during the simulation, unless control parameter \code{modifyInput = FALSE}.  
 }
 \seealso{
 \code{\link{spwbInput}}, \code{\link{spwb_day}}, \code{\link{plot.spwb}},  
@@ -164,13 +162,13 @@ data(SpParamsMED)
 examplesoil1 = soil(defaultSoilParams(4))
 
 #Initialize control parameters
-control = defaultControl()
+control = defaultControl("Granier")
 
 #Initialize input
 x1 = forest2spwbInput(exampleforestMED,examplesoil1, SpParamsMED, control)
 
 #Call simulation function
-S1<-spwb(x1, examplesoil1, examplemeteo, latitude = 41.82592, elevation = 100)
+S1<-spwb(x1, examplemeteo, latitude = 41.82592, elevation = 100)
         
 #Plot results
 plot(S1)
@@ -183,19 +181,20 @@ summary(S1, freq="months",FUN=mean, output="Soil")
 examplesoil2 = soil(defaultSoilParams(4))
 
 #Switch to 'Sperry' transpiration mode
-control$transpirationMode="Sperry"
+control = defaultControl("Sperry")
 
 #Initialize input
 x2 = forest2spwbInput(exampleforestMED,examplesoil2, SpParamsMED, control)
 
 #Call simulation function (11 days)
 d = 100:110
-S2<-spwb(x2, examplesoil2, examplemeteo[d,], latitude = 41.82592, elevation = 100)
+S2<-spwb(x2, examplemeteo[d,], latitude = 41.82592, elevation = 100)
 
 # Run the model with 'Sperry' transpiration mode using the water balance of 
 # simulated with the 'Granier' model
-P2<-pwb(x2, examplesoil2, examplemeteo[d,], latitude = 41.82592, elevation = 100, 
-        W = as.matrix(S1$Soil[d, c("W.1", "W.2")]),
+WS = as.matrix(S1$Soil[, c("W.1", "W.2", "W.3", "W.4")])
+P2<-pwb(x2, examplemeteo[d,], latitude = 41.82592, elevation = 100, 
+        W = WS[d,],
         canopyEvaporation = S1$WaterBalance$Interception[d],
         snowMelt = S1$WaterBalance$Snowmelt[d],
         soilEvaporation = S1$WaterBalance$SoilEvaporation[d])

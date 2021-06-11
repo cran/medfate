@@ -7,15 +7,14 @@
 Function \code{spwb_day} performs water balance for a single day and \code{growth_day} performs water and carbon balance for a single day.
 }
 \usage{
-spwb_day(x, soil, date, tmin, tmax, rhmin, rhmax, rad, wind, 
+spwb_day(x, date, tmin, tmax, rhmin, rhmax, rad, wind, 
          latitude, elevation, slope, aspect, prec, runon = 0.0)
-growth_day(x, soil, date, tmin, tmax, rhmin, rhmax, rad, wind, 
+growth_day(x, date, tmin, tmax, rhmin, rhmax, rad, wind, 
            latitude, elevation, slope, aspect, prec, runon = 0.0)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{x}{An object of class \code{\link{spwbInput}} or \code{\link{growthInput}}.}
-  \item{soil}{A list containing the description of the soil (see \code{\link{soil}}).}
   \item{date}{Date as string "yyyy-mm-dd".}
   \item{tmin, tmax}{Minimum and maximum temperature (in degrees Celsius).}
   \item{rhmin, rhmax}{Minimum and maximum relative humidity (in percent).}
@@ -55,7 +54,7 @@ The following items are only returned when \code{transpirationMode = "Sperry"}:
   \item{\code{"ExtractionInst"}: Water extracted by each plant cohort during each time step.}
   \item{\code{"PlantsInst"}: A list with instantaneous (per time step) results for each plant cohort (see \code{\link{transp_transpirationSperry}}).}
   \item{\code{"LightExtinction"}: A list of information regarding radiation balance through the canopy, as returned by function \code{\link{light_instantaneousLightExtinctionAbsortion}}.}
-  \item{\code{"WindExtinction"}: A numeric vector with the wind speed (in m/s) for each plant cohort.}
+  \item{\code{"CanopyTurbulence"}: Canopy turbulence (see \code{\link{wind_canopyTurbulence}}).}
   }
 }
 \references{
@@ -64,10 +63,10 @@ De \enc{Cáceres}{Caceres} M, \enc{Martínez}{Martinez}-Vilalta J, Coll L, Llore
 De \enc{Cáceres}{Caceres} M, Mencuccini M, Martin-StPaul N, Limousin JM, Coll L, Poyatos R, Cabon A, Granda V, Forner A, Valladares F, \enc{Martínez}{Martinez}-Vilalta J (2021) Unravelling the effect of species mixing on water use and drought stress in holm oak forests: a modelling approach. Agricultural and Forest Meteorology 296 (doi: 10.1016/j.agrformet.2020.108233).
 }
 \author{
-Miquel De \enc{Cáceres}{Caceres} Ainsa, CTFC
+Miquel De \enc{Cáceres}{Caceres} Ainsa, CREAF
 }
 \note{
-Objects \code{x} and \code{soil} are modified during the simulation.
+Object \code{x} is modified during the simulation, unless control parameter \code{modifyInput = FALSE}.
 }
 \seealso{
 \code{\link{spwbInput}}, \code{\link{spwb}},  \code{\link{plot.spwb_day}},  
@@ -84,7 +83,7 @@ data(exampleforestMED)
 data(SpParamsMED)
 
 #Initialize control parameters
-control = defaultControl()
+control = defaultControl("Granier")
 
 # Day to be simulated
 d = 100
@@ -93,7 +92,7 @@ d = 100
 #Simulate water balance one day only (Granier)
 examplesoil = soil(defaultSoilParams(2))
 x1 = forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
-sd1<-spwb_day(x1, examplesoil, rownames(examplemeteo)[d],  
+sd1<-spwb_day(x1, rownames(examplemeteo)[d],  
              examplemeteo$MinTemperature[d], examplemeteo$MaxTemperature[d], 
              examplemeteo$MinRelativeHumidity[d], examplemeteo$MaxRelativeHumidity[d], 
              examplemeteo$Radiation[d], examplemeteo$WindSpeed[d], 
@@ -102,10 +101,10 @@ sd1<-spwb_day(x1, examplesoil, rownames(examplemeteo)[d],
 
 
 #Simulate water balance for one day only (Sperry's mode)
-control$transpirationMode="Sperry"
+control = defaultControl("Sperry")
 examplesoil2 = soil(defaultSoilParams(2))
 x2 = forest2spwbInput(exampleforestMED,examplesoil2, SpParamsMED, control)
-sd2<-spwb_day(x2, examplesoil2, rownames(examplemeteo)[d],
+sd2<-spwb_day(x2, rownames(examplemeteo)[d],
              examplemeteo$MinTemperature[d], examplemeteo$MaxTemperature[d], 
              examplemeteo$MinRelativeHumidity[d], examplemeteo$MaxRelativeHumidity[d], 
              examplemeteo$Radiation[d], examplemeteo$WindSpeed[d], 
@@ -119,7 +118,7 @@ plot(sd2)
 #Simulate water and carbon balance for one day only
 examplesoil3 = soil(defaultSoilParams(2))
 x3 = forest2growthInput(exampleforestMED,examplesoil3, SpParamsMED, control)
-sd3<-growth_day(x3, examplesoil3, rownames(examplemeteo)[d],
+sd3<-growth_day(x3, rownames(examplemeteo)[d],
              examplemeteo$MinTemperature[d], examplemeteo$MaxTemperature[d], 
              examplemeteo$MinRelativeHumidity[d], examplemeteo$MaxRelativeHumidity[d], 
              examplemeteo$Radiation[d], examplemeteo$WindSpeed[d], 

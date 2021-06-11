@@ -4,63 +4,23 @@ library(medfate)
 
 ## -----------------------------------------------------------------------------
 spar = defaultSoilParams(2)
-print(spar)
 
 ## -----------------------------------------------------------------------------
-examplesoil = soil(spar, VG_PTF = "Toth")
-names(examplesoil)
-
-## -----------------------------------------------------------------------------
-examplesoil$W
-
-## -----------------------------------------------------------------------------
-examplesoil$Temp
-
-## -----------------------------------------------------------------------------
-print(examplesoil, model = "SX")
-
-## -----------------------------------------------------------------------------
-print(examplesoil, model="VG")
-
-## -----------------------------------------------------------------------------
-data("SpParamsMED")
-
-## -----------------------------------------------------------------------------
-names(SpParamsMED)
+examplesoil = soil(spar)
 
 ## -----------------------------------------------------------------------------
 data(exampleforestMED)
 exampleforestMED
 
 ## -----------------------------------------------------------------------------
-above = forest2aboveground(exampleforestMED, SpParamsMED)
-above
-
-## -----------------------------------------------------------------------------
-Z = c(exampleforestMED$treeData$Z95, exampleforestMED$shrubData$Z)
-Z
-below = forest2belowground(exampleforestMED, examplesoil)
-below
-
-## -----------------------------------------------------------------------------
-root_ldrDistribution(exampleforestMED$treeData$Z50[1], 
-                     exampleforestMED$treeData$Z95[1],
-                     examplesoil$dVec)
-
-## -----------------------------------------------------------------------------
 data(examplemeteo)
 head(examplemeteo)
 
 ## -----------------------------------------------------------------------------
-control = defaultControl()
+data("SpParamsMED")
 
 ## -----------------------------------------------------------------------------
-names(control)
-
-## -----------------------------------------------------------------------------
-Z50 = c(exampleforestMED$treeData$Z50, exampleforestMED$shrubData$Z50)
-Z95 = c(exampleforestMED$treeData$Z95, exampleforestMED$shrubData$Z95)
-x = growthInput(above, Z50, Z95, examplesoil, SpParamsMED, control)
+control = defaultControl("Granier")
 
 ## -----------------------------------------------------------------------------
 x = forest2growthInput(exampleforestMED, examplesoil, SpParamsMED, control)
@@ -85,7 +45,10 @@ x$paramsGrowth
 x$paramsAllometries
 
 ## -----------------------------------------------------------------------------
-G1<-growth(x, examplesoil, examplemeteo, latitude = 41.82592, elevation = 100)
+x$internalCarbon
+
+## -----------------------------------------------------------------------------
+G1<-growth(x, examplemeteo, latitude = 41.82592, elevation = 100)
 
 
 ## ---- fig=TRUE, echo=TRUE, fig.width=7, fig.height=3--------------------------
@@ -93,7 +56,7 @@ plot(G1, "GrossPhotosynthesis", bySpecies = T)
 
 ## ---- fig=TRUE, echo=TRUE, fig.width=7, fig.height=3--------------------------
 plot(G1, "MaintenanceRespiration", bySpecies = T)
-plot(G1, "GrowthRespiration", bySpecies = T)
+plot(G1, "GrowthCosts", bySpecies = T)
 
 ## ---- fig=TRUE, echo=TRUE, fig.width=7, fig.height=3--------------------------
 plot(G1, "CarbonBalance", bySpecies = T)
@@ -113,10 +76,4 @@ plot(G1, "SapwoodArea", bySpecies = T)
 ## ---- fig=TRUE, echo=TRUE, fig.width=7, fig.height=3--------------------------
 plot(G1, "LAgrowth", bySpecies = T)
 plot(G1, "SAgrowth", bySpecies = T)
-
-## ---- fig=TRUE, echo=TRUE, fig.width=7, fig.height=3--------------------------
-G1$StandStructures
-
-## ---- fig=TRUE, echo=TRUE, fig.width=7, fig.height=3--------------------------
-G1$StandStructures
 

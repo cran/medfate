@@ -3,16 +3,10 @@ knitr::opts_chunk$set(echo = TRUE)
 library(medfate)
 
 ## -----------------------------------------------------------------------------
-examplesoil = soil(defaultSoilParams(2))
+spar = defaultSoilParams(2)
 
 ## -----------------------------------------------------------------------------
-examplesoil$Temp
-
-## -----------------------------------------------------------------------------
-data("SpParamsMED")
-
-## -----------------------------------------------------------------------------
-names(SpParamsMED)
+examplesoil = soil(spar)
 
 ## -----------------------------------------------------------------------------
 data(exampleforestMED)
@@ -23,11 +17,10 @@ data(examplemeteo)
 head(examplemeteo)
 
 ## -----------------------------------------------------------------------------
-control = defaultControl()
+data("SpParamsMED")
 
 ## -----------------------------------------------------------------------------
-control$transpirationMode = "Sperry"
-control$soilFunctions = "VG"
+control = defaultControl("Sperry")
 
 ## -----------------------------------------------------------------------------
 x = forest2spwbInput(exampleforestMED, examplesoil, SpParamsMED, control)
@@ -70,15 +63,15 @@ hydraulics_supplyFunctionPlot(x, examplesoil, type="StemPsi")
 
 ## ---- fig=TRUE, fig.align="center", fig.width=7, fig.height = 3.5-------------
 d = 100
-transp_stomatalRegulationPlot(x, examplesoil, examplemeteo, day = d, timestep=12,
+transp_stomatalRegulationPlot(x, examplemeteo, day = d, timestep=12,
                               latitude = 41.82592, elevation = 100, type="E")
-transp_stomatalRegulationPlot(x, examplesoil, examplemeteo, day = d, timestep=12,
+transp_stomatalRegulationPlot(x, examplemeteo, day = d, timestep=12,
                               latitude = 41.82592, elevation = 100, type="An")
-transp_stomatalRegulationPlot(x, examplesoil, examplemeteo, day = d, timestep=12,
-                              latitude = 41.82592, elevation = 100, type="Gw")
-transp_stomatalRegulationPlot(x, examplesoil, examplemeteo, day = d, timestep=12,
+transp_stomatalRegulationPlot(x, examplemeteo, day = d, timestep=12,
+                              latitude = 41.82592, elevation = 100, type="Gsw")
+transp_stomatalRegulationPlot(x, examplemeteo, day = d, timestep=12,
                               latitude = 41.82592, elevation = 100, type="T")
-transp_stomatalRegulationPlot(x, examplesoil, examplemeteo, day = d, timestep=12,
+transp_stomatalRegulationPlot(x, examplemeteo, day = d, timestep=12,
                               latitude = 41.82592, elevation = 100, type="VPD")
 
 ## ---- fig=TRUE, fig.align="center", fig.width=5, fig.height = 3.5-------------
@@ -88,7 +81,7 @@ moisture_pressureVolumeCurvePlot(x, segment="stem", fraction="symplastic")
 moisture_pressureVolumeCurvePlot(x, segment="stem", fraction="apoplastic")
 
 ## -----------------------------------------------------------------------------
-sd1<-spwb_day(x, examplesoil, rownames(examplemeteo)[d],  
+sd1<-spwb_day(x, rownames(examplemeteo)[d],  
              examplemeteo$MinTemperature[d], examplemeteo$MaxTemperature[d], 
              examplemeteo$MinRelativeHumidity[d], examplemeteo$MaxRelativeHumidity[d], 
              examplemeteo$Radiation[d], examplemeteo$WindSpeed[d], 
@@ -150,22 +143,22 @@ plot(sd1, type = "LeafCi", bySpecies=TRUE)
 plot(sd1, type = "LeafIntrinsicWUE", bySpecies=TRUE)
 
 ## -----------------------------------------------------------------------------
-examplesoil$W
+x$soil$W
 
 ## -----------------------------------------------------------------------------
-examplesoil$Temp
+x$soil$Temp
 
 ## -----------------------------------------------------------------------------
 x$canopy
 
 ## -----------------------------------------------------------------------------
-resetInputs(x, examplesoil)
-examplesoil$W
-examplesoil$Temp
+resetInputs(x)
+x$soil$W
+x$soil$Temp
 x$canopy
 
 ## -----------------------------------------------------------------------------
-S = spwb(x, examplesoil, examplemeteo[110:170,], latitude = 41.82592, elevation = 100)
+S = spwb(x, examplemeteo[110:170,], latitude = 41.82592, elevation = 100)
 
 ## -----------------------------------------------------------------------------
 names(S)

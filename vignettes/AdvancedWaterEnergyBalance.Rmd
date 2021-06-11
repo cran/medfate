@@ -1,12 +1,12 @@
 ---
-title: "Advanced water and energy balance simulation"
+title: "Advanced water and energy balance"
 author: "Miquel De Caceres"
 date: "`r Sys.Date()`"
 output: 
   rmarkdown::html_vignette:
     toc: TRUE
 vignette: >
-  %\VignetteIndexEntry{Advanced water and energy balance simulation}
+  %\VignetteIndexEntry{Advanced water and energy balance}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignettePackage{medfate}
   \usepackage[utf8]{inputenc}
@@ -19,49 +19,31 @@ library(medfate)
 
 ## About this vignette
 
-This document describes how to run a water and energy balance model that uses a more detailed approach for hydraulics and stomatal regulation described in De Cáceres et al. (2021). This document is meant to teach users to run the simulation model within R. All the details of the model design and formulation can be found at  https://vegmod.ctfc.cat/software/medfate. 
+This document describes how to run a water and energy balance model that uses a more detailed approach for hydraulics and stomatal regulation described in De Cáceres et al. (2021). This document is meant to teach users to run the simulation model within R. All the details of the model design and formulation can be found at  https://emf-creaf.github.io/medfatebook/index.html. 
 
 ## Preparing model inputs
-Most details of the soil plant water balance model inputs are already covered in vignette **1. Introduction to water balance simulation**. Here only differences are mentioned.
 
-### Soils
+Model inputs are explained in greater detail in vignette '*Simulation inputs*'. Here we only review the different steps required to run function `spwb()`.
 
-The soil input for function is actually an object of class `soil` that is created using a function with the same name:
-```{r}
-examplesoil = soil(defaultSoilParams(2))
-```
+### Soil, vegetation, meteorology and species data
 
-Advanced soil plant energy and water balance modelling requires considering the temperature of soil. Hence, `Temp` contains the temperature (in degrees) of soil layers:
-```{r}
-examplesoil$Temp
-```
-Soil layer temperatures are initialized to missing values, so that at the first time step they will be set to atmospheric temperature. While simple water balance modeling can be run using either Saxton's or Van Genuchten's equations as water retention curves, Van Genuchten's model is forced for advanced modelling.
 
-### Species data table
-
-Simulation models in `medfate` require a data frame with species parameter values. The package provides a default data set of parameter values for 89 Mediterranean species (rows), resulting from bibliographic search, fit to empirical data or expert-based guesses:
+Soil information needs to be entered as a `data frame` with soil layers in rows and physical attributes in columns. Soil physical attributes can be initialized to default values, for a given number of layers, using function `defaultSoilParams()`:
 
 ```{r}
-data("SpParamsMED")
+spar = defaultSoilParams(2)
 ```
 
-These species commonly occur in the Spanish forest inventory of Catalonia, but may not be sufficient for other areas. A large number of parameters (columns) can be found in `SpParamsMED`:
-
+The soil input for water balance simulation is actually a list of class `soil` that is created using a function with the same name:
 ```{r}
-names(SpParamsMED)
+examplesoil = soil(spar)
 ```
 
-Not all parameters are needed for all models. The user can find parameter definitions in the help page of this data set. However, to fully understand the role of parameters in the model, the user should read the details of model design and formulation (https://vegmod.ctfc.cat/software/medfate). 
-
-### Vegetation
-
-Models included in `medfate` were primarily designed to be ran on **forest inventory plots** (these are explained in detail in **1. Introduction to water balance simulation**):
+As explained in the package overview, models included in `medfate` were primarily designed to be ran on **forest inventory plots**. Here we use the example object provided with the package:
 ```{r}
 data(exampleforestMED)
 exampleforestMED
 ```
-
-### Meteorological forcing
 
 Advanced water and energy balance modeling requires daily precipitation, radiation, wind speed, min/max temparatures and relative humitidy as inputs: 
 ```{r}
@@ -69,26 +51,25 @@ data(examplemeteo)
 head(examplemeteo)
 ```
 
-Simulation models in `medfate` have been designed to work along with data generated from package `meteoland`. The user is strongly recommended to resort to this package to obtain suitable weather input for soil water balance simulations.
+Finally, simulations in `medfate` require a data frame with species parameter values, which we load using defaults for Catalonia (NE Spain):
+
+```{r}
+data("SpParamsMED")
+```
+
 
 ### Simulation control
 
 Apart from data inputs, the behaviour of simulation models is controlled using a set of global parameters. The default parameterization is obtained using function `defaultControl()`:
 
 ```{r}
-control = defaultControl()
+control = defaultControl("Sperry")
 ```
 
-To use the complex soil water balance model we must change the values of `transpirationMode` (to switch from "Granier" to "Sperry") and `soilFunctions` (to switch from Saxton's retention curve, "SX", to Van Genuchten's retention curve, "VG"):
-```{r}
-control$transpirationMode = "Sperry"
-control$soilFunctions = "VG"
-```
-
+To use the complex soil water balance model we must change the values of `transpirationMode` (to switch from "Granier" to "Sperry") and `soilFunctions` (to switch from Saxton's retention curve, "SX", to Van Genuchten's retention curve, "VG"). This is automatically done when calling function `defaultControl()` with `"Sperry"` as parameter input.
 
 ### Water balance input object
-
-A last step is needed before running the simulation function, consisting in the compilation of parameters and the calculation of additional parameter values for each plant cohort. If one has a `forest` object, the `spwbInput` object can be generated in directly from it:
+A last object is needed before calling simulation functions, called `spwbInput`. It consists in the compilation of aboveground and belowground parameters and the specification of additional parameter values for each plant cohort. This is done by calling function `spwbInput()`, but if one has a `forest` object, the object can be generated more directly using function `forest2spwbInput()`:
 
 ```{r}
 x = forest2spwbInput(exampleforestMED, examplesoil, SpParamsMED, control)
@@ -99,11 +80,13 @@ The `spwbInput` object for advanced water and energy balance is similar to that 
 x$cohorts
 ```
 
-Element `canopy` contains state variables of the whole canopy, which include growth degree days and canopy temperature:
+Element `canopy` contains state variables within the canopy:
 ```{r}
 x$canopy
 ```
-Canopy temperature is a state variable (as soil temperature) needed for energy balance. As you may already known, element `above` contains the aboveground structure data that we already know:
+Canopy temperature, water vapour pressure and $CO_2$ concentration are state variables needed for canopy energy balance. If the canopy energy balance assumes a single canopy layer, the same values will be assumed through the canopy. Variation of within-canopy state variables is modelled if a multi-canopy energy balance is used (see control parameter `multiLayerBalance`). 
+
+As you may already known, element `above` contains the aboveground structure data that we already know:
 ```{r}
 x$above
 ```
@@ -168,15 +151,15 @@ The soil water balance model determines stomatal conductance and transpiration s
 
 ```{r, fig=TRUE, fig.align="center", fig.width=7, fig.height = 3.5}
 d = 100
-transp_stomatalRegulationPlot(x, examplesoil, examplemeteo, day = d, timestep=12,
+transp_stomatalRegulationPlot(x, examplemeteo, day = d, timestep=12,
                               latitude = 41.82592, elevation = 100, type="E")
-transp_stomatalRegulationPlot(x, examplesoil, examplemeteo, day = d, timestep=12,
+transp_stomatalRegulationPlot(x, examplemeteo, day = d, timestep=12,
                               latitude = 41.82592, elevation = 100, type="An")
-transp_stomatalRegulationPlot(x, examplesoil, examplemeteo, day = d, timestep=12,
-                              latitude = 41.82592, elevation = 100, type="Gw")
-transp_stomatalRegulationPlot(x, examplesoil, examplemeteo, day = d, timestep=12,
+transp_stomatalRegulationPlot(x, examplemeteo, day = d, timestep=12,
+                              latitude = 41.82592, elevation = 100, type="Gsw")
+transp_stomatalRegulationPlot(x, examplemeteo, day = d, timestep=12,
                               latitude = 41.82592, elevation = 100, type="T")
-transp_stomatalRegulationPlot(x, examplesoil, examplemeteo, day = d, timestep=12,
+transp_stomatalRegulationPlot(x, examplemeteo, day = d, timestep=12,
                               latitude = 41.82592, elevation = 100, type="VPD")
 ```
 
@@ -195,7 +178,7 @@ moisture_pressureVolumeCurvePlot(x, segment="stem", fraction="apoplastic")
 ### Running the model
 Soil water balance simulations will normally span periods of several months or years, but since the model operates at a daily and subdaily temporal scales, it is possible to perform soil water balance for one day only. This is done using function `spwb_day()`. In the following code we select the same day as before from the meteorological input data and perform soil water balance for that day only:
 ```{r}
-sd1<-spwb_day(x, examplesoil, rownames(examplemeteo)[d],  
+sd1<-spwb_day(x, rownames(examplemeteo)[d],  
              examplemeteo$MinTemperature[d], examplemeteo$MaxTemperature[d], 
              examplemeteo$MinRelativeHumidity[d], examplemeteo$MaxRelativeHumidity[d], 
              examplemeteo$Radiation[d], examplemeteo$WindSpeed[d], 
@@ -301,11 +284,11 @@ plot(sd1, type = "LeafIntrinsicWUE", bySpecies=TRUE)
 ### Running the model
 Users will often use function `spwb()` to run the soil water balance model for several days. This function requires the `spwbInput` object, the `soil` object and the meteorological data frame. However, running `spwb_day()` modified the input objects. In particular, the soil moisture at the end of the simulation was:
 ```{r}
-examplesoil$W
+x$soil$W
 ```
 And the temperature of soil layers:
 ```{r}
-examplesoil$Temp
+x$soil$Temp
 ```
 We can also see the current state of canopy variables:
 ```{r}
@@ -313,14 +296,14 @@ x$canopy
 ```
 We simply use function `resetInputs()` to reset state variables to their default values, so that the new simulation is not affected by the end state of the previous simulation:
 ```{r}
-resetInputs(x, examplesoil)
-examplesoil$W
-examplesoil$Temp
+resetInputs(x)
+x$soil$W
+x$soil$Temp
 x$canopy
 ```
 Now we are ready to call function `spwb()`. In this example, we only simulate 61 days to save computational time:
 ```{r}
-S = spwb(x, examplesoil, examplemeteo[110:170,], latitude = 41.82592, elevation = 100)
+S = spwb(x, examplemeteo[110:170,], latitude = 41.82592, elevation = 100)
 ```
 Function `spwb()` returns an object of class *spwb*. If we inspect its elements, we realize that the output is arranged differently than in `spwb_day()`:
 ```{r}

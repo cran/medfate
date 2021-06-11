@@ -3,22 +3,23 @@
     TYPES = c("SoilPsi","SoilTheta", "SoilRWC", "LAI",
               "PlantExtraction","PlantLAI", 
               "PlantStress", "PlantPsi","StemPLC",
-              "PlantPhotosynthesis", "PlantTranspiration", "PlantWUE",
-              "PhotosynthesisPerLeaf","TranspirationPerLeaf")
+              "PlantGrossPhotosynthesis", "PlantTranspiration",
+              "GrossPhotosynthesisPerLeaf","TranspirationPerLeaf")
   } else {
     TYPES = c("SoilPsi","SoilTheta", "SoilRWC", "LAI",
               "PlantExtraction","HydraulicRedistribution",
               "PlantLAI",
               "SoilPlantConductance","PlantStress", 
               "PlantNetPhotosynthesis", "PlantGrossPhotosynthesis", "PlantTranspiration","PlantWUE",
-              "NetPhotosynthesisPerLeaf","GrossPhotosynthesisPerLeaf","TranspirationPerLeaf", 
-              "GW_SL", "GW_SH", "LeafPsiRange",
+              "NetPhotosynthesisPerLeaf","GrossPhotosynthesisPerLeaf","TranspirationPerLeaf",
+              "TempMin_SL", "TempMin_SH", "TempMax_SL","TempMax_SH",
+              "GSWMin_SL", "GSWMin_SH", "GSWMax_SL", "GSWMax_SH", "LeafPsiRange",
               "LeafPsiMin", "LeafPsiMax", "LeafPsiMin_SL", "LeafPsiMax_SL", "LeafPsiMin_SH", "LeafPsiMax_SH",
               "StemPsi","RootPsi","StemPLC", "StemRWC", "LeafRWC", "StemSympRWC", "LeafSympRWC", 
               "PlantWaterBalance",
               "PlantAbsorbedSWR", "AbsorbedSWRPerLeaf",
-              "PlantAbsorbedLWR", "AbsorbedLWRPerLeaf",
-              "Temperature","AirTemperature","SoilTemperature", "CanopyTemperature",
+              "PlantNetLWR", "NetLWRPerLeaf",
+              "Temperature","TemperatureRange", "AirTemperature","SoilTemperature", "CanopyTemperature",
               "CanopyEnergyBalance", "SoilEnergyBalance")
   }
   return(TYPES)
@@ -40,7 +41,7 @@
             "PlantGrossPhotosynthesis","GrossPhotosynthesisPerLeaf","PlantNetPhotosynthesis","NetPhotosynthesisPerLeaf", 
             "PlantAbsorbedSWR",
             "LeafTranspiration","LeafNetPhotosynthesis", "LeafGrossPhotosynthesis", 
-            "LeafAbsorbedSWR","LeafAbsorbedLWR",
+            "LeafAbsorbedSWR","LeafNetLWR",
             "LeafCi", "LeafIntrinsicWUE",
             "LeafVPD","LeafStomatalConductance", "LeafTemperature",
             "Temperature","CanopyEnergyBalance", "SoilEnergyBalance", 
@@ -48,16 +49,19 @@
   return(TYPES)
 }
 .getDailyGROWTHPlotTypes<-function(transpirationMode = "Granier"){
-  TYPES = c("GrossPhotosynthesis","MaintenanceRespiration","GrowthRespiration", "CarbonBalance",
+  TYPES = c("GrossPhotosynthesis","MaintenanceRespiration","GrowthCosts", "CarbonBalance",
             "SugarTransport", "LeafPI0", "StemPI0",
-            "SugarLeaf", "SugarSapwood", "StarchLeaf", "StarchSapwood","SugarTransport",
-            "SapwoodArea", "LeafArea", "FineRootArea", "SAgrowth", "LAgrowth", "FRAgrowth",
-            "HuberValue", "RootAreaLeafArea",
+            "SugarLeaf", "SugarSapwood", "StarchLeaf", "StarchSapwood","SugarTransport", "RootExudation",
+            "SapwoodArea", "LeafArea", "FineRootArea",
+            "SapwoodBiomass", "LeafBiomass", "FineRootBiomass",
+            "LabileBiomass", "TotalLivingBiomass",
+            "SAgrowth", "LAgrowth", "FRAgrowth",
+            "HuberValue", "FineRootBiomassLeafArea",
             .getDailySPWBPlotTypes(transpirationMode))
   return(TYPES)
 }
 .getSubdailyGROWTHPlotTypes<-function(){
-  TYPES = c("GrossPhotosynthesis","MaintenanceRespiration","GrowthRespiration", "CarbonBalance",
+  TYPES = c("GrossPhotosynthesis","MaintenanceRespiration","GrowthCosts", "CarbonBalance",
             "SugarTransport",
             "SugarLeaf", "SugarSapwood", "StarchLeaf", "StarchSapwood","SugarTransport",
             .getSubdailySPWBPlotTypes())
@@ -70,25 +74,31 @@
   else if(type=="PlantGrossPhotosynthesis") ylab = expression(paste("Plant gross photosynthesis ",(g*C%.%m^{-2})))
   else if(type=="PlantNetPhotosynthesis") ylab = expression(paste("Plant net photosynthesis ",(g*C%.%m^{-2})))
   else if(type=="PlantAbsorbedSWR") ylab = expression(paste("Plant absorbed SWR ",(MJ%.%m^{-2})))
-  else if(type=="PlantAbsorbedLWR") ylab = expression(paste("Plant absorbed LWR ",(MJ%.%m^{-2})))
+  else if(type=="PlantNetLWR") ylab = expression(paste("Plant net LWR ",(MJ%.%m^{-2})))
   else if(type=="TranspirationPerLeaf") ylab = expression(paste("Transpiration per leaf area ",(L%.%m^{-2})))
   else if(type=="PhotosynthesisPerLeaf") ylab = expression(paste("Photosynthesis per leaf area ",(g*C%.%m^{-2})))
   else if(type=="GrossPhotosynthesisPerLeaf") ylab = expression(paste("Gross photosynthesis per leaf area ",(g*C%.%m^{-2})))
   else if(type=="NetPhotosynthesisPerLeaf") ylab = expression(paste("Net photosynthesis per leaf area ",(g*C%.%m^{-2})))
   else if(type=="AbsorbedSWRPerLeaf") ylab = expression(paste("Absorbed SWR per leaf area ",(MJ%.%m^{-2})))
-  else if(type=="AbsorbedLWRPerLeaf") ylab = expression(paste("Absorbed LWR per leaf area ",(MJ%.%m^{-2})))
+  else if(type=="NetLWRPerLeaf") ylab = expression(paste("Net LWR per leaf area ",(MJ%.%m^{-2})))
   else if(type=="GrossPhotosynthesis") ylab=expression(paste("Gross photosynthesis ", (gGluc%.%gdry^{-1})))
   else if(type=="MaintenanceRespiration") ylab=expression(paste("Maintenance respiration ", (gGluc%.%gdry^{-1})))
-  else if(type=="GrowthRespiration") ylab=expression(paste("Growth respiration ", (gGluc%.%gdry^{-1})))
+  else if(type=="GrowthCosts") ylab=expression(paste("Growth costs ", (gGluc%.%gdry^{-1})))
   else if(type=="CarbonBalance") ylab=expression(paste("Carbon balance ", (gGluc%.%gdry^{-1})))
   else if(type=="SugarLeaf") ylab=expression(paste("Leaf sugar concentration  ", (mol%.%L^{-1})))
   else if(type=="StarchLeaf") ylab=expression(paste("Leaf starch concentration  ", (mol%.%L^{-1})))
   else if(type=="SugarSapwood") ylab=expression(paste("Sapwood sugar concentration  ", (mol%.%L^{-1})))
   else if(type=="StarchSapwood") ylab=expression(paste("Sapwood starch concentration  ", (mol%.%L^{-1})))
   else if(type=="SugarTransport") ylab=expression(paste("Floem sugar transport rate ", (mmol%.%s^{-1})))
+  else if(type=="RootExudation") ylab=expression(paste("Root exudation ", (gGluc%.%gdry^{-1})))
   else if(type=="SapwoodArea")  ylab = expression(paste("Sapwood area  ",(cm^2)))
   else if(type=="LeafArea")  ylab = expression(paste("Leaf area  ",(m^2)))
   else if(type=="FineRootArea")  ylab = expression(paste("Fine root area  ",(m^2)))
+  else if(type=="SapwoodBiomass")  ylab = expression(paste("Sapwood biomass  ", (gdry%.%ind^{-1})))
+  else if(type=="LeafBiomass")  ylab = expression(paste("Leaf biomass  ", (gdry%.%ind^{-1})))
+  else if(type=="FineRootBiomass")  ylab = expression(paste("Fine root biomass  ", (gdry%.%ind^{-1})))
+  else if(type=="LabileBiomass")  ylab = expression(paste("Labile C biomass  ", (gdry%.%ind^{-1})))
+  else if(type=="TotalLivingBiomass")  ylab = expression(paste("Total living biomass  ", (gdry%.%ind^{-1})))
   else if(type=="HuberValue")  ylab = expression(paste("Huber value  ",(cm^2 %.% m^{-2})))
   else if(type=="RootAreaLeafArea")  ylab = expression(paste("Root area / Leaf area  ",(m^2 %.% m^{-2})))
   else if(type=="SAgrowth") ylab = expression(paste("Sapwood area growth rate ",(cm^2 %.% cm^{-2} %.% d^{-1})))
@@ -109,11 +119,17 @@
   else if(type=="LeafPsiMin") ylab = "Minimum (midday) leaf water potential (MPa)"
   else if(type=="LeafPsiMax") ylab = "Maximum (predawn) leaf water potential (MPa)"
   else if(type=="LeafPsiMin_SL") ylab = "Minimum (midday) sunlit leaf water potential (MPa)"
-  else if(type=="LeafPsiMax_SL") ylab = "Maximum (midday) sunlit leaf water potential (MPa)"
+  else if(type=="LeafPsiMax_SL") ylab = "Maximum (predawn) sunlit leaf water potential (MPa)"
   else if(type=="LeafPsiMin_SH") ylab = "Minimum (midday) shade leaf water potential (MPa)"
-  else if(type=="LeafPsiMax_SH") ylab = "Maximum (midday) shade leaf water potential (MPa)"
-  else if(type=="GW_SH") ylab = expression(paste("Shade leaf stomatal conductance ",(mmol%.%m^{-2}%.%s^{-1})))
-  else if(type=="GW_SL") ylab = expression(paste("Sunlit leaf stomatal conductance ",(mmol%.%m^{-2}%.%s^{-1})))
+  else if(type=="LeafPsiMax_SH") ylab = "Maximum (predawn) shade leaf water potential (MPa)"
+  else if(type=="GSWMin_SH") ylab = expression(paste("Minimum shade leaf stomatal conductance ",(mol%.%m^{-2}%.%s^{-1})))
+  else if(type=="GSWMax_SH") ylab = expression(paste("Maximum shade leaf stomatal conductance ",(mol%.%m^{-2}%.%s^{-1})))
+  else if(type=="GSWMin_SL") ylab = expression(paste("Minimum sunlit leaf stomatal conductance ",(mol%.%m^{-2}%.%s^{-1})))
+  else if(type=="GSWMax_SL") ylab = expression(paste("Maximum sunlit leaf stomatal conductance ",(mol%.%m^{-2}%.%s^{-1})))
+  else if(type=="TempMin_SH") ylab = expression(paste("Minimum shade leaf temperature (Celsius)"))
+  else if(type=="TempMax_SH") ylab = expression(paste("Maximum shade leaf temperature (Celsius)"))
+  else if(type=="TempMin_SL") ylab = expression(paste("Minimum sunlit leaf temperature (Celsius)"))
+  else if(type=="TempMax_SL") ylab = expression(paste("Maximum sunlit leaf temperature (Celsius)"))
   return(ylab)
 }
 

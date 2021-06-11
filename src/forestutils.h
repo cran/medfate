@@ -11,13 +11,13 @@ DataFrame forest2aboveground(List x, DataFrame SpParams, double gdd = NA_REAL, S
 NumericMatrix forest2belowground(List x, List soil);
 
 NumericVector cohortNumericParameter(List x, DataFrame SpParams, String parName);
-NumericVector cohortNumericParameter(IntegerVector SP, DataFrame SpParams, String parName);
+NumericVector speciesNumericParameter(IntegerVector SP, DataFrame SpParams, String parName);
 CharacterVector cohortCharacterParameter(List x, DataFrame SpParams, String parName);
-CharacterVector cohortCharacterParameter(IntegerVector SP, DataFrame SpParams, String parName);
+CharacterVector speciesCharacterParameter(IntegerVector SP, DataFrame SpParams, String parName);
 
 double leafAreaProportion(double z1, double z2, double zmin, double zmax);
 
-CharacterVector cohortIDs(List x);
+CharacterVector cohortIDs(List x, int treeOffset = 0, int shrubOffset = 0);
 
 NumericVector cohortHeight(List x);
 
@@ -52,14 +52,17 @@ NumericVector cohortCrownLength(List x, DataFrame SpParams, String mode = "MED")
 
 NumericVector cohortFoliarBiomass(List x, DataFrame SpParams, double gdd = NA_REAL, String mode = "MED");
 
-NumericVector cohortEquilibriumLeafLitter(List x, DataFrame SpParams, double AET = 800);
-NumericVector cohortEquilibriumSmallBranchLitter(List x, DataFrame SpParams, double smallBranchDecompositionRate = 0.81);
+NumericVector cohortEquilibriumLeafLitter(List x, DataFrame SpParams, double AET = 800, String mode = "MED");
+NumericVector cohortEquilibriumSmallBranchLitter(List x, DataFrame SpParams, double smallBranchDecompositionRate = 0.81, String mode = "MED");
 
 NumericVector treeLAI(IntegerVector SP, NumericVector N, NumericVector dbh, DataFrame SpParams, NumericVector pEmb=NumericVector(0), double gdd = NA_REAL);
 NumericVector shrubLAI(IntegerVector SP, NumericVector Cover, NumericVector H, DataFrame SpParams, double gdd = NA_REAL);
 NumericVector cohortLAI(List x, DataFrame SpParams, double gdd = NA_REAL, String mode = "MED");
 NumericMatrix LAIdistributionVectors(NumericVector z, NumericVector LAI, NumericVector H, NumericVector CR);
+NumericVector LAIprofileVectors(NumericVector z, NumericVector LAI, NumericVector H, NumericVector CR);
 NumericMatrix LAIdistribution(NumericVector z, List x, DataFrame SpParams, double gdd = NA_REAL, String mode = "MED");
+
+IntegerVector uniqueSpp(IntegerVector sp);
 
 double shrubCover(List x, double excludeMinHeight = 0.0);
 

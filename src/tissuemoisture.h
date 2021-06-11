@@ -13,11 +13,10 @@ double apoplasticWaterPotential(double RWC, double c, double d);
 double segmentRelativeWaterContent(double psiSym, double pi0, double epsilon, 
                                   double psiApo, double c, double d, 
                                   double af);
-double tissueFMC(double RWC, double density, double d0 = 1.54);
 double tissueRelativeWaterContent(double psiSym, double pi0, double epsilon, 
                                   double psiApo, double c, double d, 
                                   double af, double femb = 0.0);
 
 double turgorLossPoint(double pi0, double epsilon);
 
-List cohortFMC(List spwb);
+List cohortFMC(List spwb, DataFrame SpParams);

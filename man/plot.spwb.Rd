@@ -68,14 +68,16 @@ The following plots are currently available for \code{\link{spwb}} (most of them
     \item{\code{"StemPsi"}:}{ Midday (upper) stem water potential (only for \code{transpirationMode = "Sperry"}).}
     \item{\code{"RootPsi"}:}{ Midday root crown water potential (only for \code{transpirationMode = "Sperry"}).}
     \item{\code{"PlantTranspiration"}:}{ Plant cohort transpiration.}
-    \item{\code{"PlantTranspirationPerLeaf"}:}{ Plant cohort transpiration per leaf area.}
-    \item{\code{"PlantPhotosynthesis"}:}{ Plant cohort photosynthesis.}
-    \item{\code{"PlantPhotosynthesisPerLeaf"}:}{ Plant cohort photosynthesis per leaf area.}
-    \item{\code{"PlantWUE"}:}{ Plant cohort daily water use efficiency (photosynthesis over transpiration).}
+    \item{\code{"TranspirationPerLeaf"}:}{ Plant cohort transpiration per leaf area.}
+    \item{\code{"PlantGrossPhotosynthesis"}:}{ Plant cohort photosynthesis.}
+    \item{\code{"GrossPhotosynthesisPerLeaf"}:}{ Plant cohort photosynthesis per leaf area.}
+    \item{\code{"PlantNetPhotosynthesis"}:}{ Plant cohort net photosynthesis (only for \code{transpirationMode = "Sperry"}).}
+    \item{\code{"NetPhotosynthesisPerLeaf"}:}{ Plant cohort net photosynthesis per leaf area (only for \code{transpirationMode = "Sperry"}).}
+    \item{\code{"PlantWUE"}:}{ Plant cohort daily water use efficiency (gross photosynthesis over transpiration; only for \code{transpirationMode = "Sperry"}).}
     \item{\code{"PlantAbsorbedSWR"}:}{ Plant cohort absorbed short wave radiation (only for \code{transpirationMode = "Sperry"}).}
-    \item{\code{"PlantAbsorbedSWRPerLeaf"}:}{ Plant cohort absorbed short wave radiation per leaf area (only for \code{transpirationMode = "Sperry"}).}
-    \item{\code{"PlantAbsorbedLWR"}:}{ Plant cohort absorbed long wave radiation (only for \code{transpirationMode = "Sperry"}).}
-    \item{\code{"PlantAbsorbedLWRPerLeaf"}:}{ Plant cohort absorbed long wave radiation per leaf area (only for \code{transpirationMode = "Sperry"}).}
+    \item{\code{"AbsorbedSWRPerLeaf"}:}{ Plant cohort absorbed short wave radiation per leaf area (only for \code{transpirationMode = "Sperry"}).}
+    \item{\code{"PlantNetLWR"}:}{ Plant cohort net long wave radiation (only for \code{transpirationMode = "Sperry"}).}
+    \item{\code{"NetLWRPerLeaf"}:}{ Plant cohort net long wave radiation per leaf area (only for \code{transpirationMode = "Sperry"}).}
     \item{\code{"AirTemperature"}:}{ Minimum/maximum/mean daily temperatures above canopy (only for \code{transpirationMode = "Sperry"}).}
     \item{\code{"CanopyTemperature"}:}{ Minimum/maximum/mean daily temperatures inside canopy (only for \code{transpirationMode = "Sperry"}).}
     \item{\code{"SoilTemperature"}:}{ Minimum/maximum/mean daily temperatures inside the first soil layer (only for \code{transpirationMode = "Sperry"}).}
@@ -103,7 +105,7 @@ The following are only available for \code{\link{growth}}:
 De \enc{Cáceres}{Caceres} M, \enc{Martínez}{Martinez}-Vilalta J, Coll L, Llorens P, Casals P, Poyatos R, Pausas JG, Brotons L. (2015) Coupling a water balance model with forest inventory data to predict drought stress: the role of forest structural changes vs. climate changes. Agricultural and Forest Meteorology 213: 77-90 (doi:10.1016/j.agrformet.2015.06.012).
 }
 \author{
-Miquel De \enc{Cáceres}{Caceres} Ainsa, CTFC
+Miquel De \enc{Cáceres}{Caceres} Ainsa, CREAF
 }
 \seealso{
  \code{\link{spwb}}
@@ -122,13 +124,13 @@ data(SpParamsMED)
 examplesoil = soil(defaultSoilParams(2))
 
 #Initialize control parameters
-control = defaultControl()
+control = defaultControl("Granier")
 
 #Initialize input
 x = forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
 
 #Call simulation function
-S1<-spwb(x, examplesoil, examplemeteo, latitude = 41.82592, elevation = 100)
+S1<-spwb(x, examplemeteo, latitude = 41.82592, elevation = 100)
         
 #Plot results
 plot(S1)

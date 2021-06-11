@@ -1,3 +1,4 @@
+#define STRICT_R_HEADERS
 #include <numeric>
 #include <Rcpp.h>
 #include <string.h>
@@ -38,7 +39,7 @@ double leafAreaProportion(double z1, double z2, double zmin, double zmax) {
 
 
 // [[Rcpp::export("plant_ID")]]
-CharacterVector cohortIDs(List x) {
+CharacterVector cohortIDs(List x, int treeOffset = 0, int shrubOffset = 0) {
   DataFrame treeData = Rcpp::as<Rcpp::DataFrame>(x["treeData"]);
   DataFrame shrubData = Rcpp::as<Rcpp::DataFrame>(x["shrubData"]);
   int ntree = treeData.nrows();
@@ -50,12 +51,12 @@ CharacterVector cohortIDs(List x) {
   CharacterVector IDs(numCohorts);
   for(int i=0;i<ntree;i++) {
     char Result[16];
-    sprintf(Result, "T%d_%d", i+1, treeSP[i]);
+    sprintf(Result, "T%d_%d", i+treeOffset+1, treeSP[i]);
     IDs[i] = Result;
   }
   for(int i=0;i<nshrub;i++) {
     char Result[16];
-    sprintf(Result, "S%d_%d", i+1, shrubSP[i]);
+    sprintf(Result, "S%d_%d", i+shrubOffset+1, shrubSP[i]);
     IDs[ntree+i] =Result;
   }
   return(IDs);
@@ -80,10 +81,10 @@ NumericVector cohortNumericParameter(List x, DataFrame SpParams, String parName)
   par.attr("names") = cohortIDs(x);
   return(par);
 }
-
-NumericVector cohortNumericParameter(IntegerVector SP, DataFrame SpParams, String parName){
+// [[Rcpp::export("species_parameter")]]
+NumericVector speciesNumericParameter(IntegerVector SP, DataFrame SpParams, String parName){
   NumericVector par(SP.size());
-  NumericVector parSP = SpParams[parName];
+  NumericVector parSP = Rcpp::as<Rcpp::NumericVector>(SpParams[parName]);
   for(int i=0;i<SP.size();i++) {
     int iSP = findRowIndex(SP[i], SpParams);
     par[i] = parSP[iSP];
@@ -111,7 +112,8 @@ CharacterVector cohortCharacterParameter(List x, DataFrame SpParams, String parN
   return(par);
 }
 
-CharacterVector cohortCharacterParameter(IntegerVector SP, DataFrame SpParams, String parName){
+// [[Rcpp::export("species_characterParameter")]]
+CharacterVector speciesCharacterParameter(IntegerVector SP, DataFrame SpParams, String parName){
   CharacterVector par(SP.size());
   CharacterVector parSP = SpParams[parName];
   for(int i=0;i<SP.size();i++) {
@@ -154,7 +156,7 @@ NumericVector sumBySpecies(NumericVector x, IntegerVector sp, DataFrame SpParams
       }
     }
   }
-  sba.attr("names") = cohortCharacterParameter(uniqueSp, SpParams, "Name");
+  sba.attr("names") = speciesCharacterParameter(uniqueSp, SpParams, "Name");
   return(sba);
 }
 
@@ -322,12 +324,13 @@ NumericVector dbhClassDensity(List x, NumericVector DBHbreaks) {
 
 //area of an individual (in m2)
 NumericVector shrubIndividualAreaMED(IntegerVector SP, NumericVector Cover, NumericVector H, DataFrame SpParams){
-  NumericVector aShrubArea = cohortNumericParameter(SP,SpParams, "a_ash");
+  NumericVector aShrubArea = speciesNumericParameter(SP,SpParams, "a_ash");
+  NumericVector bShrubArea = speciesNumericParameter(SP,SpParams, "b_ash");
   int ncoh = SP.size();
   NumericVector areaind(ncoh);
   for(int i=0;i<ncoh;i++) {
     if((!NumericVector::is_na(Cover[i])) & (!NumericVector::is_na(H[i]))) {
-      areaind[i] = aShrubArea[i]*pow(H[i],2.0)/10000.0; 
+      areaind[i] = aShrubArea[i]*pow(H[i],bShrubArea[i])/10000.0; 
     }
   }
   return(areaind);
@@ -431,7 +434,7 @@ NumericVector cohortHeight(List x) {
  */
 // [[Rcpp::export(".shrubCrownRatio")]]
 NumericVector shrubCrownRatio(IntegerVector SP, DataFrame SpParams) {
-  return(cohortNumericParameter(SP, SpParams, "cr"));
+  return(speciesNumericParameter(SP, SpParams, "cr"));
 }
 
 double crownCompetitionFactorMED(NumericVector N, NumericVector dbh, NumericVector Acw, NumericVector Bcw) {
@@ -440,14 +443,14 @@ double crownCompetitionFactorMED(NumericVector N, NumericVector dbh, NumericVect
   for(int i=0;i<ntree;i++) {
     if(!NumericVector::is_na(dbh[i])) {
       double cw = Acw[i]*pow(dbh[i], Bcw[i]);
-      ccf = ccf + (N[i]*PI*pow(cw/2.0,2.0)/100.0);
+      ccf = ccf + (N[i]*M_PI*pow(cw/2.0,2.0)/100.0);
     }
   }
   return(ccf);
 }
 double crownCompetitionFactorMED(IntegerVector SP, NumericVector N, NumericVector dbh, DataFrame SpParams) {
-  NumericVector Acw = cohortNumericParameter(SP, SpParams, "a_cw");
-  NumericVector Bcw = cohortNumericParameter(SP, SpParams, "b_cw");
+  NumericVector Acw = speciesNumericParameter(SP, SpParams, "a_cw");
+  NumericVector Bcw = speciesNumericParameter(SP, SpParams, "b_cw");
   return(crownCompetitionFactorMED(N,dbh,Acw,Bcw));
 }
 
@@ -457,7 +460,7 @@ double crownCompetitionFactorUS(NumericVector N, NumericVector dbh, NumericVecto
   for(int i=0;i<ntree;i++) {
     if(!NumericVector::is_na(dbh[i])) {
       double cw = CrownWidth[i]; //Shengli: This is tree crown width. We will get the info from treedata, so I modify the sentence here. Note Crown width (unit in meter) that a tree of cohort i would have in open-ground conditions
-      ccf = ccf + (N[i]*PI*pow(cw/2.0,2.0)/100.0);  //I do not understand why there is 100.0 in this sentence. I believe the cw unit in medfate in meter (see I need to ask what is the cw unit in medfate.)
+      ccf = ccf + (N[i]*M_PI*pow(cw/2.0,2.0)/100.0);  //I do not understand why there is 100.0 in this sentence. I believe the cw unit in medfate in meter (see I need to ask what is the cw unit in medfate.)
     }
   }
   return(ccf);
@@ -486,12 +489,12 @@ NumericVector treeCrownRatioMED(IntegerVector SP, NumericVector N, NumericVector
   NumericVector BAL = largerTreeBasalArea(N, dbh);
   double ccf = crownCompetitionFactorMED(SP, N, dbh, SpParams);
   // Rcout<<ccf<<"\n";
-  NumericVector Acr = cohortNumericParameter(SP, SpParams, "a_cr");
-  NumericVector B1cr = cohortNumericParameter(SP, SpParams, "b_1cr");
-  NumericVector B2cr = cohortNumericParameter(SP, SpParams, "b_2cr");
-  NumericVector B3cr = cohortNumericParameter(SP, SpParams, "b_3cr");
-  NumericVector C1cr = cohortNumericParameter(SP, SpParams, "c_1cr");
-  NumericVector C2cr = cohortNumericParameter(SP, SpParams, "c_2cr");
+  NumericVector Acr = speciesNumericParameter(SP, SpParams, "a_cr");
+  NumericVector B1cr = speciesNumericParameter(SP, SpParams, "b_1cr");
+  NumericVector B2cr = speciesNumericParameter(SP, SpParams, "b_2cr");
+  NumericVector B3cr = speciesNumericParameter(SP, SpParams, "b_3cr");
+  NumericVector C1cr = speciesNumericParameter(SP, SpParams, "c_1cr");
+  NumericVector C2cr = speciesNumericParameter(SP, SpParams, "c_2cr");
   int ntree = SP.size();
   NumericVector treeCR(ntree);
   for(int i=0;i<ntree;i++) {
@@ -509,7 +512,7 @@ NumericVector cohortCrownRatio(List x, DataFrame SpParams, String mode = "MED") 
   int ntree = treeData.nrows();
   int nshrub = shrubData.nrows();
   IntegerVector shrubSP = shrubData["Species"];  
-  NumericVector crSh = cohortNumericParameter(shrubSP, SpParams, "cr");
+  NumericVector crSh = speciesNumericParameter(shrubSP, SpParams, "cr");
   int numCohorts  = ntree+nshrub;
   NumericVector treeCR;
   if(mode=="MED") {
@@ -561,10 +564,10 @@ NumericVector cohortCrownLength(List x, DataFrame SpParams, String mode = "MED")
  * Foliar biomass (in kg/m2)
  */
 NumericVector treeFoliarBiomassMED(IntegerVector SP, NumericVector N, NumericVector dbh, DataFrame SpParams, double gdd = NA_REAL){
-  NumericVector afbt = cohortNumericParameter(SP, SpParams, "a_fbt");
-  NumericVector bfbt = cohortNumericParameter(SP, SpParams, "b_fbt");
-  NumericVector cfbt = cohortNumericParameter(SP, SpParams, "c_fbt");
-  NumericVector dfbt = cohortNumericParameter(SP, SpParams, "d_fbt");
+  NumericVector afbt = speciesNumericParameter(SP, SpParams, "a_fbt");
+  NumericVector bfbt = speciesNumericParameter(SP, SpParams, "b_fbt");
+  NumericVector cfbt = speciesNumericParameter(SP, SpParams, "c_fbt");
+  NumericVector dfbt = speciesNumericParameter(SP, SpParams, "d_fbt");
   NumericVector ltba = largerTreeBasalArea(N,dbh);
   int ncoh = N.size();
   NumericVector lb(ncoh);
@@ -572,7 +575,7 @@ NumericVector treeFoliarBiomassMED(IntegerVector SP, NumericVector N, NumericVec
     lb[i] = ((N[i]/10000)*afbt[i]*pow(dbh[i], bfbt[i])*exp(cfbt[i]*ltba[i])*pow(dbh[i], dfbt[i]*ltba[i]));
   }
   if(!NumericVector::is_na(gdd)) {
-    NumericVector Sgdd = cohortNumericParameter(SP, SpParams, "Sgdd");
+    NumericVector Sgdd = speciesNumericParameter(SP, SpParams, "Sgdd");
     for(int i=0;i<ncoh;i++) {
       if(!NumericVector::is_na(SP[i])) lb[i] = lb[i]*leafDevelopmentStatus(Sgdd[i], gdd);
     }
@@ -589,7 +592,7 @@ NumericVector treeFoliarBiomassUS(IntegerVector SP, NumericVector N, NumericVect
     lb[i] = N[i] * FoliageBiomass[i] / 10000.0;
   }
   if(!NumericVector::is_na(gdd)) {
-    NumericVector Sgdd = cohortNumericParameter(SP, SpParams, "Sgdd");
+    NumericVector Sgdd = speciesNumericParameter(SP, SpParams, "Sgdd");
     for(int i=0;i<ncoh;i++) {
       if(!NumericVector::is_na(SP[i])) lb[i] = lb[i]*leafDevelopmentStatus(Sgdd[i], gdd);
     }
@@ -600,12 +603,11 @@ NumericVector treeFoliarBiomassUS(IntegerVector SP, NumericVector N, NumericVect
 
 NumericVector shrubFoliarBiomassMED(IntegerVector SP, NumericVector Cover, NumericVector H, NumericVector CR, 
                                     DataFrame SpParams, double gdd = NA_REAL){
-  NumericVector aShrubArea = cohortNumericParameter(SP, SpParams, "a_ash");
-  NumericVector aShrubFuel = cohortNumericParameter(SP, SpParams, "a_bsh");
-  NumericVector bShrubFuel = cohortNumericParameter(SP, SpParams, "b_bsh");
-  NumericVector Sgdd = cohortNumericParameter(SP, SpParams, "Sgdd");
-  NumericVector pDead = cohortNumericParameter(SP, SpParams, "pDead");
-  NumericVector fTreeFuel = cohortNumericParameter(SP, SpParams, "r635");
+  NumericVector aShrubFuel = speciesNumericParameter(SP, SpParams, "a_bsh");
+  NumericVector bShrubFuel = speciesNumericParameter(SP, SpParams, "b_bsh");
+  NumericVector Sgdd = speciesNumericParameter(SP, SpParams, "Sgdd");
+  NumericVector pDead = speciesNumericParameter(SP, SpParams, "pDead");
+  NumericVector fTreeFuel = speciesNumericParameter(SP, SpParams, "r635");
   int ncoh = SP.size();
   double W = 0.0; //Fine fuel
   NumericVector fb(ncoh);
@@ -633,7 +635,7 @@ NumericVector shrubFoliarBiomassMED(IntegerVector SP, NumericVector Cover, Numer
 NumericVector shrubFoliarBiomassUS(IntegerVector SP, NumericVector H, 
                                    NumericVector SingleShrubCrownArea, NumericVector FoliageBiomassPerUnitArea, 
                                    DataFrame SpParams, double gdd = NA_REAL){
-  NumericVector Sgdd = cohortNumericParameter(SP, SpParams, "Sgdd");
+  NumericVector Sgdd = speciesNumericParameter(SP, SpParams, "Sgdd");
   int ncoh = SP.size();
   NumericVector fb(ncoh);
   NumericVector areaind = shrubIndividualAreaUS(H,SingleShrubCrownArea); //SingleShrubCrownArea added here
@@ -734,17 +736,16 @@ NumericVector speciesCover(List x, DataFrame SpParams) {
 /**
  *  Shrub phytovolume (in m3/m2)
  */
-// [[Rcpp::export(".shrubCrownPhytovolume")]]
-NumericVector shrubCrownPhytovolume(IntegerVector SP, NumericVector Cover, NumericVector H, NumericVector CR, DataFrame SpParams){
-  NumericVector aShrubArea = cohortNumericParameter(SP, SpParams, "a_ash");
+// [[Rcpp::export(".shrubPhytovolume")]]
+NumericVector shrubPhytovolume(IntegerVector SP, NumericVector Cover, NumericVector H, NumericVector CR, DataFrame SpParams){
   int ncoh = Cover.size();
   NumericVector vol(ncoh);
+  NumericVector areaind = shrubIndividualAreaMED(SP,Cover,H,SpParams); //area of an individual (in m2)
   for(int i=0;i<ncoh;i++) {
     if((!NumericVector::is_na(Cover[i]))& (!NumericVector::is_na(H[i]))) {
-      double areaind = aShrubArea[i]*pow(H[i],2.0)/10000.0; //area of an individual (in m2)
-      double volind = areaind*((H[i]-(H[i]*(1.0-CR[i])))/100.0); //Crown phytovolume of an individual (in m3)
+      double volind = areaind[i]*(H[i]/100.0); //Phytovolume of an individual (in m3)
       // Rcout <<areaind<<" "<< volind<<"\n";
-      vol[i] = volind * (Cover[i]/(100*areaind));
+      vol[i] = volind * (Cover[i]/(100.0*areaind[i]));
     } else {
       vol[i] = NA_REAL;
     }
@@ -757,7 +758,7 @@ NumericVector cohortPhytovolume(List x, DataFrame SpParams) {
   DataFrame shrubData = Rcpp::as<Rcpp::DataFrame>(x["shrubData"]);
   IntegerVector SP = shrubData["Species"];
   NumericVector CR = shrubCrownRatio(SP, SpParams);
-  NumericVector shvol = shrubCrownPhytovolume(SP, shrubData["Cover"], shrubData["Height"], CR, SpParams);
+  NumericVector shvol = shrubPhytovolume(SP, shrubData["Cover"], shrubData["Height"], CR, SpParams);
   NumericVector vol(treeData.nrows()+shrubData.nrows(), NA_REAL);
   for(int i=0;i<shvol.size();i++) {
     vol[i+treeData.nrows()] = shvol[i];
@@ -784,9 +785,9 @@ double standPhytovolume(List x, DataFrame SpParams) {
  */
 NumericVector treeFuelMED(IntegerVector SP, NumericVector N, NumericVector dbh, DataFrame SpParams, double gdd = NA_REAL, bool includeDead = true){
   NumericVector fb = treeFoliarBiomassMED(SP, N, dbh, SpParams, NA_REAL); //Do not include phenology (to have correct estimates of branch biomass)
-  NumericVector Sgdd = cohortNumericParameter(SP, SpParams, "Sgdd");
-  NumericVector fTreeFuel = cohortNumericParameter(SP, SpParams, "r635");
-  NumericVector pDead = cohortNumericParameter(SP, SpParams, "pDead");
+  NumericVector Sgdd = speciesNumericParameter(SP, SpParams, "Sgdd");
+  NumericVector fTreeFuel = speciesNumericParameter(SP, SpParams, "r635");
+  NumericVector pDead = speciesNumericParameter(SP, SpParams, "pDead");
   int ncoh = N.size();
   double ftf = 0.0, btf = 0.0;
   NumericVector fuel(ncoh);
@@ -807,9 +808,9 @@ NumericVector treeFuelMED(IntegerVector SP, NumericVector N, NumericVector dbh, 
 
 NumericVector treeFuelUS(IntegerVector SP, NumericVector N, NumericVector FoliageBiomass, DataFrame SpParams, double gdd = NA_REAL, bool includeDead = true){
   NumericVector fb = treeFoliarBiomassUS(SP, N, FoliageBiomass, SpParams, NA_REAL); //Do not include phenology (to have correct estimates of branch biomass)
-  NumericVector Sgdd = cohortNumericParameter(SP, SpParams, "Sgdd");
-  NumericVector fTreeFuel = cohortNumericParameter(SP, SpParams, "r635");
-  NumericVector pDead = cohortNumericParameter(SP, SpParams, "pDead");
+  NumericVector Sgdd = speciesNumericParameter(SP, SpParams, "Sgdd");
+  NumericVector fTreeFuel = speciesNumericParameter(SP, SpParams, "r635");
+  NumericVector pDead = speciesNumericParameter(SP, SpParams, "pDead");
   int ncoh = N.size();
   double ftf = 0.0, btf = 0.0;
   NumericVector fuel(ncoh);
@@ -829,25 +830,24 @@ NumericVector treeFuelUS(IntegerVector SP, NumericVector N, NumericVector Foliag
 }
 
 NumericVector shrubFuelMED(IntegerVector SP, NumericVector Cover, NumericVector H, NumericVector CR, DataFrame SpParams, double gdd = NA_REAL, bool includeDead = true){
-  NumericVector aShrubArea = cohortNumericParameter(SP, SpParams, "a_ash");
-  NumericVector aShrubFuel = cohortNumericParameter(SP, SpParams, "a_bsh");
-  NumericVector bShrubFuel = cohortNumericParameter(SP, SpParams, "b_bsh");
-  NumericVector pDead = cohortNumericParameter(SP, SpParams, "pDead");
-  NumericVector fTreeFuel = cohortNumericParameter(SP, SpParams, "r635");
+  NumericVector aShrubFuel = speciesNumericParameter(SP, SpParams, "a_bsh");
+  NumericVector bShrubFuel = speciesNumericParameter(SP, SpParams, "b_bsh");
+  NumericVector pDead = speciesNumericParameter(SP, SpParams, "pDead");
+  NumericVector fTreeFuel = speciesNumericParameter(SP, SpParams, "r635");
 
   int ncoh = SP.size();
-  double areaind = NA_REAL, volind = NA_REAL, weightkgind = NA_REAL;
+  double volind = NA_REAL, weightkgind = NA_REAL;
   //W in kg/m2. Fine fuel, does not include phenology 
   NumericVector W(ncoh);
+  NumericVector areaind = shrubIndividualAreaMED(SP,Cover,H,SpParams); //area of an individual (in m2)
   for(int i=0;i<ncoh;i++) {
     if((!NumericVector::is_na(Cover[i])) & (!NumericVector::is_na(H[i]))) {
-      areaind = aShrubArea[i]*pow(H[i],2.0)/10000.0; //area of an individual (in m2)
-      volind = areaind*((H[i]-(H[i]*(1.0-CR[i])))/100.0); //Crown phytovolume of an individual (in m3)
+      volind = areaind[i]*(H[i]/100.0); //Phytovolume of an individual (in m3)
       weightkgind = aShrubFuel[i]*pow(volind,bShrubFuel[i]); //Dry weight (in kg) of an individual
       if(!includeDead) weightkgind = weightkgind - (weightkgind*pDead[i]); //Remove dead fuels if asked
-      if(areaind>0.0) {
+      if(areaind[i]>0.0) {
         // multiply by 'number of individuals' per m2 
-        W[i] = weightkgind*(Cover[i]/(100*areaind)); 
+        W[i] = weightkgind*(Cover[i]/(100.0*areaind[i])); 
       }
     }
     else W[i] = NA_REAL;
@@ -855,7 +855,7 @@ NumericVector shrubFuelMED(IntegerVector SP, NumericVector Cover, NumericVector 
   //Remove (if necessary), the weight due to leaves that are not there
    if(!NumericVector::is_na(gdd)) {
     double fsf = 0.0, bsf = 0.0;
-    NumericVector Sgdd = cohortNumericParameter(SP, SpParams, "Sgdd");
+    NumericVector Sgdd = speciesNumericParameter(SP, SpParams, "Sgdd");
     for(int i=0;i<ncoh;i++) {
       fsf = W[i]/fTreeFuel[i]; //foliar biomass
       bsf = W[i] - fsf; //branch biomass
@@ -868,7 +868,7 @@ NumericVector shrubFuelMED(IntegerVector SP, NumericVector Cover, NumericVector 
 NumericVector shrubFuelUS(IntegerVector SP, NumericVector H, 
                           NumericVector SingleShrubCrownArea, NumericVector FoliageBiomassPerUnitArea,
                           DataFrame SpParams, double gdd = NA_REAL, bool includeDead = true){
-  NumericVector fTreeFuel = cohortNumericParameter(SP, SpParams, "r635");
+  NumericVector fTreeFuel = speciesNumericParameter(SP, SpParams, "r635");
   
   int ncoh = SP.size();
   //W in kg/m2. Fine fuel, does not include phenology 
@@ -882,7 +882,7 @@ NumericVector shrubFuelUS(IntegerVector SP, NumericVector H,
   //Remove (if necessary), the weight due to leaves that are not there
   if(!NumericVector::is_na(gdd)) {
     double fsf = 0.0, bsf = 0.0;
-    NumericVector Sgdd = cohortNumericParameter(SP, SpParams, "Sgdd");
+    NumericVector Sgdd = speciesNumericParameter(SP, SpParams, "Sgdd");
     for(int i=0;i<ncoh;i++) {
       fsf = W[i]/fTreeFuel[i]; //foliar biomass
       bsf = W[i] - fsf; //branch biomass
@@ -906,7 +906,7 @@ NumericVector cohortFuel(List x, DataFrame SpParams, double gdd = NA_REAL, bool 
                        SpParams, gdd, includeDead);
   }
   else if(mode == "US") {
-    tFuel = treeFuelMED(treeData["Species"], treeData["N"], treeData["FoliageBiomass"], SpParams, gdd, includeDead);
+    tFuel = treeFuelUS(treeData["Species"], treeData["N"], treeData["FoliageBiomass"], SpParams, gdd, includeDead);
     shFuel = shrubFuelUS(shSP, shrubData["Height"], 
                          shrubData["SingleShrubCrownArea"], shrubData["FoliageBiomassPerUnitArea"],
                          SpParams, gdd, includeDead);
@@ -941,8 +941,8 @@ double standFuel(List x, DataFrame SpParams, double gdd = NA_REAL, bool includeD
  * Cohort equilibrium leaf litter (in kg/m2)
  */
 // [[Rcpp::export("plant_equilibriumLeafLitter")]]
-NumericVector cohortEquilibriumLeafLitter(List x, DataFrame SpParams, double AET = 800) {
-  NumericVector fb = cohortFoliarBiomass(x, SpParams);
+NumericVector cohortEquilibriumLeafLitter(List x, DataFrame SpParams, double AET = 800, String mode = "MED") {
+  NumericVector fb = cohortFoliarBiomass(x, SpParams, NA_REAL, mode);
   NumericVector ld = cohortNumericParameter(x, SpParams, "LeafDuration");
   NumericVector lignin = cohortNumericParameter(x, SpParams, "LigninPercent");
   int ncoh = fb.size();
@@ -961,9 +961,9 @@ NumericVector cohortEquilibriumLeafLitter(List x, DataFrame SpParams, double AET
  * Cohort equilibrium small branch (6.35mm) litter (in kg/m2)
  */
 // [[Rcpp::export("plant_equilibriumSmallBranchLitter")]]
-NumericVector cohortEquilibriumSmallBranchLitter(List x, DataFrame SpParams, double smallBranchDecompositionRate = 0.81) {
-  NumericVector fu = cohortFuel(x, SpParams);
-  NumericVector fb = cohortFoliarBiomass(x, SpParams);
+NumericVector cohortEquilibriumSmallBranchLitter(List x, DataFrame SpParams, double smallBranchDecompositionRate = 0.81, String mode = "MED") {
+  NumericVector fu = cohortFuel(x, SpParams,NA_REAL,true, mode);
+  NumericVector fb = cohortFoliarBiomass(x, SpParams, NA_REAL, mode);
   NumericVector ld = cohortNumericParameter(x, SpParams, "LeafDuration");
   int ncoh = fb.size();
   NumericVector eqli(ncoh);
@@ -979,7 +979,7 @@ NumericVector cohortEquilibriumSmallBranchLitter(List x, DataFrame SpParams, dou
  *  Leaf Area Index (LAI)
  */
 NumericVector treeLAIMED(IntegerVector SP, NumericVector N, NumericVector dbh, DataFrame SpParams, double gdd = NA_REAL){
-  NumericVector SLA = cohortNumericParameter(SP, SpParams, "SLA"); // m2/kg (=mg/mm2)
+  NumericVector SLA = speciesNumericParameter(SP, SpParams, "SLA"); // m2/kg (=mg/mm2)
   NumericVector lb = treeFoliarBiomassMED(SP, N, dbh, SpParams, gdd); //kg per m2
   int ncoh = N.size();
   NumericVector lai(ncoh);
@@ -989,7 +989,7 @@ NumericVector treeLAIMED(IntegerVector SP, NumericVector N, NumericVector dbh, D
   return(lai);
 }
 NumericVector treeLAIUS(IntegerVector SP, NumericVector N, NumericVector FoliageBiomass, DataFrame SpParams, double gdd = NA_REAL){
-  NumericVector SLA = cohortNumericParameter(SP, SpParams, "SLA"); // m2/kg (=mg/mm2)
+  NumericVector SLA = speciesNumericParameter(SP, SpParams, "SLA"); // m2/kg (=mg/mm2)
   NumericVector lb = treeFoliarBiomassUS(SP, N, FoliageBiomass, SpParams, gdd); //kg per m2
   int ncoh = N.size();
   NumericVector lai(ncoh);
@@ -999,7 +999,7 @@ NumericVector treeLAIUS(IntegerVector SP, NumericVector N, NumericVector Foliage
   return(lai);
 }
 NumericVector shrubLAIMED(IntegerVector SP, NumericVector Cover, NumericVector H, DataFrame SpParams, double gdd = NA_REAL){
-  NumericVector SLA = cohortNumericParameter(SP, SpParams, "SLA"); // m2/kg (=mg/mm2)
+  NumericVector SLA = speciesNumericParameter(SP, SpParams, "SLA"); // m2/kg (=mg/mm2)
   NumericVector CR = shrubCrownRatio(SP, SpParams);
   NumericVector lb = shrubFoliarBiomassMED(SP, Cover, H, CR, SpParams, gdd); //kg per m2
   int ncoh = SP.size();
@@ -1013,7 +1013,7 @@ NumericVector shrubLAIMED(IntegerVector SP, NumericVector Cover, NumericVector H
 NumericVector shrubLAIUS(IntegerVector SP, NumericVector H, 
                          NumericVector SingleShrubCrownArea, NumericVector FoliageBiomassPerUnitArea, 
                          DataFrame SpParams, double gdd = NA_REAL){
-  NumericVector SLA = cohortNumericParameter(SP, SpParams, "SLA"); // m2/kg (=mg/mm2)
+  NumericVector SLA = speciesNumericParameter(SP, SpParams, "SLA"); // m2/kg (=mg/mm2)
   NumericVector lb = shrubFoliarBiomassUS(SP, H, 
                                           SingleShrubCrownArea, FoliageBiomassPerUnitArea, 
                                           SpParams, gdd); //kg per m2   ////Shengli: THis need to be revised according to new function

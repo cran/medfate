@@ -19,15 +19,15 @@ This function only works when simulations have been carried using control option
 \itemize{
 \item{Functions pwb() and spwb(): "E","Ag","An","dEdP","RootPsi","StemPsi","LeafPsi","StemPLC","StemRWC","LeafRWC","StemSympRWC","LeafSympRWC","PWB", "Temperature", "ExtractionInst".
 }
-\item{Additional options for shade and sunlit leaves in pwb() and spbw(): Either "SunlitLeaves$x" or "ShadeLeaves$x" where 'x' is one of the following: "Abs_SWR","Abs_LWR","E","Ag","An","Ci","GW","VPD","Temp","Psi","iWUE".
+\item{Additional options for shade and sunlit leaves in pwb() and spbw(): Either "SunlitLeaves$x" or "ShadeLeaves$x" where 'x' is one of the following: "Abs_SWR","Net_LWR","E","Ag","An","Ci","GW","VPD","Temp","Psi","iWUE".
 }
-\item{Additional options for function growth(): "GrossPhotosynthesis", "MaintenanceRespiration", "GrowthRespiration", "CarbonBalance","SugarLeaf", "SugarSapwood", "StarchLeaf", "StarchSapwood","SugarTransport".
+\item{Additional options for function growth(): "GrossPhotosynthesis", "MaintenanceRespiration", "GrowthCosts", "CarbonBalance","SugarLeaf", "SugarSapwood", "StarchLeaf", "StarchSapwood","SugarTransport".
 }
 }
 }
 \value{A data frame with a column 'datetime' and as many columns as plant cohorts.}
 \author{
-Miquel De \enc{Cáceres}{Caceres} Ainsa, CTFC
+Miquel De \enc{Cáceres}{Caceres} Ainsa, CREAF
 }
 \seealso{
 \code{\link{spwb}}, \code{\link{pwb}}, \code{\link{defaultControl}}

@@ -7,6 +7,7 @@ double T0 = -273.15; // Absolute 0 temperature in degC
 double Tref = 15.0; // Reference temperature in degC
 
 
+// [[Rcpp::export("woodformation_initRing")]]
 List initialize_ring(){
   
   IntegerVector formation(0);
@@ -27,45 +28,46 @@ List initialize_ring(){
                            _["cells"] = cells);
   
   
-  return ring;
+  return(ring);
 }
 
 ////// Effect of temperature (on metabolic rate and microtubule stability)
 double _microT(double Tc, double inflection, double scale=5.0){
   double out = 1.0/(1.0+exp((-Tc+inflection)*scale));
-  return out;
+  return(out);
 }
 double _metR(double Tc, double DHa, double DSd, double DHd){
   double Tk = Tc-T0;
   double out = Tk*exp(-DHa/(Rn*Tk)) / (1.0+exp(DSd/Rn*(1.0-(DHd/(DSd*Tk)))));
-  return out;
+  return(out);
 }
 double T_fun(double Tc, double Y_T=8.0, double DHa=87.5e3, double DSd=1.09e3, double DHd=333e3){
   double out = _metR(Tc, DHa, DSd, DHd);
   out = out/_metR(Tref, DHa, DSd, DHd); // the output is equal to 1 at Tref degC
   out = out*_microT(Tc, Y_T);
   // out = 1;
-  return out;
+  return(out);
 }
 
 
 //// Convert osmotic potential to osmolyte quantity and back
 double _pi2n(double pi, double V, double Tc){
   double n = -pi*V/(Rn*(Tc-T0));
-  return n;
+  return(n);
 }
 
 double _n2pi(double n, double V, double Tc){
   double pi = -n*Rn*(Tc-T0)/V;
-  return pi;
+  return(pi);
 }
 
 ////// Cell expansion model
+// [[Rcpp::export("woodformation_relativeExpansionRate")]]
 double relative_expansion_rate(double psi, double Tc, double pi, double phi, double Y_P, double Y_T){
   double out = phi*(psi-pi-Y_P);
   if(out<0.0) out=0.0;
   out = out*T_fun(Tc,Y_T);
-  return out;
+  return(out);
 }
 
 ////// Cell division model
@@ -129,6 +131,7 @@ void _expand_ring(List ring, double psi, double Tc,
   }
 }
 
+// [[Rcpp::export("woodformation_growRing")]]
 void grow_ring(List ring, double psi, double Tc,
                 double Nc=8.85, double phi0=0.13, double pi0=-0.8, double CRD0=8.3,
                 double Y_P=0.05, double Y_T=8.0, double h=0.043*1.8, double s=1.8){

@@ -1,3 +1,4 @@
+#define STRICT_R_HEADERS
 #include <Rcpp.h>
 #include <numeric>
 #include <math.h>
@@ -46,9 +47,9 @@ NumericVector date2photoperiod(CharacterVector dateStrings, double latitude) {
  */
 // [[Rcpp::export("biophysics_radiationDiurnalPattern")]]
 double radiationDiurnalPattern(double t, double daylength) {
-  double ws = (daylength/3600.0)*(PI/24.0); //sunrise
+  double ws = (daylength/3600.0)*(M_PI/24.0); //sunrise
   double w = ws - (t/daylength)*(ws*2.0);
-  double prop = ((PI/24.0)*(cos(w)-cos(ws)))/(sin(ws)-ws*cos(ws));
+  double prop = ((M_PI/24.0)*(cos(w)-cos(ws)))/(sin(ws)-ws*cos(ws));
   return(prop/3600.0);
 }
 /**
@@ -81,7 +82,7 @@ double temperatureDiurnalPattern(double t, double tmin, double tmax,
     }
     // Rcout<<" "<< temp <<"\n";
   } else {
-    double ct = cos(1.5*PI*t/daylength);
+    double ct = cos(1.5*M_PI*t/daylength);
     temp = 0.5*(tmin+tmax-(tmax-tmin)*ct);
     // Rcout<<" t "<< t << " dl "<< daylength << " ct "<<ct <<" "<< 0.5*(tmax+tmin)<<" "<<temp <<"\n";
   }
@@ -110,8 +111,27 @@ double leafTemperature(double absRad, double airTemperature, double u, double E,
   double deltaTemp = (absRad- (0.97*SIGMA_W*pow(273.16+airTemperature,4.0)) - (lambda*(E/2000.0)))/(Cp_Jmol*(gr+gHa));
   return(airTemperature+deltaTemp);
 }
-
-
+// [[Rcpp::export("biophysics_leafTemperature2")]]
+double leafTemperature2(double SWRabs, double LWRnet, double airTemperature, double u, double E,  double leafWidth = 1.0) {
+  double lambda = meteoland::utils_latentHeatVaporisationMol(airTemperature);
+  u = std::max(u, 0.1);//Force minimum wind speed to avoid excessive heating
+  double gHa = 0.189*pow(u/(leafWidth*0.0072), 0.5);
+  double gr = 4.0*0.97*SIGMA_W*pow(273.16+airTemperature,3.0)/Cp_Jmol;
+  double deltaTemp = (SWRabs + LWRnet - (lambda*(E/2000.0)))/(Cp_Jmol*(gr+gHa));
+  return(airTemperature+deltaTemp);
+}
+/*
+ *  leafPsi - Leaf water potential in MPa
+ *  leafTemp - Leaf temperature in degrees
+ *  
+ *  returns vapour pressure in kPa
+ */
+// [[Rcpp::export("biophysics_leafVapourPressure")]]
+double leafVapourPressure(double leafTemp,  double leafPsi) {
+  double vpsl = meteoland::utils_saturationVP(std::max(0.0,leafTemp));
+  double vpl = vpsl*exp((2.17*leafPsi)/(leafTemp+273.15));
+  return(vpl);
+}
 /**
  * Converts irradiance units (W*m-2) to quantum flux (micromol * m-2 * s-1), 
  * defined as the number of photons (in micromol) per second and unit area
@@ -119,6 +139,7 @@ double leafTemperature(double absRad, double airTemperature, double u, double E,
  *  I - Irradiance (in W*m-2)
  *  lambda - wavelength (in nm)
  */
+// [[Rcpp::export("biophysics_irradianceToPhotonFlux")]]
 double irradianceToPhotonFlux(double I, double lambda = 546.6507) {
   return(I*lambda*0.836*1e-2);
 }

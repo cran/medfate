@@ -7,6 +7,7 @@
 \alias{moisture_tissueRWC}
 \alias{moisture_tissueFMC}
 \alias{moisture_cohortFMC}
+\alias{moisture_cohortFMCDay}
 \alias{moisture_pressureVolumeCurvePlot}
 \alias{moisture_turgorLossPoint}
 \title{
@@ -24,8 +25,8 @@ moisture_turgorLossPoint(pi0, epsilon)
 moisture_tissueRWC(psiSym, pi0, epsilon, 
                    psiApo, c, d, 
                    af, femb = 0)
-moisture_tissueFMC(RWC, density, d0 = 1.54)
-moisture_cohortFMC(spwb)
+moisture_cohortFMC(spwb, SpParams)
+moisture_cohortFMCDay(spwb_day, x, SpParams)
 moisture_pressureVolumeCurvePlot(x, segment="leaf", 
                     fraction = "all",
                     psiVec =  seq(-0.1, -8.0, by =-0.01),
@@ -44,12 +45,12 @@ moisture_pressureVolumeCurvePlot(x, segment="leaf",
   \item{fraction}{ Tissue fraction, either \code{"symplastic"}, \code{"apoplastic"} or \code{"all"}.}
   \item{psiVec}{Vector of water potential values to evaluate for the pressure-volume curve.}
   \item{speciesNames}{A flag to indicate the use of species names instead of cohort names in plots.}
-  \item{density}{Tissue density (g·cm-1).}
-  \item{d0}{Matric density (g·cm-1).}
   \item{spwb}{Object returned by function \code{\link{spwb}} or \code{\link{growth}}.}
+  \item{spwb_day}{Object returned by function \code{\link{spwb_day}} or \code{\link{growth_day}}.}
+  \item{SpParams}{A data frame with species parameters (see \code{\link{SpParamsMED}} and \code{\link{SpParamsMED}}).}
 }
 \details{
-Details of the tissue moisture calculations are given in a vignette. Function \code{moisture_cohortFMC()} calculates the fuel moisture content of leaves and twigs of each cohort, from the results of soil water balance.
+Details of the tissue moisture calculations are given in a vignette. Function \code{moisture_cohortFMC()} calculates the fuel moisture content of leaves of each cohort, from the results of soil water balance.
 }
 \value{
 Values returned for each function are:
@@ -60,6 +61,8 @@ Values returned for each function are:
 \item{\code{moisture_apoplasticWaterPotential}: Water potential (in MPa) of the apoplastic fraction.}
 \item{\code{moisture_turgorLossPoint}: Water potential (in MPa) corresponding to turgor loss point.}
 \item{\code{moisture_segmentRWC}: Segment relative water content [0-1].}
+\item{\code{moisture_cohortFMC}: A matrix with daily moisture content per dry weight (in percent) of each cohort.}
+\item{\code{moisture_cohortFMCDay}: A vector with moisture content per dry weight (in percent) of each cohort.}
 }
 }
 \references{
@@ -70,7 +73,7 @@ Bartlett, M.K., Scoffoni, C., Sack, L. 2012. The determinants of leaf turgor los
 Martin-StPaul, N., Delzon, S., Cochard, H. 2017. Plant resistance to drought depends on timely stomatal closure. Ecology Letters 20: 1437–1447.
 }
 \author{
-Miquel De \enc{Cáceres}{Caceres} Ainsa, CTFC
+Miquel De \enc{Cáceres}{Caceres} Ainsa, CREAF
 }
 \seealso{
 \code{\link{hydraulics_psi2K}}, \code{\link{hydraulics_supplyFunctionPlot}}, \code{\link{spwb}}, \code{\link{soil}}

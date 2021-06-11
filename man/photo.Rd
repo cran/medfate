@@ -8,6 +8,7 @@
 \alias{photo_rubiscoLimitedPhotosynthesis}
 \alias{photo_photosynthesis}
 \alias{photo_leafPhotosynthesisFunction}
+\alias{photo_leafPhotosynthesisFunction2}
 \alias{photo_sunshadePhotosynthesisFunction}
 \alias{photo_multilayerPhotosynthesisFunction}
 \title{
@@ -24,15 +25,18 @@ photo_JmaxTemp(Jmax298, Tleaf)
 photo_electronLimitedPhotosynthesis(Q, Ci, GT, Jmax)
 photo_rubiscoLimitedPhotosynthesis(Ci, GT, Km, Vmax)
 photo_photosynthesis(Q, Catm, Gc, Tleaf, Vmax298, Jmax298, verbose = FALSE)
-photo_leafPhotosynthesisFunction(E, Catm, Patm, Tair, vpa, u, 
+photo_leafPhotosynthesisFunction(E, psiLeaf, Catm, Patm, Tair, vpa, u, 
                              absRad, Q, Vmax298, Jmax298,
                              leafWidth = 1.0, refLeafArea = 1, verbose = FALSE)
-photo_sunshadePhotosynthesisFunction(E, Catm, Patm, Tair, vpa, 
+photo_leafPhotosynthesisFunction2(E, psiLeaf, Catm, Patm, Tair, vpa, u, 
+                             SWRabs, LWRnet, Q, Vmax298, Jmax298,
+                             leafWidth = 1.0, refLeafArea = 1, verbose = FALSE)
+photo_sunshadePhotosynthesisFunction(E, psiLeaf, Catm, Patm, Tair, vpa, 
                                      SLarea, SHarea, u, 
                                      absRadSL, absRadSH, QSL, QSH, 
                                      Vmax298SL, Vmax298SH, Jmax298SL, Jmax298SH, 
                                      leafWidth = 1.0, verbose = FALSE)
-photo_multilayerPhotosynthesisFunction(E, Catm, Patm, Tair, vpa, 
+photo_multilayerPhotosynthesisFunction(E, psiLeaf, Catm, Patm, Tair, vpa, 
                                       SLarea, SHarea, u, 
                                       absRadSL, absRadSH, QSL, QSH, 
                                       Vmax298, Jmax298, leafWidth = 1.0, 
@@ -52,11 +56,14 @@ photo_multilayerPhotosynthesisFunction(E, Catm, Patm, Tair, vpa,
   \item{Catm}{CO2 air concentration (micromol * mol-1).}
   \item{Gc}{CO2 leaf (stomatal) conductance (mol * s-1 * m-2).}
   \item{E}{Transpiration flow rate per leaf area (mmol*s-1*m-2).}
+  \item{psiLeaf}{Leaf water potential (MPa).}
   \item{Patm}{Atmospheric air pressure (in kPa).}
   \item{Tair}{Air temperature (in ºC).}
   \item{vpa}{Vapour pressure deficit (in kPa).}
   \item{u}{Wind speed above the leaf boundary (in m/s) (for each canopy layer in the case of \code{photo_multilayerPhotosynthesisFunction}).}
   \item{absRad}{Absorbed long- and short-wave radiation (in W*m^-2).}
+  \item{SWRabs}{Absorbed short-wave radiation (in W·m-2).}
+  \item{LWRnet}{Net long-wave radiation balance (in W·m-2).}
   \item{leafWidth}{Leaf width (in cm).}
   \item{refLeafArea}{Leaf reference area.}
   \item{verbose}{Boolean flag to indicate console output.}
@@ -82,7 +89,7 @@ Values returned for each function are:
   \item{\code{LeafTemperature}: Leaf temperature (ºC).}
   \item{\code{LeafVPD}: Leaf vapor pressure deficit (kPa).}
   \item{\code{LeafCi}: Internal CO2 concentration (micromol * mol-1).}
-  \item{\code{WaterVaporConductance}: Leaf vapor conductance (mol * s-1 * m-2).}
+  \item{\code{Gsw}: Leaf stomatal conductance to water vapor (mol * s-1 * m-2).}
   \item{\code{GrossPhotosynthesis}: Gross photosynthesis (micromol*s-1*m-2).}
   \item{\code{NetPhotosynthesis}: Net photosynthesis, after discounting autotrophic respiration (micromol*s-1*m-2).}
   }
@@ -119,7 +126,7 @@ Leuning, R. 2002. Temperature dependence of two parameters in a photosynthesis m
 Sperry, J. S., M. D. Venturas, W. R. L. Anderegg, M. Mencuccini, D. S. Mackay, Y. Wang, and D. M. Love. 2016. Predicting stomatal responses to the environment from the optimization of photosynthetic gain and hydraulic cost. Plant Cell and Environment.
 }
 \author{
-Miquel De \enc{Cáceres}{Caceres} Ainsa, CTFC
+Miquel De \enc{Cáceres}{Caceres} Ainsa, CREAF
 }
 \seealso{
 \code{\link{hydraulics_supplyFunctionNetwork}}, \code{\link{biophysics_leafTemperature}}, \code{\link{spwb}}
