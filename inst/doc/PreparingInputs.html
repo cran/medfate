@@ -12,7 +12,7 @@
 
 <meta name="author" content="Miquel De Caceres" />
 
-<meta name="date" content="2021-06-11" />
+<meta name="date" content="2021-06-17" />
 
 <title>Preparing inputs</title>
 
@@ -141,7 +141,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 
 <h1 class="title toc-ignore">Preparing inputs</h1>
 <h4 class="author">Miquel De Caceres</h4>
-<h4 class="date">2021-06-11</h4>
+<h4 class="date">2021-06-17</h4>
 
 
 <div id="TOC">
@@ -167,7 +167,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 
 <div id="about-this-vignette" class="section level2">
 <h2>About this vignette</h2>
-<p>Any forest water balance model needs information on <strong>climate</strong>, <strong>vegetation</strong> and <strong>soils</strong> of the forest stand to be simulated. Moreover, since <code>medfate</code> differentiates between species, <strong>species-specific parameters</strong> are also needed. This vignette explains data structures required as input to run simulations using the package.</p>
+<p>Any forest water balance model needs information on <strong>climate</strong>, <strong>vegetation</strong> and <strong>soils</strong> of the forest stand to be simulated. Moreover, since <code>medfate</code> differentiates between species, <strong>species-specific parameters</strong> are also needed. This vignette explains data structures required as input to run simulations using the package. Package <a href="https://github.com/emf-creaf/medfateutils">medfateutils</a> provides functions for creating suitable inputs for simulations with <code>medfate</code>.</p>
 </div>
 <div id="species-specific-parameters" class="section level2">
 <h2>Species-specific parameters</h2>
@@ -278,7 +278,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <pre><code>##   widths clay sand om  bd rfc
 ## 1    300   25   25 NA 1.5  25
 ## 2    700   25   25 NA 1.5  45</code></pre>
-<p>where <code>widths</code> are soil layer widths in mm; <code>clay</code> and <code>sand</code> are the percentage of clay and sand, in percent of dry weight, <code>om</code> stands for organic matter, <code>bd</code> is bulk density (in <span class="math inline">\(g \cdot cm^{-3}\)</span>) and <code>rfc</code> the percentage of rock fragments. Because soil properties vary strongly at fine spatial scales, ideally soil physical attributes should be measured on samples taken at the forest stand to be simulated. For those users lacking such data, soil properties modelled at larger scales are available via SoilGrids.org (see function <code>soilgridsParams()</code>).</p>
+<p>where <code>widths</code> are soil layer widths in mm; <code>clay</code> and <code>sand</code> are the percentage of clay and sand, in percent of dry weight, <code>om</code> stands for organic matter, <code>bd</code> is bulk density (in <span class="math inline">\(g \cdot cm^{-3}\)</span>) and <code>rfc</code> the percentage of rock fragments. Because soil properties vary strongly at fine spatial scales, ideally soil physical attributes should be measured on samples taken at the forest stand to be simulated. For those users lacking such data, soil properties modelled at larger scales are available via SoilGrids.org (see function <code>soilgridsParams()</code> in package <a href="https://github.com/emf-creaf/medfateutils">medfateutils</a>).</p>
 </div>
 <div id="soil-input-object" class="section level3">
 <h3>Soil input object</h3>

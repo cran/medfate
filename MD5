@@ -1,5 +1,5 @@
-e0e002369aee2037c39b37e767c35419 *DESCRIPTION
-a8a59f7734d3352c2acab7d8cdb91abf *NAMESPACE
+036d067daa14bb1476ebed936e0994f4 *DESCRIPTION
+6c6e406a675063214f1aedc0d47af7d9 *NAMESPACE
 0ecd6e87cbd71620dcc5bb9ac67b2554 *R/RcppExports.R
 85d1d0ec728ef2a86d5b427b90469903 *R/VerticalProfiles.R
 6a7a78086c7593b0e347deef0c24b791 *R/defaultControl.R
@@ -8,7 +8,6 @@ a8a59f7734d3352c2acab7d8cdb91abf *NAMESPACE
 ebaf3774d023dba0d4a2f6c10ca6a95e *R/evaluation.R
 a957826299cde93776fd4370cca14585 *R/extractSubdaily.R
 021c71d31d6e93fc646f9e5196e30b9c *R/fordyn.R
-97dab3e2098ab1dc892967b64a1635db *R/forest_mapWoodyTables.R
 e65f09fdc1023ec22d62d1b66d399588 *R/forest_mergeTrees.R
 eec81756536c959716cbd0b8e45cffe9 *R/hydraulics_supplyFunctionPlot.R
 5369ab36338d25e93f9da7f78434c1fa *R/hydraulics_vulnerabilityCurvePlot.R
@@ -22,7 +21,6 @@ b42284c9c0b3dd026f7aa5a685c218cf *R/plot.spwb.R
 b51c132c5b4f5b98c3bf12e129aec5e2 *R/print.soil.R
 bccd9d2d0fa45e3d51ab2bd148828630 *R/redefineSoilLayers.R
 aa615a1ef903475a89e579b0e46ccf45 *R/soil_retentionCurvePlot.R
-2ef4d61e0f8e49ea0de640646d8954f7 *R/soilgridsParams.R
 74a1ce4d8ca5269fa73ae5e0a21ccfe6 *R/soilhydrology.R
 1e8f0eea7e56aa274fd3284528e753c5 *R/spwb_ldrCalibration.R
 771aff05f9057045255f5d1e454b1f06 *R/spwb_ldrOptimization.R
@@ -46,22 +44,22 @@ ce227d17c485900f6e1e541798e8e482 *data/exampleobs.rda
 ce5056429013b9cc9a3141d6bb71f5f9 *inst/CITATION
 39692924168db69b0a54e82f4ef36e9e *inst/doc/AdvancedWaterEnergyBalance.R
 2ccf6247304d71b0b27ac68e3020b3cc *inst/doc/AdvancedWaterEnergyBalance.Rmd
-507f47f71f4bba43d41fcf26875c1eb8 *inst/doc/AdvancedWaterEnergyBalance.html
+8efbf5e41682c2f7c1a9073ff57a6a3a *inst/doc/AdvancedWaterEnergyBalance.html
 302b111e7ebc156b2b24b16a1cfff399 *inst/doc/BasicWaterBalance.R
 9817574b5749c6bbed090a375de314b0 *inst/doc/BasicWaterBalance.Rmd
-c4b49a51fe1d9aa5a98b5c46ec995953 *inst/doc/BasicWaterBalance.html
+5ae052acd150c8e71f372e373128ebdd *inst/doc/BasicWaterBalance.html
 3dd4f1f542b2c28cc8341adba968a1e3 *inst/doc/ForestDynamics.R
 1345724453f2b11ff3c1f0eaa8354b6f *inst/doc/ForestDynamics.Rmd
-33ff2eb4c60b0dc05324ed15de81de1f *inst/doc/ForestDynamics.html
+40b8f2ad8869a10f6125751c54034766 *inst/doc/ForestDynamics.html
 56878a7b06c896d25dfb83696239473e *inst/doc/ForestGrowth.R
 4eab31b0cea2ddaf0ed464b83f9ad3af *inst/doc/ForestGrowth.Rmd
-633c5c0483c1a13f0f9edbc61f7e913b *inst/doc/ForestGrowth.html
+4fef26e429f32a27b9b3b59bb4d0b8f0 *inst/doc/ForestGrowth.html
 887f593a897bfedeba98d75ac5e9f558 *inst/doc/PackageOverview.R
 0e8d0434a4fc27872a480c43fd35a7d6 *inst/doc/PackageOverview.Rmd
-d1fac7bcf7e41976df05125053f72a56 *inst/doc/PackageOverview.html
+1926fe2f7d58682423b30dcb728e05be *inst/doc/PackageOverview.html
 7916fb76fff43a605248a16007198048 *inst/doc/PreparingInputs.R
-e01204909a44fbd6d4dbc5eb4cc13766 *inst/doc/PreparingInputs.Rmd
-77f3aa6eaebb0d4d0b9ade74a741e6a3 *inst/doc/PreparingInputs.html
+cc2ad44936fd5d11dbe69cc15268c4a0 *inst/doc/PreparingInputs.Rmd
+bc12fd0a45260dba91593e2131fbbb07 *inst/doc/PreparingInputs.html
 9923834d649c82b3d76690b674ef5234 *inst/include/medfate.h
 64e022c269ca0c25fb30f543a19643c3 *inst/include/medfate_RcppExports.h
 74c1f470ce8218de7d9388c6e211b192 *man/SFM_metric.Rd
@@ -70,7 +68,7 @@ c8efd72eaba5a1eeb16a46f6ccdeef2a *man/SpParams.Rd
 1bd2e5f88f3c61ffd4eca700c1f7e22a *man/biophysics.Rd
 75fa5b32e65ed684c8b63bb5810b13a8 *man/carbon.Rd
 b306835a6ae070817938f137fe9342a8 *man/defaultControl.Rd
-0a25e671976fb5fcba3c976751cff8ac *man/defaultSoilParams.Rd
+872cee0c5188e742cd13575941fa7dbc *man/defaultSoilParams.Rd
 c58c5d0f539704ab9c1a302a16f838ee *man/evaluation.Rd
 30ff25250600aeb7a6e394700016e799 *man/exampleforest.Rd
 2c52b24dadb25580e4be09087eb9cc4d *man/examplemeteo.Rd
@@ -78,8 +76,7 @@ e445bb013ccd304b95245f3c95f9bfca *man/exampleobs.Rd
 465141377a4f90904ccc701ef32ce563 *man/extractSubdaily.Rd
 a404af00a989e9c1eecc2c0502f0e618 *man/fire_behaviour.Rd
 71b2b50e485ee3c42ca379e7eb073d4d *man/fordyn.Rd
-749f5bbf85b5d470a6d88aef6ac1f14f *man/forest.Rd
-874821bc0c9451ecab1a0cf171dea5d0 *man/forest_mapWoodyTables.Rd
+58133c8bb85c4a9e3dfeabd268ca08bf *man/forest.Rd
 b932c1c4e5afdca9fcd43d43d6b92f2b *man/forest_mergeTrees.Rd
 27de710b63094b54e77988a97a54e28b *man/fuel_properties.Rd
 f54c9f315fee7b9cb1034ef974f15435 *man/growth.Rd
@@ -105,7 +102,6 @@ fe9ef28c77e9cd1208a4b287059a274b *man/plot.spwb.Rd
 3b0196806f74555606d04d4843dbf20a *man/soil.Rd
 229bb0e329586fb3ee4951cb03e6fea5 *man/soil_texture.Rd
 e78c38e745b886ffbbadd83faec37572 *man/soil_thermodynamics.Rd
-d8b392da23b259ab665f7f705d165e5f *man/soilgridsParams.Rd
 250da57c8a08d89e21c9dbece0707753 *man/species_values.Rd
 3d8f5f56ebb6d78fdaca37cb69679e4f *man/spwb.Rd
 de681577ba77e6d7700adeb4e016b2a4 *man/spwb_day.Rd
@@ -119,7 +115,7 @@ a29002ac90d476328d026d4be533db8c *man/stand_values.Rd
 83c3ed784ad3c57a7f9aeafe168f9217 *man/transp_maximumTranspirationModel.Rd
 fbfe7c9161f5ea5822f3e4a83e243bc3 *man/transp_modes.Rd
 6f3252055352b8e0a2d9b655a4fc4692 *man/transp_stomatalregulation.Rd
-d0460a6c9a23147326c968e92ba1687b *man/wind.Rd
+cc1d922c4d7d7565ab4a7210a87fbe8e *man/wind.Rd
 5e8e367f2fd713627f7cae3e34d5691f *man/woodformation.Rd
 8b6e223b9177c766c1bd34590a4cc64a *src/RcppExports.cpp
 2b530ab9f6f1c99cb1cf4a754b780dc8 *src/biophysicsutils.cpp
@@ -159,7 +155,7 @@ b65ca0c729d13e6ddbe5678d4bb02fd2 *src/spwb.cpp
 7c6b70584d2577a5d5692e58514f5be8 *src/tissuemoisture.h
 87c6f150a3d0ae104ce126ffee83a96f *src/transpiration.cpp
 9e5b4b664acf809fba384361b559be4d *src/transpiration.h
-674117c1e6d3b84004f96a833a7dc0be *src/windKatul.cpp
+be5be616d978e382c96a1c00aaf23702 *src/windKatul.cpp
 076cb7a79f548db0d36d6ee9e6f07908 *src/windKatul.h
 8904787e7833c4f1dcb78971223a911a *src/windextinction.cpp
 afc51bc82449f090206ee31845b2f7c7 *src/windextinction.h
@@ -170,7 +166,7 @@ afc51bc82449f090206ee31845b2f7c7 *src/windextinction.h
 1345724453f2b11ff3c1f0eaa8354b6f *vignettes/ForestDynamics.Rmd
 4eab31b0cea2ddaf0ed464b83f9ad3af *vignettes/ForestGrowth.Rmd
 0e8d0434a4fc27872a480c43fd35a7d6 *vignettes/PackageOverview.Rmd
-e01204909a44fbd6d4dbc5eb4cc13766 *vignettes/PreparingInputs.Rmd
+cc2ad44936fd5d11dbe69cc15268c4a0 *vignettes/PreparingInputs.Rmd
 d403b8718943b92ab8d16576017fa1eb *vignettes/SensitivityCalibration.html
 100302a97b446c89243016d3f393f14a *vignettes/mcmc_out.rds
 0243430ac079f0a3da17c382855dfc6a *vignettes/opt_cal.rds
