@@ -56,7 +56,7 @@
             "SapwoodBiomass", "LeafBiomass", "FineRootBiomass",
             "LabileBiomass", "TotalLivingBiomass",
             "SAgrowth", "LAgrowth", "FRAgrowth",
-            "HuberValue", "FineRootBiomassLeafArea",
+            "HuberValue", "RootAreaLeafArea",
             .getDailySPWBPlotTypes(transpirationMode))
   return(TYPES)
 }
@@ -69,22 +69,22 @@
 }
 .getYLab<-function(type) {
   ylab="Unknown"
-  if(type=="PlantTranspiration") ylab = expression(paste("Plant transpiration ",(L%.%m^{-2})))
-  else if(type=="PlantPhotosynthesis") ylab = expression(paste("Plant photosynthesis ",(g*C%.%m^{-2})))
-  else if(type=="PlantGrossPhotosynthesis") ylab = expression(paste("Plant gross photosynthesis ",(g*C%.%m^{-2})))
-  else if(type=="PlantNetPhotosynthesis") ylab = expression(paste("Plant net photosynthesis ",(g*C%.%m^{-2})))
-  else if(type=="PlantAbsorbedSWR") ylab = expression(paste("Plant absorbed SWR ",(MJ%.%m^{-2})))
-  else if(type=="PlantNetLWR") ylab = expression(paste("Plant net LWR ",(MJ%.%m^{-2})))
-  else if(type=="TranspirationPerLeaf") ylab = expression(paste("Transpiration per leaf area ",(L%.%m^{-2})))
-  else if(type=="PhotosynthesisPerLeaf") ylab = expression(paste("Photosynthesis per leaf area ",(g*C%.%m^{-2})))
-  else if(type=="GrossPhotosynthesisPerLeaf") ylab = expression(paste("Gross photosynthesis per leaf area ",(g*C%.%m^{-2})))
-  else if(type=="NetPhotosynthesisPerLeaf") ylab = expression(paste("Net photosynthesis per leaf area ",(g*C%.%m^{-2})))
-  else if(type=="AbsorbedSWRPerLeaf") ylab = expression(paste("Absorbed SWR per leaf area ",(MJ%.%m^{-2})))
-  else if(type=="NetLWRPerLeaf") ylab = expression(paste("Net LWR per leaf area ",(MJ%.%m^{-2})))
-  else if(type=="GrossPhotosynthesis") ylab=expression(paste("Gross photosynthesis ", (gGluc%.%gdry^{-1})))
-  else if(type=="MaintenanceRespiration") ylab=expression(paste("Maintenance respiration ", (gGluc%.%gdry^{-1})))
-  else if(type=="GrowthCosts") ylab=expression(paste("Growth costs ", (gGluc%.%gdry^{-1})))
-  else if(type=="CarbonBalance") ylab=expression(paste("Carbon balance ", (gGluc%.%gdry^{-1})))
+  if(type=="PlantTranspiration") ylab = expression(paste("Plant transpiration ",(L%.%m^{-2}%.%d^{-1})))
+  else if(type=="PlantPhotosynthesis") ylab = expression(paste("Plant photosynthesis ",(g*C%.%m^{-2}%.%d^{-1})))
+  else if(type=="PlantGrossPhotosynthesis") ylab = expression(paste("Plant gross photosynthesis ",(g*C%.%m^{-2}%.%d^{-1})))
+  else if(type=="PlantNetPhotosynthesis") ylab = expression(paste("Plant net photosynthesis ",(g*C%.%m^{-2}%.%d^{-1})))
+  else if(type=="PlantAbsorbedSWR") ylab = expression(paste("Plant absorbed SWR ",(MJ%.%m^{-2}%.%d^{-1})))
+  else if(type=="PlantNetLWR") ylab = expression(paste("Plant net LWR ",(MJ%.%m^{-2}%.%d^{-1})))
+  else if(type=="TranspirationPerLeaf") ylab = expression(paste("Transpiration per leaf area ",(L%.%m^{-2}%.%d^{-1})))
+  else if(type=="PhotosynthesisPerLeaf") ylab = expression(paste("Photosynthesis per leaf area ",(g*C%.%m^{-2}%.%d^{-1})))
+  else if(type=="GrossPhotosynthesisPerLeaf") ylab = expression(paste("Gross photosynthesis per leaf area ",(g*C%.%m^{-2}%.%d^{-1})))
+  else if(type=="NetPhotosynthesisPerLeaf") ylab = expression(paste("Net photosynthesis per leaf area ",(g*C%.%m^{-2}%.%d^{-1})))
+  else if(type=="AbsorbedSWRPerLeaf") ylab = expression(paste("Absorbed SWR per leaf area ",(MJ%.%m^{-2}%.%d^{-1})))
+  else if(type=="NetLWRPerLeaf") ylab = expression(paste("Net LWR per leaf area ",(MJ%.%m^{-2}%.%d^{-1})))
+  else if(type=="GrossPhotosynthesis") ylab=expression(paste("Gross photosynthesis ", (gGluc%.%gdry^{-1}%.%d^{-1})))
+  else if(type=="MaintenanceRespiration") ylab=expression(paste("Maintenance respiration ", (gGluc%.%gdry^{-1}%.%d^{-1})))
+  else if(type=="GrowthCosts") ylab=expression(paste("Growth costs ", (gGluc%.%gdry^{-1}%.%d^{-1})))
+  else if(type=="CarbonBalance") ylab=expression(paste("Carbon balance ", (gGluc%.%gdry^{-1}%.%d^{-1})))
   else if(type=="SugarLeaf") ylab=expression(paste("Leaf sugar concentration  ", (mol%.%L^{-1})))
   else if(type=="StarchLeaf") ylab=expression(paste("Leaf starch concentration  ", (mol%.%L^{-1})))
   else if(type=="SugarSapwood") ylab=expression(paste("Sapwood sugar concentration  ", (mol%.%L^{-1})))
@@ -130,6 +130,15 @@
   else if(type=="TempMax_SH") ylab = expression(paste("Maximum shade leaf temperature (Celsius)"))
   else if(type=="TempMin_SL") ylab = expression(paste("Minimum sunlit leaf temperature (Celsius)"))
   else if(type=="TempMax_SL") ylab = expression(paste("Maximum sunlit leaf temperature (Celsius)"))
+  else if(type=="StandBasalArea") ylab = expression(paste("Stand basal area ",(m^{-2}%.%ha^{-1})))
+  else if(type=="StandLAI") ylab = expression(paste("Stand leaf area index ",(m^{-2}%.%m^{-2})))
+  else if(type=="StandDensity") ylab = expression(paste("Stand tree density ",(ind%.%ha^{-1})))
+  else if(type=="SpeciesBasalArea") ylab = expression(paste("Species basal area ",(m^{-2}%.%ha^{-1})))
+  else if(type=="SpeciesLAI") ylab = expression(paste("Species leaf area index ",(m^{-2}%.%m^{-2})))
+  else if(type=="SpeciesDensity") ylab = expression(paste("Species tree density ",(ind%.%ha^{-1})))
+  else if(type=="CohortBasalArea") ylab = expression(paste("Cohort basal area ",(m^{-2}%.%ha^{-1})))
+  else if(type=="CohortLAI") ylab = expression(paste("Cohort leaf area index ",(m^{-2}%.%m^{-2})))
+  else if(type=="CohortDensity") ylab = expression(paste("Cohort tree density ",(ind%.%ha^{-1})))
   return(ylab)
 }
 

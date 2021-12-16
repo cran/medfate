@@ -2,7 +2,7 @@
 \name{defaultControl}
 \alias{defaultControl}
 
-\title{Default control parameters for models}
+\title{Default simulation control parameters for models}
 \description{
 Creates a list with global default parameters for simulation models.
 }
@@ -22,6 +22,7 @@ A list, with the following options (default values in parentheses):
 \itemize{
    \item{\code{verbose (=TRUE)}: Boolean flag to indicate console output during calculations. In function \code{fordyn} \code{verbose} is always set to FALSE.}
    \item{\code{modifyInput (=TRUE)}: Boolean flag to indicate that simulations will modify input object. If set to FALSE, simulations will not modify the input R object but return the current (modified) state variables within the output. In function \code{fordyn} \code{modifyInput} is always set to FALSE.}
+   \item{\code{fillMissingSpParams (=TRUE)}: Boolean flag to indicate that functions \code{\link{spwbInput}} and \code{\link{growthInput}} should provide estimates for functional parameters if these are lacking in the species parameter table \code{\link{SpParams}}. Note that if \code{fillMissingSpParams} is set to \code{FALSE} then simulations may fail if the user does not provide values for required parameters.}
    \item{\code{subdailyResults (=FALSE)}: Boolean flag to force subdaily results to be stored (as a list called 'subdaily' of \code{\link{spwb_day}} objects, one by simulated date) in calls to \code{\link{spwb}}. In function \code{fordyn} \code{subdailyResults} is always set to FALSE.}
 }
 \bold{Water balance}:
@@ -66,7 +67,7 @@ A list, with the following options (default values in parentheses):
       }
    }
    \item{\code{thermalCapacityLAI (=1000000)}: Thermal canopy capacitance per LAI unit.}
-   \item{\code{Catm (=386)}: Atmospheric CO2 concentration (in micromol·mol-1 = ppm).}
+   \item{\code{Catm (=386)}: Default atmospheric (abovecanopy) CO2 concentration (in micromol·mol-1 = ppm). This value will be used whenever CO2 concentration is not specified in the weather input. }
    \item{\code{fracLeafResistance (= NA)}: Fraction of plant total resistance (leaf+stem+root) that corresponds to leaves. This fraction is used if \code{VCleaf_kmax = NA}.}
    \item{\code{fracRootResistance (=0.40)}: Fraction of plant total resistance (leaf+stem+root) that corresponds to root system.}
    \item{\code{averageFracRhizosphereResistance (=0.15)}: Fraction to total continuum (leaf+stem+root+rhizosphere) resistance that corresponds to rhizosphere (averaged across soil water potential values).}
@@ -87,7 +88,7 @@ A list, with the following options (default values in parentheses):
    \item{\code{equilibriumOsmoticConcentration [=  c(leaf = 0.8, sapwood = 0.6)]}: Equilibrium osmotic concentrations (mol·l-1) for leaf and sapwood cells. The difference between leaf and sapwood values helps maintaining phloem transport. The equilibrium sugar concentration is \code{equilibriumOsmoticConcentration - nonSugarConcentration} defaults to \code{[= c(leaf = 0.55, sapwood = 0.35)]}. }
    \item{\code{minimumRelativeSugarForGrowth [= 0.5]}: Minimum concentration of metabolic sugar relative to equilibrium sugar concentration for growth to occur in different tissues. This value (by default 50\%) should always be larger than \code{mortalityRelativeSugarThreshold [= 0.3]}, so that growth stops before starvation, and smaller than 1 (i.e. 100\%), so that growth occurs under normal metabolic status.}
    \item{\code{respirationRates [=   c(leaf = 0.00260274, sapwood = 6.849315e-05, fineroot = 0.002054795)]}: Maintenance respiration rates for different tissues (g gluc · g dry-1 · day-1). Sapwood respiration rates apply to parenchymatic tissue only. Values for sapwood and fine roots are used for all species, whereas the value for leaves is the default used when leaf respiration is not specified via SpParams (\code{RERleaf}).}
-   \item{\code{turnoverRates [=   c(sapwood = 0.0001261398, fineroot = 0.001897231)]}: Turnover rates (day-1) for sapwood and fineroots. Default are equivalent to 4.5\% and 50\% annual turnover for sapwood and fine roots, respectively.}
+   \item{\code{senescenceRates [=   c(sapwood = 0.0001261398, fineroot = 0.001897231)]}: Senescence rates (day-1) for sapwood and fineroots. Default are equivalent to 4.5\% and 50\% annual turnover for sapwood and fine roots, respectively.}
    \item{\code{constructionCosts [=   c(leaf = 1.5, sapwood = 1.47, fineroot = 1.30)]}: Construction costs, including respiration and structural carbon, per dry weight of new tissue (g gluc · g dry -1).}
    \item{\code{maximumRelativeGrowthRates [=   c(leaf = 0.01, sapwood = 0.002, fineroot = 0.1)]}: Maximum relative growth rates for leaves (m2 leaf ·cm-2 sapwood· day-1), sapwood (cm2 sapwood ·cm-2 sapwood· day-1) and fine roots (g dw · g dw -1 · day -1). Values for leaves and fine roots are used for all species, whereas the value for sapwood is the default used when relative growth rate is not specified via SpParams (\code{RGRsapwoodmax}).}
    \item{\code{mortalityMode [= "density/deterministic"]}: String describing how mortality is applied. Current accepted values are combinations of "cohort" vs "density" (for whole-cohort mortality vs reduction of stem density) and "deterministic" vs. "stochastic".}

@@ -1,164 +1,65 @@
 \encoding{UTF-8}
 \name{SpParams}
+\alias{SpParams}
+\alias{SpParamsDefinition}
 \alias{SpParamsMED}
 \alias{SpParamsUS}
 \docType{data}
 \title{
-Data tables with species parameter values for Mediterranean and US
+Data tables with species parameter definition and values for Mediterranean and US
 }
 \description{
-A data sets of species parameter values, resulting from bibliographic search, fit to empirical data or expert-based guesses.
+A data sets of species parameter definition and values, the latter resulting from existing databases, fit to empirical data or expert-based guesses.
 }
 \usage{
+data("SpParamsDefinition")
 data("SpParamsMED")
 data("SpParamsUS")
 }
 \format{
-  A data frame with species as rows and the following columns (variables), grouped by categories.
-  \describe{
-  \bold{Plant identity}:
-  \itemize{
-    \item{\code{Name}: A factor with taxon names (mostly species names).}
-    \item{\code{IFNcodes}: A factor with levels corresponding to species codes in the Third Spanish forest inventory (DGCN 2005).}
-    \item{\code{SpIndex}: A numeric vector of the species index.}
-    \item{\code{Group}: Either "Gymnosperm" or "Angiosperm".}
-    \item{\code{Order}: Taxonomical order.}
-    \item{\code{Family}: Taxonomical family.}
-    \item{\code{GrowthForm}: Either \code{Shrub}, \code{Tree} and \code{Tree/Shrub}.}
-  }
-  \bold{Plant size}:
-  \itemize{
-    \item{\code{Hmax}: Maximum plant height (in cm).}
-    \item{\code{Hmed}: Median plant height (in cm).}
-    \item{\code{Z50}: Rooting depth (in mm) corresponding to 50\% of fine roots.}
-    \item{\code{Z95}: Rooting depth (in mm) corresponding to 95\% of fine roots.}
-  }
-  \bold{Shrub allometric coefficients} (calibrated for Catalonia; see De \enc{Cáceres}{Caceres} et al. 2019):
-  \itemize{
-    \item{\code{a_ash}, \code{b_ash}: Allometric coefficients relating shrub height with the projected area of shrub individuals.}
-    \item{\code{a_bsh}, \code{b_bsh}: Allometric coefficients relating phytovolume with dry weight of shrub individuals.}
-    \item{\code{cr}: Ratio between shrub crown length and total height.}
-  }
-  \bold{Tree allometric coefficients} (calibrated for Catalonia):
-  \itemize{
-    \item{\code{a_fbt}, \code{b_fbt}, \code{c_fbt}, \code{d_fbt}: Regression coefficients used to calculate foliar biomass of an individual tree from its dbh and the cummulative basal area of larger trees.}
-    \item{\code{a_cr}, \code{b_1cr}, \code{b_2cr}, \code{b_3cr}, \code{c_1cr}, \code{c_2cr}: Regression coefficients used to calculate crown ratio of trees.}
-    \item{\code{a_cw}, \code{b_cw}: Regression coefficients used to calculated crown width of trees.}
-  }
-  \bold{Phenology}:
-  \itemize{  
-    \item{\code{PhenologyType}: Leaf phenology type, either "oneflush-evergreen" (new leaves develop in spring-summer), "progressive-evergreen" (new leaves develop during any season), "winter-deciduous" (leaf senescence in autumn, new leaves in spring-summer) or "winter-semideciduous" (same as before, but abscission of senescent leaves occurs when new leaves are produced).}
-    \item{\code{LeafDuration}: Leaf duration (in years).}
-    \item{\code{Sgdd}: Degree days for leaf budburst (in Celsius).}
-    \item{\code{Tbgdd}: Base temperature for the calculation of degree days to leaf budburst.}
-    \item{\code{Ssen}: Degree days corresponding to leaf senescence.}
-    \item{\code{Phsen}: Photoperiod corresponding to start counting senescence degree-days.}
-    \item{\code{Tbsen}: Base temperature for the calculation of degree days to leaf senescence.}
-  }
-  \bold{Anatomy}:
-  \itemize{  
-    \item{\code{SLA}: Specific leaf area (mm2/mg = m2/kg).}
-    \item{\code{LeafDensity}: Density of leaf tissue (dry weight over volume).}
-    \item{\code{WoodDensity}: Wood density (at 0 percent humidity!).}
-    \item{\code{FineRootDensity}: Density of fine root tissue (dry weight over volume).}
-    \item{\code{conduit2sapwood}: Proportion of sapwood corresponding to conducive elements (vessels or tracheids) as opposed to parenchymatic tissue.}
-    \item{\code{r635}: Ratio between the weight of leaves plus branches and the weight of leaves alone for branches of 6.35 mm.}
-    \item{\code{pDead}: Proportion of total fine fuels that are dead}
-    \item{\code{Al2As}: Leaf area to sapwood area ratio (in m2·m-2).}
-    \item{\code{LeafWidth}: Leaf width (in cm).}
-    \item{\code{SRL}: Specific root length (cm/g).}
-    \item{\code{RLD}: Fine root length density (i.e. density of root length per soil volume) (cm·cm-3).}
-  }
-  \bold{Tissue moisture}:
-  \itemize{  
-    \item{\code{maxFMC}: Maximum fuel moisture (in percent of dry weight)}
-    \item{\code{minFMC}: Minimum fuel moisture (in percent of dry weight)}
-    \item{\code{LeafPI0}: Osmotic potential at full turgor of leaves (MPa).}
-    \item{\code{LeafEPS}: Modulus of elasticity (capacity of the cell wall to resist changes in volume in response to changes in turgor) of leaves (MPa).}
-    \item{\code{LeafAF}: Apoplastic fraction (proportion of water outside the living cells) in leaves.}
-    \item{\code{StemPI0}: Osmotic potential at full turgor of symplastic xylem tissue (MPa).}
-    \item{\code{StemEPS}: Modulus of elasticity (capacity of the cell wall to resist changes in volume in response to changes in turgor) of symplastic xylem tissue (Mpa).}
-    \item{\code{StemAF}: Apoplastic fraction (proportion of water outside the living cells) in stem xylem.}
-    }
-  \bold{Flammability}:
-  \itemize{  
-    \item{\code{LigninPercent}: Percent of lignin+cutin over dry weight in leaves.}
-    \item{\code{ParticleDensity}: Particle density (kg/m3).}
-    \item{\code{LeafLitterFuelType}: Fuel type for leaf litter, with levels \code{Broadleaved}, \code{LongLinear}, \code{Scale} and \code{ShortLinear}.}
-    \item{\code{Flammability}: Flammability modifier (either 1 or 2 for normal or high, respectively).}
-    \item{\code{SAV}: Surface-area-to-volume ratio of the small fuel (1h) fraction (leaves and branches < 6.35mm) (m2/m3).}
-    \item{\code{HeatContent}: High fuel heat content (kJ/kg).}
-    }
-  \bold{Extinction}:
-  \itemize{  
-    \item{\code{gammaSWR}: Reflectance (albedo) for SWR (\code{gammaPAR = 0.8*gammaSWR}).}
-    \item{\code{alphaSWR}: Absorbance coefficient for SWR (\code{alphaPAR = alphaSWR * 1.35}).}
-    \item{\code{kPAR}: Extinction coeficient for PAR (\code{kSWR = kPAR/1.35}).}
-    \item{\code{g}: Canopy water storage capacity per LAI unit (in mm/LAI).}
-    }
-  \bold{Transpiration/Photosynthesis}:
-  \itemize{  
-     \item{\code{Tmax_LAI}: Coefficient relating LAI with the ratio of maximum transpiration over potential evapotranspiration.}
-    \item{\code{Tmax_LAIsq}: Coefficient relating squared LAI with the ratio of maximum transpiration over potential evapotranspiration.}
-    \item{\code{Psi_Extract}: Water potential corresponding to 50\% stomatal conductance (in MPa).}
-    \item{\code{Psi_Critic}: Water potential corresponding to 50\% of stem cavitation (in MPa).}
-    \item{\code{WUE}: Water use efficiency for carbon assimilation (gross photosynthesis) (g C /mm water).}
-    \item{\code{pRootDisc}: Relative root conductance leading to hydraulic disconnection from a soil layer.}
-    \item{\code{Gswmin}: Minimum stomatal conductance to water vapor per leaf area unit (in mol·s-1·m-2).}
-    \item{\code{Gswmax}: Maximum stomatal conductance to water vapor per leaf area unit (in mol·s-1·m-2).}
-    \item{\code{VCleaf_kmax}: Leaf hydraulic conductance (in mmol H2O·s-1·m-2·MPa-1).}
-    \item{\code{VCleaf_c}, \code{VCleaf_d}: Parameters of the leaf vulnerability curve (\code{VCleaf_d} in MPa).}
-    \item{\code{Kmax_stemxylem}: Sapwood-specific hydraulic conductivity of stem xylem (in kg H2O·s-1·m-1·MPa-1).}
-    \item{\code{VCstem_c}, \code{VCstem_d}: Parameters of the stem xylem vulnerability curve (\code{VCstem_d} in MPa).}
-    \item{\code{Kmax_rootxylem}: Sapwood-specific hydraulic conductivity of root xylem (in kg H2O·s-1·m-1·MPa-1).}
-    \item{\code{VCroot_c}, \code{VCroot_d}: Parameters of the root xylem vulnerability curve (\code{VCroot_d} in MPa).}
-    \item{\code{Narea}: Nitrogen contrentration per leaf area (in g·m-2).}
-    \item{\code{Vmax298}: Maximum Rubisco carboxilation rate at 25ºC (in micromol CO2·s-1·m-2).}
-    \item{\code{Jmax298}: Maximum electron transport rate at 25ºC (in micromol electrons·s-1·m-2).}
-  }
-  \bold{Growth}:
-  \itemize{  
-    \item{\code{WoodC}: Wood carbon content per dry weight (g C /g dry).}
-    \item{\code{RERleaf}: Maintenance respiration rate for leaves (g gluc · g dry-1 · day-1).}
-    \item{\code{RERsapwood}: Maintenance respiration rate for living cells of sapwood (g gluc · g dry-1 · day-1).}
-    \item{\code{RERfineroot}: Maintenance respiration rate for fine roots (g gluc · g dry-1 · day-1).}
-    \item{\code{RGRleafmax}: Maximum leaf area growth rate relative to sapwood area (in m2·cm-2· day-1).}
-    \item{\code{RGRsapwoodmax}: Maximum sapwood area relative growth rate (in cm2·cm-2·day-1).}
-    \item{\code{RGRfinerootmax}: Maximum fine root relative growth rate (in g dry·g dry-1· day-1).}
-    \item{\code{fHDmin}: Minimum value of the height-to-diameter ratio (dimensionless).}
-    \item{\code{fHDmax}: Maximum value of the height-to-diameter ratio (dimensionless).}
-    }
-  \bold{Recruitment}:
-  \itemize{  
-    \item{\code{SeedProductionHeight}: Minimum height (cm) for seed production.}
-    \item{\code{MinTempRecr}: Minimum average temperature (Celsius) of the coldest month for successful recruitment.}
-    \item{\code{MinMoistureRecr}: Minimum value of the moisture index (annual precipitation over annual PET) for successful recruitment.}
-    \item{\code{MinFPARRecr}: Minimum percentage of PAR at the ground level for successful recruitment.}
-    \item{\code{RecrTreeDBH}: Recruitment DBH (cm) for trees.}
-    \item{\code{RecrTreeHeight}: Recruitment height (cm) for trees.}
-    \item{\code{RecrTreeDensity}: Recruitment density (ind·ha-1) for trees.}
-    \item{\code{RecrShrubCover}: Recruitment cover (\%) for shrubs.}
-    \item{\code{RecrShrubHeight}: Recruitment height (cm) for shrubs.}
-    \item{\code{RecrZ50}: Soil depth (mm) corresponding to 50\% of fine roots for recruitment.}
-    \item{\code{RecrZ95}: Soil depth (mm) corresponding to 95\% of fine roots for recruitment.}
-  }
-  }
+Data frame \code{SpParamsDefinition} has parameters in rows and columns 'ParameterName', 'ParameterGroup', 'Definition', 'Type' and 'Units'. Data frames \code{SpParamsMED} and \code{SpParamsUS} have species or genus as rows and column names equal to parameter names in \code{SpParamsDefinition}.
 }
 \details{
-See details of parameterization in De Caceres et al. (2015) and De Caceres et al. (2021).
+Plant trait parameter sources are listed in the bibliography section. Details of the procedures used to obtain the species parameter tables can be found in the article 'Species parameterization for Spain' at https://emf-creaf.github.io/medfate/. 
 }
 \source{
-De \enc{Cáceres}{Caceres} M, \enc{Martínez}{Martinez}-Vilalta J, Coll L, Llorens P, Casals P, Poyatos R, Pausas JG, Brotons L. (2015) Coupling a water balance model with forest inventory data to predict drought stress: the role of forest structural changes vs. climate changes. Agricultural and Forest Meteorology (doi:10.1016/j.agrformet.2015.06.012).
+Asse, D., Randin, C. F., Bonhomme, M., Delestrade, A., & Chuine, I. (2020). Process-based models outcompete correlative models in projecting spring phenology of trees in a future warmer climate. Agricultural and Forest Meteorology, 285–286(January), 107931. https://doi.org/10.1016/j.agrformet.2020.107931
 
-De \enc{Cáceres}{Caceres} M, Mencuccini M, Martin-StPaul N, Limousin JM, Coll L, Poyatos R, Cabon A, Granda V, Forner A, Valladares F, \enc{Martínez}{Martinez}-Vilalta J (2021) Unravelling the effect of species mixing on water use and drought stress in holm oak forests: a modelling approach. Agricultural and Forest Meteorology 296 (doi:10.1016/j.agrformet.2020.108233).
+Bartlett, Megan K, Christine Scoffoni, and Lawren Sack. 2012. The determinants of leaf turgor loss point and prediction of drought tolerance of species and biomes: a global meta-analysis. Ecology Letters 15 (5): 393–405. https://doi.org/10.1111/j.1461-0248.2012.01751.x. 
+
+Choat, Brendan, Steven Jansen, Tim J Brodribb, \enc{Hervé}{Herve} Cochard, Sylvain Delzon, Radika Bhaskar, Sandra J Bucci, et al. 2012. Global convergence in the vulnerability of forests to drought. Nature 491 (7426): 752–55. https://doi.org/10.1038/nature11688.
 
 De \enc{Cáceres}{Caceres} M, Casals P, Gabriel E, Castro X (2019) Scaling-up individual-level allometric equations to predict stand-level fuel loading in Mediterranean shrublands. Ann For Sci 76:87 (doi:10.1007/s13595-019-0873-4).
 
+Delpierre, N., \enc{Dufrêne}{Dufrene}, E., Soudani, K., Ulrich, E., Cecchini, S., \enc{Boé}{Boe}, J., & \enc{François}{Francois}, C. (2009). Modelling interannual and spatial variability of leaf senescence for three deciduous tree species in France. Agricultural and Forest Meteorology, 149(6–7), 938–948. https://doi.org/10.1016/j.agrformet.2008.11.014
 
 DGCN (2005). Tercer Inventario Forestal Nacional (1997-2007): Catalunya. Dirección General de Conservación de la Naturaleza, Ministerio de Medio Ambiente, Madrid.
 
+Duursma, Remko A., Christopher J. Blackman, Rosana \enc{López}{Lopez}, Nicolas K. Martin-StPaul, \enc{Hervé}{Herve} Cochard, and Belinda E. Medlyn. 2018. On the minimum leaf conductance: its role in models of plant water use, and ecological and environmental controls. New Phytologist, no. September. https://doi.org/10.1111/nph.15395.
+
+Hoshika, Yasutomo, Yutaka Osada, Alessandra de Marco, Josep \enc{Peñuelas}{Penuelas}, and Elena Paoletti. 2018. Global diurnal and nocturnal parameters of stomatal conductance in woody plants and major crops. Global Ecology and Biogeography 27 (2): 257–75. https://doi.org/10.1111/geb.12681.
+
+Kattge, J., S. \enc{Díaz}{Diaz}, S. Lavorel, I. C. Prentice, P. Leadley, G. Bonisch, E. Garnier, et al. 2011. TRY - a global database of plant traits. Global Change Biology 17 (9): 2905–35. https://doi.org/10.1111/j.1365-2486.2011.02451.x.
+
+Manzoni, Stefano, Giulia Vico, Amilcare Porporato, and Gabriel Katul. 2013. Biological constraints on water transport in the soil-plant-atmosphere system. Advances in Water Resources 51: 292–304. https://doi.org/10.1016/j.advwatres.2012.03.016.
+
+Martin-StPaul, Nicolas, Sylvain Delzon, and \enc{Hervé}{Herve} Cochard. 2017. Plant resistance to drought depends on timely stomatal closure. Ecology Letters 20 (11): 1437–47. https://doi.org/10.1111/ele.12851.
+
+Mencuccini, Maurizio, Teresa Rosas, Lucy Rowland, Brendan Choat, Hans Cornelissen, Steven Jansen, Koen Kramer, et al. 2019. Leaf economics and plant hydraulics drive leaf : wood area ratios. New Phytologist. https://doi.org/10.1111/nph.15998.
+
+Pausas, Juli G., R. Brandon Pratt, Jon E. Keeley, Anna L. Jacobsen, Aaron R. Ramirez, Alberto Vilagrosa, Susana Paula, Iolana N. Kaneakua-Pia, and Stephen D. Davis. 2016. Towards understanding resprouting at the global scale. New Phytologist 209 (3): 945–54. https://doi.org/10.1111/nph.13644.
+
+Sanchez‐Martinez, Pablo, Jordi Martinez‐Vilalta, Kyle G. Dexter, Ricardo A. Segovia, and Maurizio Mencuccini. 2020. Adaptation and coordinated evolution of plant hydraulic traits. Ecology Letters, August, ele.13584. https://doi.org/10.1111/ele.13584.
+
+\enc{Tavşanoǧlu}{Tavsanoglu}, \enc{Çaǧatay}{Cagatay}, and Juli G. Pausas. 2018. A functional trait database for Mediterranean Basin plants. Scientific Data 5: 1–18. https://doi.org/10.1038/sdata.2018.135.
+
+Vitasse, Y., \enc{François}{Francois}, C., Delpierre, N., \enc{Dufrêne}{Dufrene}, E., Kremer, A., Chuine, I., & Delzon, S. (2011). Assessing the effects of climate change on the phenology of European temperate trees. Agricultural and Forest Meteorology, 151(7), 969–980. https://doi.org/10.1016/j.agrformet.2011.03.003
+
+Yebra, Marta, Gianluca Scortechini, Abdulbaset Badi, María Eugenia Beget, Matthias M. Boer, Ross Bradstock, Emilio Chuvieco, et al. 2019. Globe-LFMC, a global plant water status database for vegetation ecophysiology and wildfire applications. Scientific Data 6 (1): 155. https://doi.org/10.1038/s41597-019-0164-9.
+
+Zanne, A. E., G. Lopez-Gonzalez, D. A. Coomes, J. Ilic, S. Jansen, S. L. Lewis, R. B. Miller, N. G. Swenson, M. C. Wiemann, and J. Chave. 2009. Global wood density database. http://datadryad.org/handle/10255/dryad.235. 
 }
-\seealso{ \code{\link{spwb}}}
+\seealso{\code{\link{spwb}}}
 \examples{
 data(SpParamsMED)
 }

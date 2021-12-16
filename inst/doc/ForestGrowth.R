@@ -77,3 +77,6 @@ plot(G1, "SapwoodArea", bySpecies = T)
 plot(G1, "LAgrowth", bySpecies = T)
 plot(G1, "SAgrowth", bySpecies = T)
 
+## ---- eval = FALSE------------------------------------------------------------
+#  shinyplot(G1)
+

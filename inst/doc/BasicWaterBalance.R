@@ -68,7 +68,7 @@ head(S$WaterBalance)
 ## -----------------------------------------------------------------------------
 head(S$Plants$PlantPsi)
 
-## ---- fig=TRUE, fig.align="center", fig.width=5, fig.height = 3.5-------------
+## ---- fig=TRUE, fig.align="center", fig.width=7, fig.height = 3.5-------------
 plot(S, type = "PET_Precipitation")
 plot(S, type = "Snow")
 plot(S, type = "Export")
@@ -87,6 +87,9 @@ plot(S, type="Transpiration")
 plot(S, type="GrossPhotosynthesis")
 plot(S, type="PlantPsi")
 plot(S, type="PlantStress")
+
+## ---- eval = FALSE------------------------------------------------------------
+#  shinyplot(S)
 
 ## -----------------------------------------------------------------------------
 summary(S, freq="months",FUN=mean, output="Soil")

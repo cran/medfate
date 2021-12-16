@@ -3,46 +3,44 @@
 \alias{plot.spwb}
 \alias{plot.pwb}
 \alias{plot.growth}
-\alias{summary.pwb}
-\alias{summary.spwb}
-\alias{summary.growth}
+\alias{plot.fordyn}
 
-\title{Displays simulation results}
+\title{Plots simulation results}
 \description{
-Function \code{plot} produces temporal graphs of the results of the soil plant water balance model (see \code{\link{spwb}}), plant water balance model (see \code{\link{pwb}}) or the forest growth model (see \code{\link{growth}}), whereas function \code{summary} summarizes the model's output in different temporal steps (i.e. weekly, annual, ...).
+Function \code{plot} produces temporal graphs of the results of the soil plant water balance model (see \code{\link{spwb}}), plant water balance model (see \code{\link{pwb}}), the forest growth model (see \code{\link{growth}}) or the forest dynamics model (see \code{\link{fordyn}}).
 }
 \usage{
 \method{plot}{spwb}(x, type="PET_Precipitation", 
                     cohorts = NULL, bySpecies = FALSE,
                     dates = NULL, subdaily = FALSE,
-                    xlim = NULL, ylim=NULL, xlab=NULL, ylab=NULL, ...)
+                    xlim = NULL, ylim=NULL, xlab=NULL, ylab=NULL,
+                    summary.freq = NULL, ...)
 \method{plot}{pwb}(x, type="PlantTranspiration", 
                    cohorts = NULL, bySpecies = FALSE,
                    dates = NULL, subdaily = FALSE,
-                   xlim = NULL, ylim=NULL, xlab=NULL, ylab=NULL, ...)
+                   xlim = NULL, ylim=NULL, xlab=NULL, ylab=NULL, 
+                   summary.freq = NULL, ...)
 \method{plot}{growth}(x, type="PET_Precipitation", 
                       cohorts = NULL, bySpecies = FALSE, 
                       dates = NULL, subdaily = FALSE,
-                      xlim = NULL, ylim=NULL, xlab=NULL, ylab=NULL, ...)
-\method{summary}{pwb}(object, freq="years", output="WaterBalance", FUN=sum, bySpecies = FALSE, ...)
-\method{summary}{spwb}(object, freq="years", output="WaterBalance", FUN=sum, bySpecies = FALSE, ...)
-\method{summary}{growth}(object, freq="years", output="WaterBalance", FUN=sum, bySpecies = FALSE, ...)
+                      xlim = NULL, ylim=NULL, xlab=NULL, ylab=NULL, 
+                      summary.freq = NULL, ...)
+\method{plot}{fordyn}(x, type="StandBasalArea",
+                      ylim=NULL, xlab=NULL, ylab=NULL, ...)
 }
 \arguments{
-  \item{x, object}{An object of class \code{spwb}.}
+  \item{x}{An object of class \code{spwb}, \code{pwb}, \code{growth} or \code{fordyn}.}
   \item{type}{The information to be plotted (see details)}
   \item{cohorts}{An integer, boolean or character vector to select the plant cohorts to be plotted.}
-  \item{bySpecies}{Allows aggregating output by species, before calculating summaries or drawing plots (only has an effect with some values of \code{type}). Aggregation can involve a sum (as for plant lai or transpiration) or a LAI-weighted mean (as for plant stress or plant water potential).}
+  \item{bySpecies}{Allows aggregating output by species, before drawing plots (only has an effect with some values of \code{type}). Aggregation can involve a sum (as for plant lai or transpiration) or a LAI-weighted mean (as for plant stress or plant water potential).}
   \item{dates}{A Date vector with a subset of dates to be plotted.}
   \item{subdaily}{Whether subdaily results should be shown, only for simulations using \code{transpirationMode = "Sperry"} and having set \code{subdailyResults = TRUE} in the simulation control object. If \code{subdaily = TRUE}, then the valid strings for \code{type} are listed in \code{\link{plot.spwb_day}}.}
   \item{xlim}{Range of values for x.}
   \item{ylim}{Range of values for y.}
   \item{xlab}{x-axis label.}
   \item{ylab}{y-axis label.}
-  \item{freq}{Frequency of summary statistics (see \code{\link{cut.Date}}).}
-  \item{output}{The data table to be summarized. Accepted values are \code{"DailyBalance"}, \code{"PlantStress"}, \code{"PlantPsi"}, \code{"PlantTranspiration"}, \code{"PlantPhotosynthesis"}  and \code{"SoilWaterBalance"}, \code{"Temperature"} and \code{"EnergyBalance"}.}
-  \item{FUN}{The function to summarize results (e.g., \code{sum}, \code{mean}, ...)}
-  \item{...}{Additional parameters for function \code{plot} or \code{summary}.}
+  \item{summary.freq}{Frequency of summary statistics (see \code{\link{cut.Date}}).}
+  \item{...}{Additional parameters for function \code{plot} (not used).}
 }
 \details{
 The following plots are currently available for \code{\link{spwb}} (most of them also for \code{\link{pwb}}):
@@ -86,23 +84,43 @@ The following plots are currently available for \code{\link{spwb}} (most of them
   }
 The following are only available for \code{\link{growth}}:
  \itemize{
-    \item{\code{"PlantRespiration"}:}{ Plant cohort respiration.}
-    \item{\code{"PlantRespirationPerLeaf"}:}{ Plant cohort respiration per leaf area.}
-    \item{\code{"PlantRespirationPerIndividual"}:}{ Respiration per individual.}
-    \item{\code{"PlantCBalance"}:}{ Plant cohort carbon balance.}
-    \item{\code{"PlantCBalancePerLeaf"}:}{ Plant cohort carbon balance per leaf area.}
-    \item{\code{"PlantCBalancePerIndividual"}:}{ Carbon balance per individual.}
-    \item{\code{"PlantCstorageFast"}:}{ Amount of fast-dynamics carbon reserves.}
-    \item{\code{"PlantCstorageSlow"}:}{ Amount of slow-dynamics carbon reserves.}
-    \item{\code{"PlantSA"}:}{ Amount of sapwood area in an individual.}
-    \item{\code{"PlantSAgrowth"}:}{ Amount of newly-created sapwood area.}
-    \item{\code{"PlantRelativeSAgrowth"}:}{ Amount of newly-created sapwood area per sapwood area.}
-    \item{\code{"PlantLAIlive"}:}{ Plant cohort leaf area index of live leaves.}
-    \item{\code{"PlantLAIdead"}:}{ Plant cohort leaf area index of dead leaves.}
+    \item{\code{"GrossPhotosynthesis"}:}{ Gross photosynthesis rate per dry weight.}
+    \item{\code{"MaintenanceRespiration"}:}{ Maintenance respiration cost per dry weight.}
+    \item{\code{"CarbonBalance"}:}{ Carbon balance per dry weight.}
+    \item{\code{"SugarLeaf"}:}{ Sugar concentration in leaves.}
+    \item{\code{"StarchLeaf"}:}{ Starch concentration in leaves.}
+    \item{\code{"SugarSapwood"}:}{ Sugar concentration in sapwood.}
+    \item{\code{"StarchSapwood"}:}{ Starch concentration in sapwood.}
+    \item{\code{"SugarTransport"}:}{ Phloem sugar transport rate.}
+    \item{\code{"RootExudation"}:}{ Root exudation rate per dry weight.}
+    \item{\code{"LeafPI0"}:}{ Leaf osmotic concentration at full turgor.}
+    \item{\code{"StemPI0"}:}{ Sapwood osmotic concentration at full turgor.}
+    \item{\code{"SapwoodArea"}:}{ Sapwood area per individual.}
+    \item{\code{"LeafArea"}:}{ Leaf area per individual.}
+    \item{\code{"FineRootArea"}:}{ Fine root area per individual.}
+    \item{\code{"SapwoodBiomass"}:}{ Sapwood dry biomass per individual.}
+    \item{\code{"LeafBiomass"}:}{ Leaf dry biomass per individual.}
+    \item{\code{"FineRootBiomass"}:}{ Fine root dry biomass per individual.}
+    \item{\code{"LabileBiomass"}:}{ Labile C biomass per individual.}
+    \item{\code{"TotalLivingBiomass"}:}{ Total dry biomass per individual.}
+    \item{\code{"SAgrowth"}:}{ Sapwood area growth rate.}
+    \item{\code{"LAgrowth"}:}{ Leaf area growth rate.}
+    \item{\code{"FRAgrowth"}:}{ Fine root area growth rate.}
+    \item{\code{"HuberValue"}:}{ Ratio of leaf area to sapwood area.}
+    \item{\code{"RootAreaLeafArea"}:}{ Ratio of fine root area to leaf area.}
    }
-}
-\references{
-De \enc{Cáceres}{Caceres} M, \enc{Martínez}{Martinez}-Vilalta J, Coll L, Llorens P, Casals P, Poyatos R, Pausas JG, Brotons L. (2015) Coupling a water balance model with forest inventory data to predict drought stress: the role of forest structural changes vs. climate changes. Agricultural and Forest Meteorology 213: 77-90 (doi:10.1016/j.agrformet.2015.06.012).
+ The following are only available for \code{\link{fordyn}}:
+ \itemize{
+    \item{\code{"StandBasalArea"}:}{Stand basal area of living trees.}
+    \item{\code{"StandLAI"}:}{Stand leaf area index.}
+    \item{\code{"StandDensity"}:}{Stand density of living trees.}
+    \item{\code{"SpeciesBasalArea"}:}{Basal area of living trees by species.}
+    \item{\code{"SpeciesLAI"}:}{Leaf area index by species.}
+    \item{\code{"SpeciesDensity"}:}{Density of living trees by species.}
+    \item{\code{"CohortBasalArea"}:}{Basal area of living trees by plant cohort.}
+    \item{\code{"CohortLAI"}:}{Leaf area index by plant cohort.}
+    \item{\code{"CohortDensity"}:}{Density of living trees by plant cohort.}
+   }
 }
 \author{
 Miquel De \enc{Cáceres}{Caceres} Ainsa, CREAF
@@ -134,8 +152,5 @@ S1<-spwb(x, examplemeteo, latitude = 41.82592, elevation = 100)
         
 #Plot results
 plot(S1)
-
-#Monthly summary (averages) of soil status
-summary(S1, freq="months",FUN=mean, output="Soil")
 
 }

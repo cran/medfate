@@ -178,6 +178,9 @@ plot(S, type="SoilPsi", bySpecies = TRUE)
 plot(S, type="PlantTranspiration", bySpecies = TRUE)
 plot(S, type="LeafPsiMin", bySpecies = TRUE)
 
+## ---- eval = FALSE------------------------------------------------------------
+#  shinyplot(S)
+
 ## -----------------------------------------------------------------------------
 summary(S, freq="months",FUN=mean, output="Soil")
 

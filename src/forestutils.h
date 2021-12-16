@@ -5,19 +5,13 @@
 #endif
 using namespace Rcpp;
 
-int findRowIndex(int sp, DataFrame SpParams);
-
 DataFrame forest2aboveground(List x, DataFrame SpParams, double gdd = NA_REAL, String mode = "MED");
 NumericMatrix forest2belowground(List x, List soil);
 
-NumericVector cohortNumericParameter(List x, DataFrame SpParams, String parName);
-NumericVector speciesNumericParameter(IntegerVector SP, DataFrame SpParams, String parName);
-CharacterVector cohortCharacterParameter(List x, DataFrame SpParams, String parName);
-CharacterVector speciesCharacterParameter(IntegerVector SP, DataFrame SpParams, String parName);
+CharacterVector cohortIDs(List x, int treeOffset = 0, int shrubOffset = 0);
+
 
 double leafAreaProportion(double z1, double z2, double zmin, double zmax);
-
-CharacterVector cohortIDs(List x, int treeOffset = 0, int shrubOffset = 0);
 
 NumericVector cohortHeight(List x);
 

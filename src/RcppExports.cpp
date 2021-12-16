@@ -8,6 +8,11 @@
 
 using namespace Rcpp;
 
+#ifdef RCPP_USE_GLOBAL_ROSTREAM
+Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
+Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
+#endif
+
 // radiationDiurnalPattern
 double radiationDiurnalPattern(double t, double daylength);
 RcppExport SEXP _medfate_radiationDiurnalPattern(SEXP tSEXP, SEXP daylengthSEXP) {
@@ -299,58 +304,6 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type treeOffset(treeOffsetSEXP);
     Rcpp::traits::input_parameter< int >::type shrubOffset(shrubOffsetSEXP);
     rcpp_result_gen = Rcpp::wrap(cohortIDs(x, treeOffset, shrubOffset));
-    return rcpp_result_gen;
-END_RCPP
-}
-// cohortNumericParameter
-NumericVector cohortNumericParameter(List x, DataFrame SpParams, String parName);
-RcppExport SEXP _medfate_cohortNumericParameter(SEXP xSEXP, SEXP SpParamsSEXP, SEXP parNameSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< List >::type x(xSEXP);
-    Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
-    Rcpp::traits::input_parameter< String >::type parName(parNameSEXP);
-    rcpp_result_gen = Rcpp::wrap(cohortNumericParameter(x, SpParams, parName));
-    return rcpp_result_gen;
-END_RCPP
-}
-// speciesNumericParameter
-NumericVector speciesNumericParameter(IntegerVector SP, DataFrame SpParams, String parName);
-RcppExport SEXP _medfate_speciesNumericParameter(SEXP SPSEXP, SEXP SpParamsSEXP, SEXP parNameSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< IntegerVector >::type SP(SPSEXP);
-    Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
-    Rcpp::traits::input_parameter< String >::type parName(parNameSEXP);
-    rcpp_result_gen = Rcpp::wrap(speciesNumericParameter(SP, SpParams, parName));
-    return rcpp_result_gen;
-END_RCPP
-}
-// cohortCharacterParameter
-CharacterVector cohortCharacterParameter(List x, DataFrame SpParams, String parName);
-RcppExport SEXP _medfate_cohortCharacterParameter(SEXP xSEXP, SEXP SpParamsSEXP, SEXP parNameSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< List >::type x(xSEXP);
-    Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
-    Rcpp::traits::input_parameter< String >::type parName(parNameSEXP);
-    rcpp_result_gen = Rcpp::wrap(cohortCharacterParameter(x, SpParams, parName));
-    return rcpp_result_gen;
-END_RCPP
-}
-// speciesCharacterParameter
-CharacterVector speciesCharacterParameter(IntegerVector SP, DataFrame SpParams, String parName);
-RcppExport SEXP _medfate_speciesCharacterParameter(SEXP SPSEXP, SEXP SpParamsSEXP, SEXP parNameSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< IntegerVector >::type SP(SPSEXP);
-    Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
-    Rcpp::traits::input_parameter< String >::type parName(parNameSEXP);
-    rcpp_result_gen = Rcpp::wrap(speciesCharacterParameter(SP, SpParams, parName));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -1718,14 +1671,15 @@ BEGIN_RCPP
 END_RCPP
 }
 // psi2Weibull
-NumericVector psi2Weibull(double psi50, double psi88);
-RcppExport SEXP _medfate_psi2Weibull(SEXP psi50SEXP, SEXP psi88SEXP) {
+NumericVector psi2Weibull(double psi50, double psi88, double psi12);
+RcppExport SEXP _medfate_psi2Weibull(SEXP psi50SEXP, SEXP psi88SEXP, SEXP psi12SEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< double >::type psi50(psi50SEXP);
     Rcpp::traits::input_parameter< double >::type psi88(psi88SEXP);
-    rcpp_result_gen = Rcpp::wrap(psi2Weibull(psi50, psi88));
+    Rcpp::traits::input_parameter< double >::type psi12(psi12SEXP);
+    rcpp_result_gen = Rcpp::wrap(psi2Weibull(psi50, psi88, psi12));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -2475,17 +2429,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// checkSpeciesParameters
-void checkSpeciesParameters(DataFrame SpParams, CharacterVector params);
-RcppExport SEXP _medfate_checkSpeciesParameters(SEXP SpParamsSEXP, SEXP paramsSEXP) {
-BEGIN_RCPP
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
-    Rcpp::traits::input_parameter< CharacterVector >::type params(paramsSEXP);
-    checkSpeciesParameters(SpParams, params);
-    return R_NilValue;
-END_RCPP
-}
 // paramsBelow
 List paramsBelow(DataFrame above, NumericVector Z50, NumericVector Z95, List soil, DataFrame paramsAnatomydf, DataFrame paramsTranspirationdf, List control);
 RcppExport SEXP _medfate_paramsBelow(SEXP aboveSEXP, SEXP Z50SEXP, SEXP Z95SEXP, SEXP soilSEXP, SEXP paramsAnatomydfSEXP, SEXP paramsTranspirationdfSEXP, SEXP controlSEXP) {
@@ -2623,6 +2566,71 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< bool >::type message(messageSEXP);
     modifyInputParam(x, paramType, paramName, cohort, newValue, message);
     return R_NilValue;
+END_RCPP
+}
+// checkSpeciesParameters
+void checkSpeciesParameters(DataFrame SpParams, CharacterVector params);
+RcppExport SEXP _medfate_checkSpeciesParameters(SEXP SpParamsSEXP, SEXP paramsSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
+    Rcpp::traits::input_parameter< CharacterVector >::type params(paramsSEXP);
+    checkSpeciesParameters(SpParams, params);
+    return R_NilValue;
+END_RCPP
+}
+// speciesCharacterParameter
+CharacterVector speciesCharacterParameter(IntegerVector SP, DataFrame SpParams, String parName);
+RcppExport SEXP _medfate_speciesCharacterParameter(SEXP SPSEXP, SEXP SpParamsSEXP, SEXP parNameSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< IntegerVector >::type SP(SPSEXP);
+    Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
+    Rcpp::traits::input_parameter< String >::type parName(parNameSEXP);
+    rcpp_result_gen = Rcpp::wrap(speciesCharacterParameter(SP, SpParams, parName));
+    return rcpp_result_gen;
+END_RCPP
+}
+// cohortCharacterParameter
+CharacterVector cohortCharacterParameter(List x, DataFrame SpParams, String parName);
+RcppExport SEXP _medfate_cohortCharacterParameter(SEXP xSEXP, SEXP SpParamsSEXP, SEXP parNameSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< List >::type x(xSEXP);
+    Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
+    Rcpp::traits::input_parameter< String >::type parName(parNameSEXP);
+    rcpp_result_gen = Rcpp::wrap(cohortCharacterParameter(x, SpParams, parName));
+    return rcpp_result_gen;
+END_RCPP
+}
+// speciesNumericParameterWithImputation
+NumericVector speciesNumericParameterWithImputation(IntegerVector SP, DataFrame SpParams, String parName, bool fillMissing);
+RcppExport SEXP _medfate_speciesNumericParameterWithImputation(SEXP SPSEXP, SEXP SpParamsSEXP, SEXP parNameSEXP, SEXP fillMissingSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< IntegerVector >::type SP(SPSEXP);
+    Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
+    Rcpp::traits::input_parameter< String >::type parName(parNameSEXP);
+    Rcpp::traits::input_parameter< bool >::type fillMissing(fillMissingSEXP);
+    rcpp_result_gen = Rcpp::wrap(speciesNumericParameterWithImputation(SP, SpParams, parName, fillMissing));
+    return rcpp_result_gen;
+END_RCPP
+}
+// cohortNumericParameterWithImputation
+NumericVector cohortNumericParameterWithImputation(List x, DataFrame SpParams, String parName, bool fillMissing);
+RcppExport SEXP _medfate_cohortNumericParameterWithImputation(SEXP xSEXP, SEXP SpParamsSEXP, SEXP parNameSEXP, SEXP fillMissingSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< List >::type x(xSEXP);
+    Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
+    Rcpp::traits::input_parameter< String >::type parName(parNameSEXP);
+    Rcpp::traits::input_parameter< bool >::type fillMissing(fillMissingSEXP);
+    rcpp_result_gen = Rcpp::wrap(cohortNumericParameterWithImputation(x, SpParams, parName, fillMissing));
+    return rcpp_result_gen;
 END_RCPP
 }
 // gdd
@@ -4638,10 +4646,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_medfate_FCCSbehaviour", (DL_FUNC) &_medfate_FCCSbehaviour, 5},
     {"_medfate_rothermel", (DL_FUNC) &_medfate_rothermel, 11},
     {"_medfate_cohortIDs", (DL_FUNC) &_medfate_cohortIDs, 3},
-    {"_medfate_cohortNumericParameter", (DL_FUNC) &_medfate_cohortNumericParameter, 3},
-    {"_medfate_speciesNumericParameter", (DL_FUNC) &_medfate_speciesNumericParameter, 3},
-    {"_medfate_cohortCharacterParameter", (DL_FUNC) &_medfate_cohortCharacterParameter, 3},
-    {"_medfate_speciesCharacterParameter", (DL_FUNC) &_medfate_speciesCharacterParameter, 3},
     {"_medfate_cohortSpecies", (DL_FUNC) &_medfate_cohortSpecies, 1},
     {"_medfate_cohortSpeciesName", (DL_FUNC) &_medfate_cohortSpeciesName, 2},
     {"_medfate_treeBasalArea", (DL_FUNC) &_medfate_treeBasalArea, 2},
@@ -4729,7 +4733,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_medfate_supplyFunctionNetwork", (DL_FUNC) &_medfate_supplyFunctionNetwork, 20},
     {"_medfate_regulatedPsiXylem", (DL_FUNC) &_medfate_regulatedPsiXylem, 6},
     {"_medfate_regulatedPsiTwoElements", (DL_FUNC) &_medfate_regulatedPsiTwoElements, 10},
-    {"_medfate_psi2Weibull", (DL_FUNC) &_medfate_psi2Weibull, 2},
+    {"_medfate_psi2Weibull", (DL_FUNC) &_medfate_psi2Weibull, 3},
     {"_medfate_maximumSoilPlantConductance", (DL_FUNC) &_medfate_maximumSoilPlantConductance, 4},
     {"_medfate_soilPlantResistances", (DL_FUNC) &_medfate_soilPlantResistances, 17},
     {"_medfate_averageRhizosphereResistancePercent", (DL_FUNC) &_medfate_averageRhizosphereResistancePercent, 13},
@@ -4765,7 +4769,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_medfate_layerSunlitFraction", (DL_FUNC) &_medfate_layerSunlitFraction, 3},
     {"_medfate_instantaneousLightExtinctionAbsortion", (DL_FUNC) &_medfate_instantaneousLightExtinctionAbsortion, 9},
     {"_medfate_longwaveRadiationSHAW", (DL_FUNC) &_medfate_longwaveRadiationSHAW, 7},
-    {"_medfate_checkSpeciesParameters", (DL_FUNC) &_medfate_checkSpeciesParameters, 2},
     {"_medfate_paramsBelow", (DL_FUNC) &_medfate_paramsBelow, 7},
     {"_medfate_spwbInput", (DL_FUNC) &_medfate_spwbInput, 6},
     {"_medfate_growthInput", (DL_FUNC) &_medfate_growthInput, 6},
@@ -4776,6 +4779,11 @@ static const R_CallMethodDef CallEntries[] = {
     {"_medfate_updateBelow", (DL_FUNC) &_medfate_updateBelow, 1},
     {"_medfate_multiplyInputParam", (DL_FUNC) &_medfate_multiplyInputParam, 6},
     {"_medfate_modifyInputParam", (DL_FUNC) &_medfate_modifyInputParam, 6},
+    {"_medfate_checkSpeciesParameters", (DL_FUNC) &_medfate_checkSpeciesParameters, 2},
+    {"_medfate_speciesCharacterParameter", (DL_FUNC) &_medfate_speciesCharacterParameter, 3},
+    {"_medfate_cohortCharacterParameter", (DL_FUNC) &_medfate_cohortCharacterParameter, 3},
+    {"_medfate_speciesNumericParameterWithImputation", (DL_FUNC) &_medfate_speciesNumericParameterWithImputation, 4},
+    {"_medfate_cohortNumericParameterWithImputation", (DL_FUNC) &_medfate_cohortNumericParameterWithImputation, 4},
     {"_medfate_gdd", (DL_FUNC) &_medfate_gdd, 4},
     {"_medfate_leafDevelopmentStatus", (DL_FUNC) &_medfate_leafDevelopmentStatus, 3},
     {"_medfate_leafSenescenceStatus", (DL_FUNC) &_medfate_leafSenescenceStatus, 2},

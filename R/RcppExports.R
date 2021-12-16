@@ -85,22 +85,6 @@ plant_ID <- function(x, treeOffset = 0L, shrubOffset = 0L) {
     .Call(`_medfate_cohortIDs`, x, treeOffset, shrubOffset)
 }
 
-plant_parameter <- function(x, SpParams, parName) {
-    .Call(`_medfate_cohortNumericParameter`, x, SpParams, parName)
-}
-
-species_parameter <- function(SP, SpParams, parName) {
-    .Call(`_medfate_speciesNumericParameter`, SP, SpParams, parName)
-}
-
-plant_characterParameter <- function(x, SpParams, parName) {
-    .Call(`_medfate_cohortCharacterParameter`, x, SpParams, parName)
-}
-
-species_characterParameter <- function(SP, SpParams, parName) {
-    .Call(`_medfate_speciesCharacterParameter`, SP, SpParams, parName)
-}
-
 plant_species <- function(x) {
     .Call(`_medfate_cohortSpecies`, x)
 }
@@ -449,8 +433,8 @@ hydraulics_regulatedPsiTwoElements <- function(Emax, psiSoil, krhizomax, kxylemm
     .Call(`_medfate_regulatedPsiTwoElements`, Emax, psiSoil, krhizomax, kxylemmax, n, alpha, c, d, dE, psiMax)
 }
 
-hydraulics_psi2Weibull <- function(psi50, psi88) {
-    .Call(`_medfate_psi2Weibull`, psi50, psi88)
+hydraulics_psi2Weibull <- function(psi50, psi88 = NA_real_, psi12 = NA_real_) {
+    .Call(`_medfate_psi2Weibull`, psi50, psi88, psi12)
 }
 
 hydraulics_maximumSoilPlantConductance <- function(krhizomax, krootmax, kstemmax, kleafmax) {
@@ -593,10 +577,6 @@ light_longwaveRadiationSHAW <- function(LAIme, LAImd, LAImx, LWRatm, Tsoil, Tair
     .Call(`_medfate_longwaveRadiationSHAW`, LAIme, LAImd, LAImx, LWRatm, Tsoil, Tair, trunkExtinctionFraction)
 }
 
-.checkSpeciesParameters <- function(SpParams, params) {
-    invisible(.Call(`_medfate_checkSpeciesParameters`, SpParams, params))
-}
-
 .paramsBelow <- function(above, Z50, Z95, soil, paramsAnatomydf, paramsTranspirationdf, control) {
     .Call(`_medfate_paramsBelow`, above, Z50, Z95, soil, paramsAnatomydf, paramsTranspirationdf, control)
 }
@@ -635,6 +615,26 @@ resetInputs <- function(x) {
 
 .modifyInputParam <- function(x, paramType, paramName, cohort, newValue, message) {
     invisible(.Call(`_medfate_modifyInputParam`, x, paramType, paramName, cohort, newValue, message))
+}
+
+.checkSpeciesParameters <- function(SpParams, params) {
+    invisible(.Call(`_medfate_checkSpeciesParameters`, SpParams, params))
+}
+
+species_characterParameter <- function(SP, SpParams, parName) {
+    .Call(`_medfate_speciesCharacterParameter`, SP, SpParams, parName)
+}
+
+plant_characterParameter <- function(x, SpParams, parName) {
+    .Call(`_medfate_cohortCharacterParameter`, x, SpParams, parName)
+}
+
+species_parameter <- function(SP, SpParams, parName, fillMissing = TRUE) {
+    .Call(`_medfate_speciesNumericParameterWithImputation`, SP, SpParams, parName, fillMissing)
+}
+
+plant_parameter <- function(x, SpParams, parName, fillMissing = TRUE) {
+    .Call(`_medfate_cohortNumericParameterWithImputation`, x, SpParams, parName, fillMissing)
 }
 
 .gdd <- function(DOY, Temp, Tbase = 5.0, cum = 0.0) {

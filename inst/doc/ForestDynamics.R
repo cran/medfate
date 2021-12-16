@@ -43,6 +43,9 @@ fd$StandSummary
 ## -----------------------------------------------------------------------------
 fd$SpeciesSummary
 
+## ---- fig=TRUE, fig.align="center", fig.width=7, fig.height = 3.5-------------
+plot(fd, type = "StandBasalArea")
+
 ## -----------------------------------------------------------------------------
 fd$TreeTable
 
@@ -58,4 +61,7 @@ plot(fd$GrowthResults[[3]], "LeafArea", bySpecies = T)
 plot(fd$GrowthResults[[1]], "SapwoodArea", bySpecies = T)
 plot(fd$GrowthResults[[2]], "SapwoodArea", bySpecies = T)
 plot(fd$GrowthResults[[3]], "SapwoodArea", bySpecies = T)
+
+## ---- eval = FALSE------------------------------------------------------------
+#  shinyplot(fd$GrowthResults[[1]])
 

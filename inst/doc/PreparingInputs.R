@@ -11,6 +11,10 @@ data("SpParamsMED")
 names(SpParamsMED)
 
 ## -----------------------------------------------------------------------------
+data("SpParamsDefinition")
+knitr::kable(SpParamsDefinition[,-2])
+
+## -----------------------------------------------------------------------------
 data(exampleforestMED)
 exampleforestMED
 
