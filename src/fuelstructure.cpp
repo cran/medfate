@@ -174,15 +174,15 @@ List fuelLiveStratification(List object, DataFrame SpParams, double gdd = NA_REA
   int index0abs = 0;
   
   //Minimum height between 0 and 200 cm where BD > BDT (BD > 0 in abs)
-  while((wfp[index0]<bulkDensityThreshold) & (z[index0+1]<=200)){index0++;}
-  while((wfp[index0abs]<0.0) & (z[index0abs+1]<=200)){index0abs++;}
+  while((wfp[index0]<bulkDensityThreshold) && (z[index0+1]<=200)){index0++;}
+  while((wfp[index0abs]<0.0) && (z[index0abs+1]<=200)){index0abs++;}
   
   int index1 = 0;
   int index1abs = 0;
   //Maximum height between 0 and 200 cm where BD > BDT (BD > 0 in abs)
   for(int i=0;z[i+1]<=200;i++) {
-    if((wfp[i]>bulkDensityThreshold) & (i>index1)) {index1 = i;}
-    if((wfp[i]>0.0) & (i>index1abs)) {index1abs = i;}
+    if((wfp[i]>bulkDensityThreshold) && (i>index1)) {index1 = i;}
+    if((wfp[i]>0.0) && (i>index1abs)) {index1abs = i;}
   }
   //Ensure minimum height <= maximum height
   if(index0>index1) index0 = index1;
@@ -191,14 +191,14 @@ List fuelLiveStratification(List object, DataFrame SpParams, double gdd = NA_REA
   //Minimum height above index1 where BD > BDT (BD > 0 in abs)
   int index2 = index1+1;
   int index2abs = index1abs+1;
-  while((wfp[index2]<bulkDensityThreshold) & (index2<(numSteps-1))) {index2 = index2 +1;}
-  while((wfp[index2abs]==0.0) & (index2abs<(numSteps-1))) {index2abs = index2abs +1;}
+  while((wfp[index2]<bulkDensityThreshold) && (index2<(numSteps-1))) {index2 = index2 +1;}
+  while((wfp[index2abs]==0.0) && (index2abs<(numSteps-1))) {index2abs = index2abs +1;}
   
   //Maximum height where BD > BDT (BD > 0 in abs)
   int index3 = numSteps-2;
   int index3abs = numSteps-2;
-  while((wfp[index3]<bulkDensityThreshold) & (index3>index2)) {index3 = index3 - 1;}  
-  while((wfp[index3abs]==0.0) & (index3abs>index2abs)) {index3abs = index3abs - 1;}  
+  while((wfp[index3]<bulkDensityThreshold) && (index3>index2)) {index3 = index3 - 1;}  
+  while((wfp[index3abs]==0.0) && (index3abs>index2abs)) {index3abs = index3abs - 1;}  
   
   //Fuelbed height
   double fbbh = z[index0];
@@ -260,12 +260,25 @@ CharacterVector leafLitterFuelType(List object, DataFrame SpParams) {
  * FCCS fuel definition
  */
 // [[Rcpp::export("fuel_FCCS")]]
-DataFrame FCCSproperties(List object, double ShrubCover, double CanopyCover, DataFrame SpParams, NumericVector cohortFMC = NumericVector::create(), 
+DataFrame FCCSproperties(List object, DataFrame SpParams, NumericVector cohortFMC = NumericVector::create(), 
                          double gdd = NA_REAL, String mode = "MED", 
                          double heightProfileStep = 10.0, double maxHeightProfile = 5000, double bulkDensityThreshold = 0.05,
                          String depthMode = "crownaverage") {
   List liveStrat = fuelLiveStratification(object, SpParams, gdd, mode, 
                                           heightProfileStep, maxHeightProfile, bulkDensityThreshold);
+  
+  NumericVector cc = cohortCover(object, SpParams, mode);
+  
+  DataFrame treeData = Rcpp::as<Rcpp::DataFrame>(object["treeData"]);
+  DataFrame shrubData = Rcpp::as<Rcpp::DataFrame>(object["shrubData"]);
+  int ntree = treeData.nrow();
+  int nshrub = shrubData.nrow();
+  double CanopyCover = 0.0;
+  double ShrubCover = 0.0;
+  for(int i=0;i<ntree;i++) CanopyCover = CanopyCover + cc[i];
+  for(int i=0;i<nshrub;i++) ShrubCover = ShrubCover + cc[i+ntree];
+  CanopyCover = std::min(100.0, CanopyCover);
+  ShrubCover = std::min(100.0, ShrubCover);
   
   NumericVector cohLoading = cohortFuel(object, SpParams, gdd, true, mode);
   NumericVector cohLeafLitter = cohortEquilibriumLeafLitter(object, SpParams, AET, mode);
@@ -687,7 +700,7 @@ List rothermelFuelComplex(NumericVector wSI, NumericVector sSI, double delta, Nu
 //   if(!useModelForLive) {
 //     double herbCover = object["herbCover"];
 //     double herbHeight = object["herbHeight"];
-//     if((!NumericVector::is_na(herbCover)) & (!NumericVector::is_na(herbHeight))) { //If plot data is available
+//     if((!NumericVector::is_na(herbCover)) && (!NumericVector::is_na(herbHeight))) { //If plot data is available
 //       fbLoading[3] = 0.14*herbCover*(herbHeight/100.0); // From piropinus
 //     }
 //     fbLoading[4] = fs["fuelBedWoodyBiomass"];

@@ -10,6 +10,7 @@
 \alias{carbon_osmoticWaterPotential}
 \alias{carbon_sugarStarchDynamicsLeaf}
 \alias{carbon_sugarStarchDynamicsStem}
+\alias{carbon_carbonCompartments}
 \title{
 Carbon-related functions
 }
@@ -26,6 +27,8 @@ carbon_sugarConcentration(osmoticWP, temp, nonSugarConc)
 carbon_osmoticWaterPotential(sugarConc, temp, nonSugarConc)
 carbon_relativeSapViscosity(sugarConc, temp)
 carbon_sugarStarchDynamicsLeaf(sugarConc, starchConc, eqSugarConc)
+carbon_sugarStarchDynamicsStem(sugarConc, starchConc, eqSugarConc)
+carbon_carbonCompartments(x, biomassUnits = "g_m2")
 }
 \arguments{
   \item{LAI}{Leaf area index.}
@@ -44,12 +47,24 @@ carbon_sugarStarchDynamicsLeaf(sugarConc, starchConc, eqSugarConc)
   \item{sugarConc}{Concentration of soluble sugars (mol/l).}
   \item{starchConc}{Concentration of starch (mol/l)}
   \item{eqSugarConc}{Equilibrium concentration of soluble sugars (mol/l).}
+  \item{x}{An object of class \code{\link{growthInput}}.}
+  \item{biomassUnits}{A string for output biomass units, either "g_ind" (g per individual) or "g_m2" (g per square meter).}
 }
 \value{
 Values returned for each function are:
 \itemize{
-\item{\code{carbon_leafStarchCapacity}: Capacity of storing starch in the leaf compartment (mol glucose).}
-\item{\code{carbon_sapwoodStarchCapacity}: Capacity of storing starch in the sapwood compartment (mol glucose).}
+\item{\code{carbon_leafStarchCapacity}: Capacity of storing starch in the leaf compartment (mol gluc/ind.).}
+\item{\code{carbon_leafStructuralBiomass}: Leaf structural biomass (g dry/ind.)}
+\item{\code{carbon_sapwoodStarchCapacity}: Capacity of storing starch in the sapwood compartment (mol gluc/ind.).}
+\item{\code{carbon_sapwoodStructuralBiomass}: Sapwood structural biomass (g dry/ind.)}
+\item{\code{carbon_sapwoodStructuralLivingBiomass}: Living sapwood (parenchyma) structural biomass (g dry/ind.)}
+\item{\code{carbon_sugarConcentration}: Sugar concentration (mol gluc/l)}
+\item{\code{carbon_osmoticWaterPotential}: Osmotic component of water potential (MPa)}
+\item{\code{carbon_relativeSapViscosity}: Relative viscosity of sapwood with respect to pure water.}
+\item{\code{carbon_sugarStarchDynamicsLeaf}: Rate of conversion from sugar to starch in leaf (mol gluc/l/s).}
+\item{\code{carbon_sugarStarchDynamicsStem}: Rate of conversion from sugar to starch in leaf (mol gluc/l/s).}
+\item{\code{carbon_carbonCompartments}: A data frame with the size of compartments for each plant cohort, in the specified units.}
+
 }
 }
 \author{

@@ -8,9 +8,11 @@ Function \code{spwb_day} performs water balance for a single day and \code{growt
 }
 \usage{
 spwb_day(x, date, tmin, tmax, rhmin, rhmax, rad, wind, 
-         latitude, elevation, slope, aspect, prec, runon = 0.0)
+         latitude, elevation, slope, aspect, prec, runon = 0.0,
+         modifyInput = TRUE)
 growth_day(x, date, tmin, tmax, rhmin, rhmax, rad, wind, 
-           latitude, elevation, slope, aspect, prec, runon = 0.0)
+           latitude, elevation, slope, aspect, prec, runon = 0.0,
+           modifyInput = TRUE)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -24,6 +26,7 @@ growth_day(x, date, tmin, tmax, rhmin, rhmax, rad, wind,
   \item{latitude}{Latitude (in degrees). Required when using the 'Sperry' transpiration mode.}
   \item{elevation, slope, aspect}{Elevation above sea level (in m), slope (in degrees) and aspect (in degrees from North). Required when using the 'Sperry' transpiration mode.}
   \item{runon}{Surface water amount running on the target area from upslope (in mm).}
+  \item{modifyInput}{Boolean flag to indicate that the input \code{x} object is allowed to be modified during the simulation.}
 }
 \details{
   Detailed model description is available in the vignettes section. The model using 'Granier' transpiration mode is described in De Caceres et al. (2015). Simulations using the 'Sperry' transpiration mode are computationally much more expensive, are described in De Cáceres et al. (2021) and are illustrated by function \code{\link{transp_transpirationSperry}}. 
@@ -65,9 +68,6 @@ De \enc{Cáceres}{Caceres} M, Mencuccini M, Martin-StPaul N, Limousin JM, Coll L
 \author{
 Miquel De \enc{Cáceres}{Caceres} Ainsa, CREAF
 }
-\note{
-Object \code{x} is modified during the simulation, unless control parameter \code{modifyInput = FALSE}.
-}
 \seealso{
 \code{\link{spwbInput}}, \code{\link{spwb}},  \code{\link{plot.spwb_day}},  
 \code{\link{growthInput}}, \code{\link{growth}},  \code{\link{plot.growth_day}}  
@@ -90,7 +90,7 @@ d = 100
 
 
 #Simulate water balance one day only (Granier)
-examplesoil = soil(defaultSoilParams(2))
+examplesoil = soil(defaultSoilParams(4))
 x1 = forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
 sd1<-spwb_day(x1, rownames(examplemeteo)[d],  
              examplemeteo$MinTemperature[d], examplemeteo$MaxTemperature[d], 
@@ -102,8 +102,7 @@ sd1<-spwb_day(x1, rownames(examplemeteo)[d],
 
 #Simulate water balance for one day only (Sperry's mode)
 control = defaultControl("Sperry")
-examplesoil2 = soil(defaultSoilParams(2))
-x2 = forest2spwbInput(exampleforestMED,examplesoil2, SpParamsMED, control)
+x2 = forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
 sd2<-spwb_day(x2, rownames(examplemeteo)[d],
              examplemeteo$MinTemperature[d], examplemeteo$MaxTemperature[d], 
              examplemeteo$MinRelativeHumidity[d], examplemeteo$MaxRelativeHumidity[d], 
@@ -116,8 +115,7 @@ plot(sd2)
 
 
 #Simulate water and carbon balance for one day only
-examplesoil3 = soil(defaultSoilParams(2))
-x3 = forest2growthInput(exampleforestMED,examplesoil3, SpParamsMED, control)
+x3 = forest2growthInput(exampleforestMED,examplesoil, SpParamsMED, control)
 sd3<-growth_day(x3, rownames(examplemeteo)[d],
              examplemeteo$MinTemperature[d], examplemeteo$MaxTemperature[d], 
              examplemeteo$MinRelativeHumidity[d], examplemeteo$MaxRelativeHumidity[d], 

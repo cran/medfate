@@ -104,7 +104,7 @@ NumericVector kPARWithImputation(IntegerVector SP, DataFrame SpParams) {
       if(NumericVector::is_na(kPAR[j])) kPAR[j] = 0.55;
     } else if(leafShape[j]=="Linear") {
       if(NumericVector::is_na(kPAR[j])) kPAR[j] = 0.45;
-    } else if((leafShape[j]=="Needle") | (leafShape[j]=="Scale")){
+    } else if((leafShape[j]=="Needle") || (leafShape[j]=="Scale")){
       if(NumericVector::is_na(kPAR[j])) kPAR[j] = 0.50;
     }
   }
@@ -118,7 +118,7 @@ NumericVector gammaSWRWithImputation(IntegerVector SP, DataFrame SpParams) {
       if(NumericVector::is_na(gammaSWR[j])) gammaSWR[j] = 0.18;
     } else if(leafShape[j]=="Linear") {
       if(NumericVector::is_na(gammaSWR[j])) gammaSWR[j] = 0.15;
-    } else if((leafShape[j]=="Needle") | (leafShape[j]=="Scale")){
+    } else if((leafShape[j]=="Needle") || (leafShape[j]=="Scale")){
       if(NumericVector::is_na(gammaSWR[j])) gammaSWR[j] = 0.14;
     }
   }
@@ -139,7 +139,7 @@ NumericVector gWithImputation(IntegerVector SP, DataFrame SpParams) {
       if(NumericVector::is_na(g[j])) g[j] = 0.5;
     } else if(leafShape[j]=="Linear") {
       if(NumericVector::is_na(g[j])) g[j] = 0.8;
-    } else if((leafShape[j]=="Needle") | (leafShape[j]=="Scale")){
+    } else if((leafShape[j]=="Needle") || (leafShape[j]=="Scale")){
       if(NumericVector::is_na(g[j])) g[j] = 1.0;
     }
   }
@@ -217,7 +217,7 @@ NumericVector ligninPercentWithImputation(IntegerVector SP, DataFrame SpParams) 
         cohLigninPercent[i] = 14.55;
       } else if(leafShape[i]=="Spines") {
         cohLigninPercent[i] = 14.55;
-      } else if((leafShape[i]=="Linear") | (leafShape[i]=="Needle")) {
+      } else if((leafShape[i]=="Linear") || (leafShape[i]=="Needle")) {
         if(leafSize[i]=="Small") {
           cohLigninPercent[i] = 18.55;
         } else if(leafSize[i] == "Medium") {
@@ -248,7 +248,7 @@ NumericVector surfaceToAreaRatioWithImputation(IntegerVector SP, DataFrame SpPar
         cohSAV[i] = 1120.0;
       } else if(leafShape[i]=="Spines") {
         cohSAV[i] = 6750.0;
-      } else if((leafShape[i]=="Linear") | (leafShape[i]=="Needle")) {
+      } else if((leafShape[i]=="Linear") || (leafShape[i]=="Needle")) {
         if(leafSize[i]=="Small") {
           cohSAV[i] = 3620.0;
         } else if(leafSize[i] == "Medium") {
@@ -279,7 +279,7 @@ NumericVector heatContentWithImputation(IntegerVector SP, DataFrame SpParams) {
         cohHeatContent[i] = 20504.0;
       } else if(leafShape[i]=="Spines") {
         cohHeatContent[i] = 20433.0;
-      } else if((leafShape[i]=="Linear") | (leafShape[i]=="Needle")) {
+      } else if((leafShape[i]=="Linear") || (leafShape[i]=="Needle")) {
         if(leafSize[i]=="Small") {
           cohHeatContent[i] = 21888.0;
         } else if(leafSize[i] == "Medium") {
@@ -333,6 +333,15 @@ NumericVector leafWidthWithImputation(IntegerVector SP, DataFrame SpParams) {
     }
   }
   return(leafwidth);
+}
+NumericVector Ar2AlWithImputation(IntegerVector SP, DataFrame SpParams) {
+  NumericVector Ar2Al = speciesNumericParameter(SP, SpParams, "Ar2Al");
+  for(int c=0;c<Ar2Al.size();c++) {
+    if(NumericVector::is_na(Ar2Al[c])) {
+      Ar2Al[c] = 1.0;
+    }
+  }
+  return(Ar2Al);
 }
 NumericVector Al2AsWithImputation(IntegerVector SP, DataFrame SpParams) {
   CharacterVector leafShape = speciesCharacterParameter(SP, SpParams, "LeafShape");
@@ -467,6 +476,15 @@ NumericVector conduit2sapwoodWithImputation(IntegerVector SP, DataFrame SpParams
   }
   return(conduit2sapwood);
 }
+NumericVector maxFMCWithImputation(IntegerVector SP, DataFrame SpParams) {
+  NumericVector maxFMC = speciesNumericParameter(SP, SpParams, "maxFMC");
+  for(int c=0;c<maxFMC.size();c++) {
+    if(NumericVector::is_na(maxFMC[c])) {
+      maxFMC[c] = 120.0; //To be improved
+    }
+  }
+  return(maxFMC);
+}
 NumericVector stemPI0WithImputation(IntegerVector SP, DataFrame SpParams) {
   NumericVector WoodDensity = woodDensityWithImputation(SP, SpParams);
   NumericVector StemPI0 = speciesNumericParameter(SP, SpParams, "StemPI0");
@@ -568,15 +586,7 @@ NumericVector leafAFWithImputation(IntegerVector SP, DataFrame SpParams) {
   }
   return(leafAF);
 }
-NumericVector pRootDiscWithImputation(IntegerVector SP, DataFrame SpParams) {
-  NumericVector pRootDisc = speciesNumericParameter(SP, SpParams, "pRootDisc");
-  for(int c=0;c<pRootDisc.size();c++) {
-    if(NumericVector::is_na(pRootDisc[c])) {
-      pRootDisc[c] = 0.0;
-    }
-  }
-  return(pRootDisc);
-}
+
 NumericVector TmaxLAIWithImputation(IntegerVector SP, DataFrame SpParams) {
   NumericVector Tmax_LAI = speciesNumericParameter(SP, SpParams, "Tmax_LAI");
   for(int c=0;c<Tmax_LAI.size();c++) {
@@ -599,39 +609,53 @@ NumericVector WUEWithImputation(IntegerVector SP, DataFrame SpParams) {
   CharacterVector leafShape = speciesCharacterParameter(SP, SpParams, "LeafShape");
   CharacterVector leafSize = speciesCharacterParameter(SP, SpParams, "LeafSize");
   NumericVector WUE = speciesNumericParameter(SP, SpParams, "WUE");
-  //Access internal data frame "trait_family_means"
-  Environment pkg = Environment::namespace_env("medfate");
-  DataFrame TFM = Rcpp::as<Rcpp::DataFrame>(pkg["trait_family_means"]);
-  CharacterVector fams = TFM.attr("row.names");
-  NumericVector fam_WUE = TFM["WUE"];
-  CharacterVector family = speciesCharacterParameter(SP, SpParams, "Family");
   for(int c=0;c<WUE.size();c++) {
     if(NumericVector::is_na(WUE[c])) {
-      for(int i=0;i<fams.size();i++) {
-        if(fams[i]==family[c]) {
-          WUE[c] = fam_WUE[i];
-        }
-      }
-    }
-    if(NumericVector::is_na(WUE[c])) {
-      if(leafShape[c]=="Linear") {
-        WUE[c]= 3.707131;
-      } else if(leafShape[c]=="Needle") {
-        WUE[c]= 3.707131;
-      } else if(leafShape[c]=="Broad") {
-        if(leafSize[c]=="Small") {
-          WUE[c] = 4.289629;
-        } else if(leafSize[c]=="Medium") {
-          WUE[c] = 3.982086;
-        } else if(leafSize[c]=="Large") {
-          WUE[c]= 3.027647;
-        }
-      } else if(leafShape[c]=="Scale") { 
-        WUE[c] = 1.665034;
-      }
+      WUE[c] = 5.0; //default value
     }
   }
+  //Access internal data frame "trait_family_means"
+  // Environment pkg = Environment::namespace_env("medfate");
+  // DataFrame TFM = Rcpp::as<Rcpp::DataFrame>(pkg["trait_family_means"]);
+  // CharacterVector fams = TFM.attr("row.names");
+  // NumericVector fam_WUE = TFM["WUE"];
+  // CharacterVector family = speciesCharacterParameter(SP, SpParams, "Family");
+  // for(int c=0;c<WUE.size();c++) {
+  //   if(NumericVector::is_na(WUE[c])) {
+  //     for(int i=0;i<fams.size();i++) {
+  //       if(fams[i]==family[c]) {
+  //         WUE[c] = fam_WUE[i];
+  //       }
+  //     }
+  //   }
+  //   if(NumericVector::is_na(WUE[c])) {
+  //     if(leafShape[c]=="Linear") {
+  //       WUE[c]= 3.707131;
+  //     } else if(leafShape[c]=="Needle") {
+  //       WUE[c]= 3.707131;
+  //     } else if(leafShape[c]=="Broad") {
+  //       if(leafSize[c]=="Small") {
+  //         WUE[c] = 4.289629;
+  //       } else if(leafSize[c]=="Medium") {
+  //         WUE[c] = 3.982086;
+  //       } else if(leafSize[c]=="Large") {
+  //         WUE[c]= 3.027647;
+  //       }
+  //     } else if(leafShape[c]=="Scale") { 
+  //       WUE[c] = 1.665034;
+  //     }
+  //   }
+  // }
   return(WUE);
+}
+NumericVector WUEDecayWithImputation(IntegerVector SP, DataFrame SpParams) {
+  NumericVector WUE_decay = speciesNumericParameter(SP, SpParams, "WUE_decay");
+  for(int c=0;c<WUE_decay.size();c++) {
+    if(NumericVector::is_na(WUE_decay[c])) {
+      WUE_decay[c] = 0.2812; //default value
+    }
+  }
+  return(WUE_decay);
 }
 NumericVector psi50Imputation(NumericVector psi50, IntegerVector SP, DataFrame SpParams) {
   CharacterVector Group = speciesCharacterParameter(SP, SpParams, "Group");
@@ -654,9 +678,9 @@ NumericVector psi50Imputation(NumericVector psi50, IntegerVector SP, DataFrame S
     if(NumericVector::is_na(psi50[c])) {
       // From: Maherali H, Pockman W, Jackson R (2004) Adaptive variation in the vulnerability of woody plants to xylem cavitation. Ecology 85:2184–2199
       if(Group[c]=="Angiosperm") {
-        if((GrowthForm[c]=="Shrub") & (phenoType[c] != "winter-deciduous") & (phenoType[c] != "winter-semideciduous")) {
+        if((GrowthForm[c]=="Shrub") && (phenoType[c] != "winter-deciduous") && (phenoType[c] != "winter-semideciduous")) {
           psi50[c] = -5.09; //Angiosperm evergreen shrub
-        } else if((GrowthForm[c]!="Shrub") & ((phenoType[c] == "winter-deciduous") | (phenoType[c] == "winter-semideciduous"))) {
+        } else if((GrowthForm[c]!="Shrub") && ((phenoType[c] == "winter-deciduous") || (phenoType[c] == "winter-semideciduous"))) {
           psi50[c] = -2.34; //Angiosperm winter-deciduous tree
         } else { 
           psi50[c] = -1.51; //Angiosperm evergreen tree
@@ -680,9 +704,10 @@ NumericVector psiExtractWithImputation(IntegerVector SP, DataFrame SpParams) {
   NumericVector leafPI0 = leafPI0WithImputation(SP, SpParams);
   NumericVector leafEPS = leafEPSWithImputation(SP, SpParams);
   NumericVector Psi_Extract = speciesNumericParameter(SP, SpParams, "Psi_Extract");
+  double corr = pow(log(0.5)/log(0.05), 1.0/3.0); //Weibull's shape = 3.0
   for(int c=0;c<Psi_Extract.size();c++) {
     if(NumericVector::is_na(Psi_Extract[c])) {
-      Psi_Extract[c] = turgorLossPoint(leafPI0[c], leafEPS[c]);
+      Psi_Extract[c] = corr*turgorLossPoint(leafPI0[c], leafEPS[c]);
     }
   }
   return(Psi_Extract);
@@ -751,9 +776,9 @@ NumericVector KmaxStemXylemWithImputation(IntegerVector SP, DataFrame SpParams) 
     if(NumericVector::is_na(Kmax_stemxylem[c])) {
       // From: Maherali H, Pockman W, Jackson R (2004) Adaptive variation in the vulnerability of woody plants to xylem cavitation. Ecology 85:2184–2199
       if(Group[c]=="Angiosperm") {
-        if((GrowthForm[c]=="Shrub") & ((phenoType[c] == "winter-deciduous") | (phenoType[c] == "winter-semideciduous"))) {
+        if((GrowthForm[c]=="Shrub") && ((phenoType[c] == "winter-deciduous") || (phenoType[c] == "winter-semideciduous"))) {
           Kmax_stemxylem[c] = 1.55; //Angiosperm deciduous shrub
-        } else if(((GrowthForm[c]=="Tree") | (GrowthForm[c]=="Tree/Shrub")) & ((phenoType[c] == "winter-deciduous") | (phenoType[c] == "winter-semideciduous"))) {
+        } else if(((GrowthForm[c]=="Tree") || (GrowthForm[c]=="Tree/Shrub")) && ((phenoType[c] == "winter-deciduous") || (phenoType[c] == "winter-semideciduous"))) {
           Kmax_stemxylem[c] = 1.58; //Angiosperm winter-deciduous tree
         } else { 
           Kmax_stemxylem[c] = 2.43; //Angiosperm evergreen tree
@@ -790,35 +815,76 @@ NumericVector VCleafkmaxWithImputation(IntegerVector SP, DataFrame SpParams) {
   }
   return(VCleaf_kmax);
 }
-NumericVector NareaWithImputation(IntegerVector SP, DataFrame SpParams){
-  NumericVector Narea = speciesNumericParameter(SP, SpParams, "Narea");
+NumericVector NleafWithImputation(IntegerVector SP, DataFrame SpParams){
+  NumericVector Nleaf = speciesNumericParameter(SP, SpParams, "Nleaf");
   //Access internal data frame "trait_family_means"
   Environment pkg = Environment::namespace_env("medfate");
   DataFrame TFM = Rcpp::as<Rcpp::DataFrame>(pkg["trait_family_means"]);
   CharacterVector fams = TFM.attr("row.names");
-  NumericVector fam_Narea = TFM["Narea"];
+  NumericVector fam_Nleaf = TFM["Nleaf"];
   CharacterVector family = speciesCharacterParameter(SP, SpParams, "Family");
-  for(int c=0;c<Narea.size();c++) {
-    if(NumericVector::is_na(Narea[c])) {
+  for(int c=0;c<Nleaf.size();c++) {
+    if(NumericVector::is_na(Nleaf[c])) {
       for(int i=0;i<fams.size();i++) {
         if(fams[i]==family[c]) {
-          Narea[c] = fam_Narea[i];
+          Nleaf[c] = fam_Nleaf[i];
         }
       }
     }
-    if(NumericVector::is_na(Narea[c])) Narea[c] = 1.885577;
+    if(NumericVector::is_na(Nleaf[c])) Nleaf[c] = 20.088;
   }
-  return(Narea);
+  return(Nleaf);
 }
+NumericVector NsapwoodWithImputation(IntegerVector SP, DataFrame SpParams){
+  NumericVector Nsapwood = speciesNumericParameter(SP, SpParams, "Nsapwood");
+  //Access internal data frame "trait_family_means"
+  Environment pkg = Environment::namespace_env("medfate");
+  DataFrame TFM = Rcpp::as<Rcpp::DataFrame>(pkg["trait_family_means"]);
+  CharacterVector fams = TFM.attr("row.names");
+  NumericVector fam_Nsapwood = TFM["Nsapwood"];
+  CharacterVector family = speciesCharacterParameter(SP, SpParams, "Family");
+  for(int c=0;c<Nsapwood.size();c++) {
+    if(NumericVector::is_na(Nsapwood[c])) {
+      for(int i=0;i<fams.size();i++) {
+        if(fams[i]==family[c]) {
+          Nsapwood[c] = fam_Nsapwood[i];
+        }
+      }
+    }
+    if(NumericVector::is_na(Nsapwood[c])) Nsapwood[c] = 3.9791;
+  }
+  return(Nsapwood);
+}
+NumericVector NfinerootWithImputation(IntegerVector SP, DataFrame SpParams){
+  NumericVector Nfineroot = speciesNumericParameter(SP, SpParams, "Nfineroot");
+  //Access internal data frame "trait_family_means"
+  Environment pkg = Environment::namespace_env("medfate");
+  DataFrame TFM = Rcpp::as<Rcpp::DataFrame>(pkg["trait_family_means"]);
+  CharacterVector fams = TFM.attr("row.names");
+  NumericVector fam_Nfineroot = TFM["Nfineroot"];
+  CharacterVector family = speciesCharacterParameter(SP, SpParams, "Family");
+  for(int c=0;c<Nfineroot.size();c++) {
+    if(NumericVector::is_na(Nfineroot[c])) {
+      for(int i=0;i<fams.size();i++) {
+        if(fams[i]==family[c]) {
+          Nfineroot[c] = fam_Nfineroot[i];
+        }
+      }
+    }
+    if(NumericVector::is_na(Nfineroot[c])) Nfineroot[c] = 12.207;
+  }
+  return(Nfineroot);
+}
+
 NumericVector Vmax298WithImputation(IntegerVector SP, DataFrame SpParams) {
   NumericVector SLA = specificLeafAreaWithImputation(SP, SpParams);
-  NumericVector Narea = NareaWithImputation(SP, SpParams);
+  NumericVector Nleaf = NleafWithImputation(SP, SpParams);
   NumericVector Vmax298 = speciesNumericParameter(SP, SpParams, "Vmax298");
   for(int c=0;c<Vmax298.size();c++) {
     if(NumericVector::is_na(Vmax298[c]))  {
-      if(!NumericVector::is_na(SLA[c]) & !NumericVector::is_na(Narea[c]))  {
+      if(!NumericVector::is_na(SLA[c]) && !NumericVector::is_na(Nleaf[c]))  {
         //Walker AP, Beckerman AP, Gu L, et al (2014) The relationship of leaf photosynthetic traits - Vcmax and Jmax - to leaf nitrogen, leaf phosphorus, and specific leaf area: A meta-analysis and modeling study. Ecol Evol 4:3218–3235. doi: 10.1002/ece3.1173
-        double lnN = log(Narea[c]);
+        double lnN = log(Nleaf[c]/SLA[c]); // Narea (g · m-2) = Nmass/SLA = (mgN/gdry)*(1 gN/1000 mg N)*(1000 g dry/ 1 kg dry)* (kg dry / m2 )
         double lnSLA = log(SLA[c]/1000.0); //SLA in m2*g-1
         Vmax298[c] = exp(1.993 + 2.555*lnN - 0.372*lnSLA + 0.422*lnN*lnSLA);
       } else {
@@ -925,6 +991,48 @@ NumericVector VCrootCWithImputation(IntegerVector SP, DataFrame SpParams) {
   }
   return(VCroot_c);
 }
+NumericVector LeafRespirationRateWithImputation(IntegerVector SP, DataFrame SpParams) {
+  NumericVector RERleaf = speciesNumericParameter(SP, SpParams, "RERleaf");
+  NumericVector Nleaf = NleafWithImputation(SP, SpParams);
+  for(int c=0;c<RERleaf.size();c++) {
+    if(NumericVector::is_na(RERleaf[c])) {
+      //Reich, P. B., M. G. Tjoelker, K. S. Pregitzer, I. J. Wright, J. Oleksyn, and J. L. Machado. 2008. Scaling of respiration to nitrogen in leaves, stems and roots of higher land plants. Ecology Letters 11:793–801.
+      double Nleaf_mmol_g = Nleaf[c]/14.0;
+      double RER_nmolCO2_g_s = pow(10.0, 0.691 + 1.639*log10(Nleaf_mmol_g)); //nmol CO2·g-1·s-1
+      RERleaf[c] = (24.0*3600.0)*(RER_nmolCO2_g_s/6.0)*(1e-9)*180.156; // nmol CO2·g-1·s-1 to g gluc·g-1·d-1
+    }
+  }
+  return(RERleaf);
+}
+NumericVector SapwoodRespirationRateWithImputation(IntegerVector SP, DataFrame SpParams) {
+  NumericVector RERsapwood = speciesNumericParameter(SP, SpParams, "RERsapwood");
+  NumericVector Nsapwood = NsapwoodWithImputation(SP, SpParams);
+  for(int c=0;c<RERsapwood.size();c++) {
+    if(NumericVector::is_na(RERsapwood[c])) {
+      //Reich, P. B., M. G. Tjoelker, K. S. Pregitzer, I. J. Wright, J. Oleksyn, and J. L. Machado. 2008. Scaling of respiration to nitrogen in leaves, stems and roots of higher land plants. Ecology Letters 11:793–801.
+      // double Nsapwood_mmol_g = Nsapwood[c]/14.0;
+      // double RER_nmolCO2_g_s = pow(10.0, 1.024 + 1.344*log10(Nsapwood_mmol_g)); //nmol CO2·g-1·s-1
+      // RERsapwood[c] = 24.0*3600.0*(RER_nmolCO2_g_s/6.0)*(1e-9)*180.156; // nmol CO2·g-1·s-1 to g gluc·g-1·d-1
+      // ESTIMATES ARE TOO HIGH
+      RERsapwood[c] = 5.18e-05;
+    }
+  }
+  return(RERsapwood);
+}
+NumericVector FinerootRespirationRateWithImputation(IntegerVector SP, DataFrame SpParams) {
+  NumericVector RERfineroot = speciesNumericParameter(SP, SpParams, "RERfineroot");
+  NumericVector Nfineroot = NsapwoodWithImputation(SP, SpParams);
+  for(int c=0;c<RERfineroot.size();c++) {
+    if(NumericVector::is_na(RERfineroot[c])) {
+      //Reich, P. B., M. G. Tjoelker, K. S. Pregitzer, I. J. Wright, J. Oleksyn, and J. L. Machado. 2008. Scaling of respiration to nitrogen in leaves, stems and roots of higher land plants. Ecology Letters 11:793–801.
+      double Nfineroot_mmol_g = Nfineroot[c]/14.0;
+      double RER_nmolCO2_g_s = pow(10.0, 0.980 + 1.352*log10(Nfineroot_mmol_g)); //nmol CO2·g-1·s-1
+      RERfineroot[c] = 24.0*3600.0*(RER_nmolCO2_g_s/6.0)*(1e-9)*180.156; // nmol CO2·g-1·s-1 to g gluc·g-1·d-1
+    }
+  }
+  return(RERfineroot);
+}
+
 NumericVector WoodCWithImputation(IntegerVector SP, DataFrame SpParams) {
   NumericVector WoodC = speciesNumericParameter(SP, SpParams, "WoodC");
   //Access internal data frame "trait_family_means"
@@ -952,8 +1060,9 @@ NumericVector leafDurationWithImputation(IntegerVector SP, DataFrame SpParams) {
   NumericVector leafDuration = speciesNumericParameter(SP, SpParams, "LeafDuration");
   for(int c=0;c<leafDuration.size();c++) {
     if(NumericVector::is_na(leafDuration[c])) {
-      if((phenoType[c]=="winter-deciduous") | (phenoType[c]=="winter-semideciduous")) leafDuration[c] = 1.0; 
+      if((phenoType[c]=="winter-deciduous") || (phenoType[c]=="winter-semideciduous")) leafDuration[c] = 1.0; 
       else leafDuration[c] = 2.42; //Average value
+      // From Falster et al. (2018) 1/LeafDuration = b1*(LMA/LMA_0)^(-b2), with LMA_0 = 0.1978791, b1 = 0.4565655, b2 = 1.71
     }
   }
   return(leafDuration);
@@ -1171,6 +1280,7 @@ NumericVector speciesNumericParameterWithImputation(IntegerVector SP, DataFrame 
     else if(parName == "HeatContent") return(heatContentWithImputation(SP, SpParams));
     else if(parName == "pDead") return(proportionDeadWithImputation(SP,SpParams));
     else if(parName == "LeafWidth") return(leafWidthWithImputation(SP, SpParams));
+    else if(parName == "Ar2Al") return(Ar2AlWithImputation(SP, SpParams));
     else if(parName == "Al2As") return(Al2AsWithImputation(SP, SpParams));
     else if(parName == "WoodDensity") return(woodDensityWithImputation(SP, SpParams));
     else if(parName == "LeafDensity") return(leafDensityWithImputation(SP, SpParams));
@@ -1178,16 +1288,17 @@ NumericVector speciesNumericParameterWithImputation(IntegerVector SP, DataFrame 
     else if(parName == "SRL") return(specificRootLengthWithImputation(SP, SpParams));
     else if(parName == "RLD") return(rootLengthDensityWithImputation(SP, SpParams));
     else if(parName == "conduit2sapwood") return(conduit2sapwoodWithImputation(SP, SpParams));
+    else if(parName == "maxFMC") return(maxFMCWithImputation(SP, SpParams));
     else if(parName == "StemPI0") return(stemPI0WithImputation(SP, SpParams));
     else if(parName == "StemEPS") return(stemEPSWithImputation(SP, SpParams));
     else if(parName == "StemAF") return(stemAFWithImputation(SP, SpParams));
     else if(parName == "LeafPI0") return(leafPI0WithImputation(SP, SpParams));
     else if(parName == "LeafEPS") return(leafEPSWithImputation(SP, SpParams));
     else if(parName == "LeafAF") return(leafAFWithImputation(SP, SpParams));
-    else if(parName == "pRootDisc") return(pRootDiscWithImputation(SP, SpParams));
     else if(parName == "Tmax_LAI") return(TmaxLAIWithImputation(SP, SpParams));
     else if(parName == "Tmax_LAIsq") return(TmaxLAIsqWithImputation(SP, SpParams));
     else if(parName == "WUE") return(WUEWithImputation(SP, SpParams));
+    else if(parName == "WUE_decay") return(WUEDecayWithImputation(SP, SpParams));
     else if(parName == "Psi_Critic") return(psiCriticWithImputation(SP, SpParams));
     else if(parName == "Psi_Extract") return(psiExtractWithImputation(SP, SpParams));
     else if(parName == "Kmax_stemxylem") return(KmaxStemXylemWithImputation(SP, SpParams));
@@ -1195,7 +1306,12 @@ NumericVector speciesNumericParameterWithImputation(IntegerVector SP, DataFrame 
     else if(parName == "VCleaf_kmax") return(VCleafkmaxWithImputation(SP, SpParams));
     else if(parName == "Gswmax") return(GswmaxWithImputation(SP, SpParams));
     else if(parName == "Gswmin") return(GswminWithImputation(SP, SpParams));
-    else if(parName == "Narea") return(NareaWithImputation(SP, SpParams));
+    else if(parName == "Nleaf") return(NleafWithImputation(SP, SpParams));
+    else if(parName == "Nsapwood") return(NsapwoodWithImputation(SP, SpParams));
+    else if(parName == "Nfineroot") return(NfinerootWithImputation(SP, SpParams));
+    else if(parName == "RERleaf") return(LeafRespirationRateWithImputation(SP, SpParams));
+    else if(parName == "RERsapwood") return(SapwoodRespirationRateWithImputation(SP, SpParams));
+    else if(parName == "RERfineroot") return(FinerootRespirationRateWithImputation(SP, SpParams));
     else if(parName == "Vmax298") return(Vmax298WithImputation(SP, SpParams));
     else if(parName == "Jmax298") return(Jmax298WithImputation(SP, SpParams));
     else if(parName == "VCstem_c") return(VCstemCWithImputation(SP, SpParams));
@@ -1214,13 +1330,13 @@ NumericVector speciesNumericParameterWithImputation(IntegerVector SP, DataFrame 
     else if(parName == "Tbsen") return(TbsenWithImputation(SP, SpParams));
     else if(parName == "xsen") return(xsenWithImputation(SP, SpParams));
     else if(parName == "ysen") return(ysenWithImputation(SP, SpParams));
-    else if((parName == "a_fbt") | (parName == "b_fbt")| (parName == "c_fbt")| (parName == "d_fbt")) return(treeAllometricCoefficientWithImputation(SP, SpParams, parName));
-    else if((parName == "a_cw") | (parName == "b_cw")) return(treeAllometricCoefficientWithImputation(SP, SpParams, parName));
-    else if((parName == "a_cr") | (parName == "b_1cr")| (parName == "b_2cr")| (parName == "b_3cr")) return(treeAllometricCoefficientWithImputation(SP, SpParams, parName));
-    else if((parName == "c_1cr")| (parName == "c_2cr")) return(treeAllometricCoefficientWithImputation(SP, SpParams, parName));
-    else if((parName == "a_ash")| (parName == "b_ash")) return(shrubAllometricCoefficientWithImputation(SP, SpParams, parName));
-    else if((parName == "a_bsh")| (parName == "b_bsh")) return(shrubAllometricCoefficientWithImputation(SP, SpParams, parName));
-    else if((parName == "a_btsh")| (parName == "b_btsh")| (parName == "cr")) return(shrubAllometricCoefficientWithImputation(SP, SpParams, parName));
+    else if((parName == "a_fbt") || (parName == "b_fbt") || (parName == "c_fbt") || (parName == "d_fbt")) return(treeAllometricCoefficientWithImputation(SP, SpParams, parName));
+    else if((parName == "a_cw") || (parName == "b_cw")) return(treeAllometricCoefficientWithImputation(SP, SpParams, parName));
+    else if((parName == "a_cr") || (parName == "b_1cr") || (parName == "b_2cr") || (parName == "b_3cr")) return(treeAllometricCoefficientWithImputation(SP, SpParams, parName));
+    else if((parName == "c_1cr") || (parName == "c_2cr")) return(treeAllometricCoefficientWithImputation(SP, SpParams, parName));
+    else if((parName == "a_ash") || (parName == "b_ash")) return(shrubAllometricCoefficientWithImputation(SP, SpParams, parName));
+    else if((parName == "a_bsh") || (parName == "b_bsh")) return(shrubAllometricCoefficientWithImputation(SP, SpParams, parName));
+    else if((parName == "a_btsh") || (parName == "b_btsh") || (parName == "cr")) return(shrubAllometricCoefficientWithImputation(SP, SpParams, parName));
   }
   return(speciesNumericParameter(SP, SpParams,parName));
 }

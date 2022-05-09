@@ -55,15 +55,18 @@ double averagePsi(NumericVector psi, NumericVector v, double c, double d) {
   double psires =  d*pow(log(sum(K*v))/(-0.6931472),1.0/c);
   return(psires);
 }
-
+double averagePsiPool(NumericMatrix Psi, NumericMatrix RHOPcohV, double c, double d) {
+  int nlayers = Psi.ncol();
+  int numCohorts = Psi.nrow();
+  NumericMatrix K(numCohorts, nlayers);
+  for(int j =0;j<numCohorts;j++) for(int l=0;l<nlayers;l++) K(j,l)= exp(-0.6931472*pow(std::abs(Psi(j,l)/d),c));
+  double psires =  d*pow(log(sum(K*RHOPcohV))/(-0.6931472),1.0/c);
+  return(psires);
+}
 
 
 // [[Rcpp::export("hydraulics_xylemConductance")]]
 double xylemConductance(double psi, double kxylemmax, double c, double d) {
-  // if(psi>0.0) {
-  //   Rcout<< psi<<"\n";
-  //   stop("psi has to be negative"); 
-  // } else 
   if(psi>=0.0) return(kxylemmax);
   return(kxylemmax*exp(-pow(psi/d,c)));
 }
@@ -145,7 +148,7 @@ double Egammainv(double Eg, double kxylemmax, double c, double d, double psiCav 
 double EXylem(double psiPlant, double psiUpstream, 
               double kxylemmax, double c, double d, 
               bool allowNegativeFlux = true, double psiCav = 0.0) {
-  if((psiPlant > psiUpstream) & !allowNegativeFlux) ::Rf_error("Downstream potential larger (less negative) than upstream potential");
+  if((psiPlant > psiUpstream) && !allowNegativeFlux) throw std::range_error("Downstream potential larger (less negative) than upstream potential");
   return(Egamma(psiPlant, kxylemmax, c, d, psiCav)-Egamma(psiUpstream, kxylemmax, c,d, psiCav));
 }
 
@@ -196,7 +199,7 @@ double EVanGenuchten(double psiRhizo, double psiSoil, double krhizomax,
 }
 // Numerical integral
 // double EVanGenuchten(double psiRhizo, double psiSoil, double krhizomax, double n, double alpha, double psiStep = -0.001, double psiTol = 0.0001, bool allowNegativeFlux = true) {
-//   if((psiRhizo>psiSoil) & !allowNegativeFlux) ::Rf_error("Downstream potential larger (less negative) than upstream potential");
+//   if((psiRhizo>psiSoil) && !allowNegativeFlux) ::Rf_error("Downstream potential larger (less negative) than upstream potential");
 //   bool reverse = false;
 //   if(psiRhizo>psiSoil) reverse = true;
 //   if(reverse) {
@@ -294,8 +297,8 @@ double ECapacitance(double psi, double psiPrev, double PLCprev,
 //   // Rcout<<Cef<<" "<<Egd<<"\n";
 //   // for(int i =0;i<10000;i++) {
 //   while(std::abs(Ect-Egd+Cef)>ETol) {
-//      if(((Ect-Egd+Cef)<0.0) & (psiStep<0.0)) psiStep = -0.5*psiStep;
-//      else if(((Ect-Egd+Cef)>0.0) & (psiStep>0.0)) psiStep = -0.5*psiStep;
+//      if(((Ect-Egd+Cef)<0.0) && (psiStep<0.0)) psiStep = -0.5*psiStep;
+//      else if(((Ect-Egd+Cef)>0.0) && (psiStep>0.0)) psiStep = -0.5*psiStep;
 //      
 //      // Rcout<<psi<<" "<<Cef<<" "<<Egd<<" "<<Ect-Egd+Cef<<"\n";
 //      psi = psi + psiStep;
@@ -348,7 +351,7 @@ double ludcmp(NumericMatrix a, int n, IntegerVector indx) {
     for(i=0;i<n;i++) {
       big = 0.0;
       for(j=0;j<n;j++) if((temp=std::abs(a(i,j)))>big) big=temp;
-      if(big==0.0) ::Rf_error("Singular matrix in routine ludcmp");
+      if(big==0.0) throw std::range_error("Singular matrix in routine ludcmp");
       vv[i] = 1.0/big; //Save the scaling
     }
     //Loop over columns of Crout's method
@@ -1100,7 +1103,7 @@ List supplyFunctionTwoElements(double Emax, double psiSoil, double krhizomax, do
     psiStep1 = -0.01;
     psiRoot = supplyPsiRoot[i-1];
     vgPrev = vanGenuchtenConductance(psiRoot, krhizomax, n, alpha);
-    while((psiStep1<psiPrec) & (psiRoot>psiMax))  {
+    while((psiStep1<psiPrec) && (psiRoot>psiMax))  {
       vg = vanGenuchtenConductance(psiRoot+psiStep1, krhizomax, n, alpha);
       incr = ((vg+vgPrev)/2.0)*std::abs(psiStep1);
       if((Eg1+incr)>supplyE[i]) {
@@ -1118,7 +1121,7 @@ List supplyFunctionTwoElements(double Emax, double psiSoil, double krhizomax, do
     Eg2 = 0.0;
     psiPlant = psiRoot;
     wPrev = xylemConductance(std::min(psiCav,psiPlant), kxylemmax, c, d);
-    while((psiStep2<psiPrec) & (psiPlant>psiMax))  {
+    while((psiStep2<psiPrec) && (psiPlant>psiMax))  {
       w = xylemConductance(std::min(psiCav,psiPlant+psiStep2), kxylemmax, c, d);
       incr = ((w+wPrev)/2.0)*std::abs(psiStep2);
       if((Eg2+incr)>supplyE[i]) {
@@ -1197,7 +1200,7 @@ List supplyFunctionThreeElements(double Emax, double psiSoil, double krhizomax, 
     // Root
     psiRoot = supplyPsiRoot[i-1];
     vgPrev = vanGenuchtenConductance(psiRoot, krhizomax, n, alpha);
-    while((psiStep1<psiPrec) & (psiRoot>psiMax))  {
+    while((psiStep1<psiPrec) && (psiRoot>psiMax))  {
       vg = vanGenuchtenConductance(psiRoot+psiStep1, krhizomax, n, alpha);
       incr = ((vg+vgPrev)/2.0)*std::abs(psiStep1);
       if((Eg1+incr)>supplyE[i]) {
@@ -1216,7 +1219,7 @@ List supplyFunctionThreeElements(double Emax, double psiSoil, double krhizomax, 
     Eg2 = 0.0;
     psiStem = psiRoot;
     wPrevStem = xylemConductance(std::min(psiCav,psiStem), kxylemmax, stemc, stemd);
-    while((psiStep2<psiPrec) & (psiStem>psiMax))  {
+    while((psiStep2<psiPrec) && (psiStem>psiMax))  {
       w = xylemConductance(std::min(psiCav,psiStem+psiStep2), kxylemmax, stemc, stemd);
       incr = ((w+wPrevStem)/2.0)*std::abs(psiStep2);
       if((Eg2+incr)>supplyE[i]) {
@@ -1235,7 +1238,7 @@ List supplyFunctionThreeElements(double Emax, double psiSoil, double krhizomax, 
     Eg3 = 0.0;
     psiLeaf = psiStem;
     wPrevLeaf = xylemConductance(psiLeaf, kleafmax,  leafc, leafd);
-    while((psiStep3<psiPrec) & (psiLeaf>psiMax))  {
+    while((psiStep3<psiPrec) && (psiLeaf>psiMax))  {
       w = xylemConductance(psiLeaf+psiStep3, kleafmax,  leafc, leafd);
       incr = ((w+wPrevLeaf)/2.0)*std::abs(psiStep3);
       if((Eg3+incr)>supplyE[i]) {
@@ -1337,7 +1340,7 @@ List supplyFunctionBelowground(NumericVector psiSoil,
       }
       if(supplyE[i]>0.1) dE = std::min(0.1,supplydEdp[i-1]*0.05);
       nsteps++;
-      if((supplydEdp[i-1]<(pCrit*maxdEdp)) & (i>5)) break;
+      if((supplydEdp[i-1]<(pCrit*maxdEdp)) && (i>5)) break;
     } else {
       break;
     }
@@ -2159,7 +2162,7 @@ NumericVector regulatedPsiTwoElements(double Emax, double psiSoil, double krhizo
   //Find transpiration corresponding to regulated potential
   double ERegulated = 0.0, dEdPRegulated = 0.0;
   for(int i=1;i<maxNsteps;i++) {
-    if((supplyPsi[i-1] >= psiRegulated) & (supplyPsi[i]<psiRegulated)) {
+    if((supplyPsi[i-1] >= psiRegulated) && (supplyPsi[i]<psiRegulated)) {
       ERegulated = Efitted[i]*std::abs((supplyPsi[i-1]-psiRegulated)/(supplyPsi[i-1]-supplyPsi[i])) + Efitted[i-1]*std::abs((supplyPsi[i]-psiRegulated)/(supplyPsi[i-1]-supplyPsi[i]));
       ERegulated = std::min(ERegulated, Emax);
       psiRegulated = supplyPsi[i]*std::abs((supplyPsi[i-1]-psiRegulated)/(supplyPsi[i-1]-supplyPsi[i])) + supplyPsi[i-1]*std::abs((supplyPsi[i]-psiRegulated)/(supplyPsi[i-1]-supplyPsi[i]));
@@ -2418,27 +2421,4 @@ NumericVector rootxylemConductanceProportions(NumericVector L, NumericVector V) 
 // }
 
 
-/**
- * Calculate water capacity of stem per leaf area (in mm = l·m-2)
- * 
- * Al2As - Leaf area to sapwood area ratio (in m2·m-2)
- * height - plant height (in cm)
- * wd - wood density (in g·cm-3)
- * http://www.fao.org/forestry/17109/en/
- */
-// [[Rcpp::export("hydraulics_stemWaterCapacity")]]
-double stemWaterCapacity(double Al2As, double height, double wd) {
-  return(1000*(height/(Al2As*100.0))*(1.0- (wd/1.54)));
-}
-
-/**
- * Calculate  capacity of leaves per leaf area (in mm = l·m-2)
- * 
- * SLA - Specific leaf area (in m2/kg)
- * ld - leaf density (in g/cm3 = 1000 kg/m3)
- */
-// [[Rcpp::export("hydraulics_leafWaterCapacity")]]
-double leafWaterCapacity(double SLA, double ld) {
-  return(1000.0/(1000.0*ld*SLA))*(1.0- (ld/1.54));
-}
 

@@ -10,6 +10,7 @@ NumericVector K2Psi(NumericVector K, NumericVector Psi_extract, double ws= 3.0);
 double Psi2K(double psi, double Psi_extract, double ws= 3.0);
 NumericVector Psi2K(double psi, NumericVector Psi_extract, double ws= 3.0);
 double averagePsi(NumericVector psi, NumericVector v, double c, double d);
+double averagePsiPool(NumericMatrix Psi, NumericMatrix RHOPcoh, double c, double d);
 
 double correctConductanceForViscosity(double kxylem, double temp);
 
@@ -25,8 +26,6 @@ NumericVector rootxylemConductanceProportions(NumericVector V, NumericVector L);
 
 NumericVector psi2Weibull(double psi50, double psi88 = NA_REAL, double psi12 = NA_REAL);
 
-double stemWaterCapacity(double Al2As, double height, double wd);
-double leafWaterCapacity(double SLA, double ld);
 
 NumericVector regulatedPsiTwoElements(double Emax, double psiSoil, double krhizomax, double kxylemmax, double n, double alpha, double c, double d, double dE = 0.1, double psiMax = -10.0);
 

@@ -51,7 +51,9 @@ pwb(x, meteo, W, latitude, elevation = NA, slope = NA, aspect = NA,
   \itemize{
      \item{\code{"latitude"}: Latitude (in degrees) given as input.} 
      \item{\code{"topography"}: Vector with elevation, slope and aspect given as input.} 
-     \item{\code{"spwbInput"}: An (unmodified) copy of the object \code{x} of class \code{\link{spwbInput}} given as input  (note that \code{x} is modified by the simulation function).}
+     \item{\code{"weather"}: A copy of the input weather data frame.}
+     \item{\code{"spwbInput"}: An copy of the object \code{x} of class \code{\link{spwbInput}} given as input.}
+     \item{\code{"spwbOutput"}: An copy of the final state of the object \code{x} of class \code{\link{spwbInput}}.}
      \item{\code{"WaterBalance"}: A data frame where different variables (in columns) are given for each simulated day (in rows):}
        \itemize{
           \item{\code{"PET"}: Potential evapotranspiration (in mm).}
@@ -89,8 +91,8 @@ pwb(x, meteo, W, latitude, elevation = NA, slope = NA, aspect = NA,
           \item{\code{"LAIexpanded"}: LAI of the stand of leaves actually unfolded (in m2/m2).}
           \item{\code{"LAIdead"}: LAI of the stand corresponding to dead leaves (in m2/m2).}
           \item{\code{"Cm"}: Water retention capacity of the canopy (in mm) (accounting for leaf phenology).}
-          \item{\code{"LgroundPAR"}: The proportion of PAR that reaches the ground (accounting for leaf phenology).}
-          \item{\code{"LgroundSWR"}: The proportion of SWR that reaches the ground (accounting for leaf phenology).}
+          \item{\code{"LgroundPAR"}: The percentage of PAR that reaches the ground (accounting for leaf phenology).}
+          \item{\code{"LgroundSWR"}: The percentage of SWR that reaches the ground (accounting for leaf phenology).}
       }
       \item{\code{"Plants"}: A list of daily results for plant cohorts (see below).}
       \item{\code{"subdaily"}: A list of objects of class \code{\link{spwb_day}}, one per day simulated (only if required in \code{control} parameters, see \code{\link{defaultControl}}).}
@@ -99,10 +101,17 @@ pwb(x, meteo, W, latitude, elevation = NA, slope = NA, aspect = NA,
  When \code{transpirationMode = "Granier"}, element \code{"Plants"} is a list with the following subelements:
  \itemize{
      \item{\code{"LAI"}: A data frame with the daily leaf area index for each plant cohort.}
+     \item{\code{"LAIlive"}: A data frame with the daily leaf area index for each plant cohort, assuming all leaves are unfolded (in m2/m2).}
+     \item{\code{"FPAR"}: A data frame with the fraction of PAR at the canopy level of each plant cohort. }
      \item{\code{"AbsorbedSWRFraction"}: A data frame with the fraction of SWR absorbed by each plant cohort. }
      \item{\code{"Transpiration"}: A data frame with the amount of daily transpiration (in mm) for each plant cohort.}
      \item{\code{"GrossPhotosynthesis"}: A data frame with the amount of daily gross photosynthesis (in g C·m-2) for each plant cohort. }
      \item{\code{"PlantPsi"}: A data frame with the average daily water potential of each plant (in MPa).}
+     \item{\code{"StemPLC"}: A data frame with the average daily proportion of stem conductance loss of each plant ([0-1]).}
+     \item{\code{"PlantWaterBalance"}: A data frame with the daily balance between transpiration and soil water extraction for each plant cohort. }
+     \item{\code{"LeafRWC"}: A data frame with the average daily leaf relative water content of each plant (in percent).}
+     \item{\code{"StemRWC"}: A data frame with the average daily stem relative water content of each plant (in percent). }
+     \item{\code{"LFMC"}: A data frame with the daily live fuel moisture content (in percent of dry weight).}
      \item{\code{"PlantStress"}: A data frame with the amount of daily stress [0-1] suffered by each plant cohort (relative whole-plant conductance).}
 }
 If \code{transpirationMode="Sperry"}, element \code{"Plants"} is a list with the following subelements:
@@ -125,8 +134,7 @@ If \code{transpirationMode="Sperry"}, element \code{"Plants"} is a list with the
    \item{\code{"LeafPsiMax"}: A data frame with the maximum (predawn) daily (average) leaf water potential of each plant (in MPa).}
    \item{\code{"LeafRWC"}: A data frame with the average daily leaf relative water content of each plant (in percent).}
    \item{\code{"StemRWC"}: A data frame with the average daily stem relative water content of each plant (in percent). }
-   \item{\code{"LeafSympRWC"}: A data frame with the average daily leaf symplasm relative water content of each plant (in percent).}
-   \item{\code{"StemSympRWC"}: A data frame with the average daily stem symplasm relative water content of each plant (in percent). }
+   \item{\code{"LFMC"}: A data frame with the daily live fuel moisture content (in percent of dry weight).}
    \item{\code{"StemPsi"}: A data frame with the minimum daily stem water potential of each plant (in MPa). }
    \item{\code{"StemPLC"}: A data frame with the average daily proportion of stem conductance loss of each plant ([0-1]).}
  \item{\code{"RootPsi"}: A data frame with the minimum daily root water potential of each plant (in MPa). }
@@ -141,9 +149,6 @@ De \enc{Cáceres}{Caceres} M, Mencuccini M, Martin-StPaul N, Limousin JM, Coll L
 }
 \author{
 Miquel De \enc{Cáceres}{Caceres} Ainsa, CREAF
-}
-\note{
-State variables stored in objects \code{x} are modified during the simulation, unless control parameter \code{modifyInput = FALSE}.  
 }
 \seealso{
 \code{\link{spwbInput}}, \code{\link{spwb_day}}, \code{\link{plot.spwb}},  
@@ -160,13 +165,13 @@ data(exampleforestMED)
 data(SpParamsMED)
 
 #Initialize soil with default soil params (4 layers)
-examplesoil1 = soil(defaultSoilParams(4))
+examplesoil = soil(defaultSoilParams(4))
 
 #Initialize control parameters
 control = defaultControl("Granier")
 
 #Initialize input
-x1 = forest2spwbInput(exampleforestMED,examplesoil1, SpParamsMED, control)
+x1 = forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
 
 #Call simulation function
 S1<-spwb(x1, examplemeteo, latitude = 41.82592, elevation = 100)
@@ -179,13 +184,11 @@ summary(S1, freq="months",FUN=mean, output="Soil")
 
 
 \dontrun{
-examplesoil2 = soil(defaultSoilParams(4))
-
 #Switch to 'Sperry' transpiration mode
 control = defaultControl("Sperry")
 
 #Initialize input
-x2 = forest2spwbInput(exampleforestMED,examplesoil2, SpParamsMED, control)
+x2 = forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
 
 #Call simulation function (11 days)
 d = 100:110

@@ -9,8 +9,6 @@
 \alias{hydraulics_referenceConductivityHeightFactor}
 \alias{hydraulics_taperFactorSavage}
 \alias{hydraulics_terminalConduitRadius}
-\alias{hydraulics_stemWaterCapacity}
-\alias{hydraulics_leafWaterCapacity}
 \title{
 Scaling from conductivity to conductance
 }
@@ -40,8 +38,6 @@ hydraulics_rootxylemConductanceProportions(L, V)
 hydraulics_referenceConductivityHeightFactor(refheight, height)
 hydraulics_terminalConduitRadius(height)
 hydraulics_taperFactorSavage(height)
-hydraulics_stemWaterCapacity(Al2As, height, wd)
-hydraulics_leafWaterCapacity(SLA, ld)
 }
 
 \arguments{
@@ -68,9 +64,6 @@ hydraulics_leafWaterCapacity(SLA, ld)
   \item{height}{Plant height (in cm).}
   \item{refheight}{Reference plant height of measurement of xylem conductivity (in cm).}
   \item{taper}{A boolean flag to indicate correction by taper of xylem conduits (Christoffersen et al. 2017).}
-  \item{SLA}{Specific leaf area (mm2·mg-1).}
-  \item{wd}{Wood density (g·cm-3).}
-  \item{ld}{Leaf tissue density (g·cm-3).}
 }
 \details{
 Details of the hydraulic model are given in a vignette.
@@ -89,7 +82,7 @@ Christoffersen, B. O., M. Gloor, S. Fauset, N. M. Fyllas, D. R. Galbraith, T. R.
 
 Savage, V. M., L. P. Bentley, B. J. Enquist, J. S. Sperry, D. D. Smith, P. B. Reich, and E. I. von Allmen. 2010. Hydraulic trade-offs and space filling enable better predictions of vascular structure and function in plants. Proceedings of the National Academy of Sciences of the United States of America 107:22722–7.
 
-Olson, M.E., Anfodillo, T., Rosell, J.A., Petit, G., Crivellaro, A., Isnard, S., León-Gómez, C., Alvarado-Cárdenas, L.O., & Castorena, M. 2014. Universal hydraulics of the flowering plants: Vessel diameter scales with stem length across angiosperm lineages, habits and climates. Ecology Letters 17: 988–997.
+Olson, M.E., Anfodillo, T., Rosell, J.A., Petit, G., Crivellaro, A., Isnard, S., \enc{León-Gómez}{Leon-Gomez}, C., \enc{Alvarado-Cárdenas}{Alvarado-Cardenas}, L.O., and Castorena, M. 2014. Universal hydraulics of the flowering plants: Vessel diameter scales with stem length across angiosperm lineages, habits and climates. Ecology Letters 17: 988–997.
 }
 \author{
 Miquel De \enc{Cáceres}{Caceres} Ainsa, CREAF

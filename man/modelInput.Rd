@@ -24,7 +24,7 @@ spwbInput(above,  Z50, Z95, soil, SpParams, control)
 }
 \arguments{
   \item{x}{An object of class \code{\link{forest}}.}
-  \item{SpParams}{A data frame with species parameters (see \code{\link{SpParamsMED}} and \code{\link{SpParamsMED}}).}
+  \item{SpParams}{A data frame with species parameters (see \code{\link{SpParamsDefinition}} and \code{\link{SpParamsMED}}).}
   \item{gdd}{Growth degree days to account for leaf phenology effects (in Celsius). This should be left \code{NA} in most applications.}
   \item{mode}{Calculation mode, either "MED" or "US".}
   \item{soil}{An object of class \code{\link{soil}}.}
@@ -79,11 +79,12 @@ Functions \code{forest2spwbInput()} and \code{spwbInput()} return a list of clas
        \item{\code{Tbsen}: Base temperature for the calculation of degree days to leaf senescence.}
      }
   }
-  \item{\code{paramsAnatomy}: A data frame with plant anatomy parameters for each cohort (only if \code{control$transpirationMode = "Sperry"}):
+  \item{\code{paramsAnatomy}: A data frame with plant anatomy parameters for each cohort:
      \itemize{
        \item{\code{Hmax}: Maximum plant height (cm).}
        \item{\code{Hmed}: Median plant height (cm).}
        \item{\code{Al2As}: Leaf area to sapwood area ratio (in m2·m-2).}
+       \item{\code{Ar2Al}: Fine root area to leaf area ratio (in m2·m-2).}
        \item{\code{SLA}: Specific leaf area (mm2/mg = m2/kg).}
        \item{\code{LeafWidth}: Leaf width (in cm).}
        \item{\code{LeafDensity}: Density of leaf tissue (dry weight over volume).}
@@ -107,15 +108,17 @@ Functions \code{forest2spwbInput()} and \code{spwbInput()} return a list of clas
   }
   \item{\code{paramsTranspiration}: A data frame with parameters for transpiration and photosynthesis. If \code{control$transpirationMode = "Granier"}, columns are:
     \itemize{
+       \item{\code{Gswmin}: Minimum stomatal conductance to water vapor (in mol H2O·m-2·s-1).}
        \item{\code{Tmax_LAI}: Coefficient relating LAI with the ratio of maximum transpiration over potential evapotranspiration.}
        \item{\code{Tmax_LAIsq}: Coefficient relating squared LAI with the ratio of maximum transpiration over potential evapotranspiration.}
        \item{\code{Psi_Extract}: Water potential corresponding to 50\% relative conductance (in MPa).}
        \item{\code{Psi_Critic}: Water potential corresponding to 50\% of stem cavitation (in MPa).}
-       \item{\code{WUE}: Water use efficiency for carbon assimilation (g C/mm water).} 
-       \item{\code{pRootDisc}: Proportion of whole-plant conductance leading to disconnection from soil.}
+       \item{\code{WUE}: Water use efficiency for carbon assimilation (g C/mm water).}
+       \item{\code{WUE_decay}: Exponential decay coeffient of WUE with PAR.}
     }
     If \code{control$transpirationMode = "Sperry"} columns are:
     \itemize{
+       \item{\code{Gswmin}: Minimum stomatal conductance to water vapor (in mol H2O·m-2·s-1).}
        \item{\code{Gswmax}: Maximum stomatal conductance to water vapor (in mol H2O·m-2·s-1).}
        \item{\code{Vmax298}: Maximum Rubisco carboxilation rate at 25ºC (in micromol CO2·s-1·m-2).}
        \item{\code{Jmax298}: Maximum rate of electron transport at 25ºC (in micromol photons·s-1·m-2).}
@@ -154,10 +157,22 @@ Functions \code{forest2growthInput} and \code{growthInput} return a list of clas
 }
 \item{\code{paramsGrowth}: A data frame with growth parameters for each cohort:
      \itemize{
-    \item{\code{WoodC}: Wood carbon content per dry weight (g C /g dry).}
-    \item{\code{RGRsapwoodmax}: Maximum relative growth rate (in basal area or sapwood area) (in cm2·cm-2).}
+    \item{\code{RERleaf}: Maintenance respiration rates (at 20ºC) for leaves (in g gluc·g dry-1·day-1).}
+    \item{\code{RERsapwood}: Maintenance respiration rates (at 20ºC) for sapwood (in g gluc·g dry-1·day-1).}
+    \item{\code{RERfineroot}: Maintenance respiration rates (at 20ºC) for fine roots (in g gluc·g dry-1·day-1).}
+    \item{\code{CCleaf}: Leaf construction costs (in g gluc·g dry-1).}
+    \item{\code{CCsapwood}: Sapwood construction costs (in g gluc·g dry-1).}
+    \item{\code{CCfineroot}: Fine root construction costs (in g gluc·g dry-1).}
+    \item{\code{RGRleafmax}: Maximum leaf relative growth rate (in m2·cm-2·day-1).}
+    \item{\code{RGRsapwoodmax}: Maximum sapwood relative growth rate (in cm2·cm-2·day-1).}
+    \item{\code{RGRfinerootmax}: Maximum fine root relative growth rate (in g dry·g dry-1·day-1).}
+    \item{\code{SRsapwood}: Sapwood daily senescence rate (in day-1).}
+    \item{\code{SRfineroot}: Fine root daily senescence rate (in day-1).}
+    \item{\code{RSSG}: Minimum relative starch for sapwood growth (proportion).}
     \item{\code{fHDmin}: Minimum value of the height-to-diameter ratio (dimensionless).}
     \item{\code{fHDmax}: Maximum value of the height-to-diameter ratio (dimensionless).}
+    \item{\code{WoodC}: Wood carbon content per dry weight (g C /g dry).}
+    \item{\code{MortalityBaselineRate}: Deterministic proportion or probability specifying the baseline reduction of cohort's density occurring in a year.}
      }
 }
 \item{\code{paramsAllometry}: A data frame with allometric parameters for each cohort:

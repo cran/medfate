@@ -69,6 +69,10 @@ carbon_sapwoodStarchCapacity <- function(SA, H, L, V, woodDensity, conduit2sapwo
     .Call(`_medfate_sapwoodStarchCapacity`, SA, H, L, V, woodDensity, conduit2sapwood)
 }
 
+carbon_carbonCompartments <- function(x, biomassUnits = "g_m2") {
+    .Call(`_medfate_carbonCompartments`, x, biomassUnits)
+}
+
 .criticalFirelineIntensity <- function(CBH, M) {
     .Call(`_medfate_criticalFirelineIntensity`, CBH, M)
 }
@@ -109,8 +113,12 @@ plant_largerTreeBasalArea <- function(x) {
     .Call(`_medfate_cohortLargerTreeBasalArea`, x)
 }
 
-stand_basalArea <- function(x) {
-    .Call(`_medfate_standBasalArea`, x)
+stand_basalArea <- function(x, minDBH = 7.5) {
+    .Call(`_medfate_standBasalArea`, x, minDBH)
+}
+
+plant_individualArea <- function(x, SpParams, mode = "MED") {
+    .Call(`_medfate_individualArea`, x, SpParams, mode)
 }
 
 plant_density <- function(x, SpParams, mode = "MED") {
@@ -157,12 +165,12 @@ stand_foliarBiomass <- function(x, SpParams, gdd = NA_real_, mode = "MED") {
     .Call(`_medfate_shrubCover`, x, excludeMinHeight)
 }
 
-plant_cover <- function(x) {
-    .Call(`_medfate_cohortCover`, x)
+plant_cover <- function(x, SpParams, mode = "MED") {
+    .Call(`_medfate_cohortCover`, x, SpParams, mode)
 }
 
-species_cover <- function(x, SpParams) {
-    .Call(`_medfate_speciesCover`, x, SpParams)
+species_cover <- function(x, SpParams, mode = "MED") {
+    .Call(`_medfate_speciesCover`, x, SpParams, mode)
 }
 
 .shrubPhytovolume <- function(SP, Cover, H, CR, SpParams) {
@@ -285,16 +293,16 @@ fuel_stratification <- function(object, SpParams, gdd = NA_real_, mode = "MED", 
     .Call(`_medfate_fuelLiveStratification`, object, SpParams, gdd, mode, heightProfileStep, maxHeightProfile, bulkDensityThreshold)
 }
 
-fuel_FCCS <- function(object, ShrubCover, CanopyCover, SpParams, cohortFMC = as.numeric( c()), gdd = NA_real_, mode = "MED", heightProfileStep = 10.0, maxHeightProfile = 5000, bulkDensityThreshold = 0.05, depthMode = "crownaverage") {
-    .Call(`_medfate_FCCSproperties`, object, ShrubCover, CanopyCover, SpParams, cohortFMC, gdd, mode, heightProfileStep, maxHeightProfile, bulkDensityThreshold, depthMode)
+fuel_FCCS <- function(object, SpParams, cohortFMC = as.numeric( c()), gdd = NA_real_, mode = "MED", heightProfileStep = 10.0, maxHeightProfile = 5000, bulkDensityThreshold = 0.05, depthMode = "crownaverage") {
+    .Call(`_medfate_FCCSproperties`, object, SpParams, cohortFMC, gdd, mode, heightProfileStep, maxHeightProfile, bulkDensityThreshold, depthMode)
 }
 
-mortality_dailyProbability <- function(mortalityBaselineRate, stressValue, stressThreshold, allowStress = TRUE, minValue = 0.0, slope = 1.0) {
-    .Call(`_medfate_dailyMortalityProbability`, mortalityBaselineRate, stressValue, stressThreshold, allowStress, minValue, slope)
+mortality_dailyProbability <- function(basalMortalityRate, stressValue, stressThreshold, minValue = 0.0, exponent = 10.0) {
+    .Call(`_medfate_dailyMortalityProbability`, basalMortalityRate, stressValue, stressThreshold, minValue, exponent)
 }
 
-growth_day <- function(x, date, tmin, tmax, rhmin, rhmax, rad, wind, latitude, elevation, slope, aspect, prec, runon = 0.0) {
-    .Call(`_medfate_growthDay`, x, date, tmin, tmax, rhmin, rhmax, rad, wind, latitude, elevation, slope, aspect, prec, runon)
+growth_day <- function(x, date, tmin, tmax, rhmin, rhmax, rad, wind, latitude, elevation, slope, aspect, prec, runon = 0.0, modifyInput = TRUE) {
+    .Call(`_medfate_growthDay`, x, date, tmin, tmax, rhmin, rhmax, rad, wind, latitude, elevation, slope, aspect, prec, runon, modifyInput)
 }
 
 growth <- function(x, meteo, latitude, elevation = NA_real_, slope = NA_real_, aspect = NA_real_) {
@@ -473,14 +481,6 @@ hydraulics_rootxylemConductanceProportions <- function(L, V) {
     .Call(`_medfate_rootxylemConductanceProportions`, L, V)
 }
 
-hydraulics_stemWaterCapacity <- function(Al2As, height, wd) {
-    .Call(`_medfate_stemWaterCapacity`, Al2As, height, wd)
-}
-
-hydraulics_leafWaterCapacity <- function(SLA, ld) {
-    .Call(`_medfate_leafWaterCapacity`, SLA, ld)
-}
-
 hydrology_erFactor <- function(doy, pet, prec, Rconv = 5.6, Rsyn = 1.5) {
     .Call(`_medfate_erFactor`, doy, pet, prec, Rconv, Rsyn)
 }
@@ -533,12 +533,24 @@ hydrology_soilInfiltrationPercolation <- function(soil, soilFunctions, waterInpu
     .Call(`_medfate_parcohort`, SP, H, CR, LAI, SpParams)
 }
 
-.parheight <- function(heights, SP, H, CR, LAI, SpParams) {
-    .Call(`_medfate_parheight`, heights, SP, H, CR, LAI, SpParams)
+light_PARcohort <- function(x, SpParams, gdd = NA_real_, mode = "MED") {
+    .Call(`_medfate_PARcohort`, x, SpParams, gdd, mode)
 }
 
-.swrheight <- function(heights, SP, H, CR, LAI, SpParams) {
-    .Call(`_medfate_swrheight`, heights, SP, H, CR, LAI, SpParams)
+.parheight <- function(z, x, SpParams, gdd = NA_real_, mode = "MED") {
+    .Call(`_medfate_parheight`, z, x, SpParams, gdd, mode)
+}
+
+light_PARground <- function(x, SpParams, gdd = NA_real_, mode = "MED") {
+    .Call(`_medfate_PARground`, x, SpParams, gdd, mode)
+}
+
+.swrheight <- function(z, x, SpParams, gdd = NA_real_, mode = "MED") {
+    .Call(`_medfate_swrheight`, z, x, SpParams, gdd, mode)
+}
+
+light_SWRground <- function(x, SpParams, gdd = NA_real_, mode = "MED") {
+    .Call(`_medfate_SWRground`, x, SpParams, gdd, mode)
 }
 
 .parExtinctionProfile <- function(z, x, SpParams, gdd = NA_real_, mode = "MED") {
@@ -769,6 +781,10 @@ soil_saturatedConductivitySX <- function(clay, sand, om = NA_real_, mmol = TRUE)
     .Call(`_medfate_saturatedConductivitySaxton`, clay, sand, om, mmol)
 }
 
+soil_unsaturatedConductivitySX <- function(theta, clay, sand, om = NA_real_, mmol = TRUE) {
+    .Call(`_medfate_unsaturatedConductivitySaxton`, theta, clay, sand, om, mmol)
+}
+
 soil_thetaSATSX <- function(clay, sand, om = NA_real_) {
     .Call(`_medfate_thetaSATSaxton`, clay, sand, om)
 }
@@ -861,6 +877,10 @@ soil_psi <- function(soil, model = "SX") {
     .Call(`_medfate_psi`, soil, model)
 }
 
+soil_conductivity <- function(soil) {
+    .Call(`_medfate_conductivity`, soil)
+}
+
 soil_waterTableDepth <- function(soil, model = "SX") {
     .Call(`_medfate_waterTableDepth`, soil, model)
 }
@@ -873,8 +893,8 @@ soil_thermalConductivity <- function(soil, model = "SX") {
     .Call(`_medfate_thermalConductivity`, soil, model)
 }
 
-spwb_day <- function(x, date, tmin, tmax, rhmin, rhmax, rad, wind, latitude, elevation, slope, aspect, prec, runon = 0.0) {
-    .Call(`_medfate_spwbDay`, x, date, tmin, tmax, rhmin, rhmax, rad, wind, latitude, elevation, slope, aspect, prec, runon)
+spwb_day <- function(x, date, tmin, tmax, rhmin, rhmax, rad, wind, latitude, elevation, slope, aspect, prec, runon = 0.0, modifyInput = TRUE) {
+    .Call(`_medfate_spwbDay`, x, date, tmin, tmax, rhmin, rhmax, rad, wind, latitude, elevation, slope, aspect, prec, runon, modifyInput)
 }
 
 spwb <- function(x, meteo, latitude, elevation = NA_real_, slope = NA_real_, aspect = NA_real_) {
@@ -883,6 +903,14 @@ spwb <- function(x, meteo, latitude, elevation = NA_real_, slope = NA_real_, asp
 
 pwb <- function(x, meteo, W, latitude, elevation = NA_real_, slope = NA_real_, aspect = NA_real_, canopyEvaporation = numeric(0), snowMelt = numeric(0), soilEvaporation = numeric(0)) {
     .Call(`_medfate_pwb`, x, meteo, W, latitude, elevation, slope, aspect, canopyEvaporation, snowMelt, soilEvaporation)
+}
+
+moisture_sapwoodWaterCapacity <- function(Al2As, height, V, L, wd) {
+    .Call(`_medfate_sapwoodWaterCapacity`, Al2As, height, V, L, wd)
+}
+
+moisture_leafWaterCapacity <- function(SLA, ld) {
+    .Call(`_medfate_leafWaterCapacity`, SLA, ld)
 }
 
 moisture_turgorLossPoint <- function(pi0, epsilon) {
@@ -909,14 +937,6 @@ moisture_tissueRWC <- function(psiSym, pi0, epsilon, psiApo, c, d, af, femb = 0.
     .Call(`_medfate_tissueRelativeWaterContent`, psiSym, pi0, epsilon, psiApo, c, d, af, femb)
 }
 
-moisture_cohortFMC <- function(spwb, SpParams) {
-    .Call(`_medfate_cohortFMC`, spwb, SpParams)
-}
-
-moisture_cohortFMCDay <- function(spwb_day, x, SpParams) {
-    .Call(`_medfate_cohortFMCDay`, spwb_day, x, SpParams)
-}
-
 transp_profitMaximization <- function(supplyFunction, photosynthesisFunction, Gswmin, Gswmax, gainModifier = 1.0, costModifier = 1.0, costWater = "dEdP") {
     .Call(`_medfate_profitMaximization`, supplyFunction, photosynthesisFunction, Gswmin, Gswmax, gainModifier, costModifier, costWater)
 }
@@ -925,8 +945,8 @@ transp_transpirationSperry <- function(x, meteo, day, latitude, elevation, slope
     .Call(`_medfate_transpirationSperry`, x, meteo, day, latitude, elevation, slope, aspect, canopyEvaporation, snowMelt, soilEvaporation, stepFunctions, modifyInput)
 }
 
-transp_transpirationGranier <- function(x, meteo, day, modifyInput = TRUE) {
-    .Call(`_medfate_transpirationGranier`, x, meteo, day, modifyInput)
+transp_transpirationGranier <- function(x, meteo, day, elevation, modifyInput = TRUE) {
+    .Call(`_medfate_transpirationGranier`, x, meteo, day, elevation, modifyInput)
 }
 
 wind_canopyTurbulenceModel <- function(zm, Cx, hm, d0, z0, model = "k-epsilon") {
@@ -965,11 +985,15 @@ woodformation_initRing <- function() {
     .Call(`_medfate_initialize_ring`)
 }
 
+woodformation_temperatureEffect <- function(Tc, Y_T = 5.0, DHa = 87.5e3, DSd = 1.09e3, DHd = 333e3) {
+    .Call(`_medfate_temperature_function`, Tc, Y_T, DHa, DSd, DHd)
+}
+
 woodformation_relativeExpansionRate <- function(psi, Tc, pi, phi, Y_P, Y_T) {
     .Call(`_medfate_relative_expansion_rate`, psi, Tc, pi, phi, Y_P, Y_T)
 }
 
-woodformation_growRing <- function(ring, psi, Tc, Nc = 8.85, phi0 = 0.13, pi0 = -0.8, CRD0 = 8.3, Y_P = 0.05, Y_T = 8.0, h = 0.043*1.8, s = 1.8) {
+woodformation_growRing <- function(ring, psi, Tc, Nc = 8.85, phi0 = 0.13, pi0 = -0.8, CRD0 = 8.3, Y_P = 0.05, Y_T = 5.0, h = 0.043*1.8, s = 1.8) {
     invisible(.Call(`_medfate_grow_ring`, ring, psi, Tc, Nc, phi0, pi0, CRD0, Y_P, Y_T, h, s))
 }
 

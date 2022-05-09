@@ -6,10 +6,11 @@
 \alias{moisture_apoplasticPsi}
 \alias{moisture_tissueRWC}
 \alias{moisture_tissueFMC}
-\alias{moisture_cohortFMC}
-\alias{moisture_cohortFMCDay}
 \alias{moisture_pressureVolumeCurvePlot}
 \alias{moisture_turgorLossPoint}
+\alias{moisture_sapwoodWaterCapacity}
+\alias{moisture_leafWaterCapacity}
+
 \title{
 Tissue moisture functions
 }
@@ -25,12 +26,12 @@ moisture_turgorLossPoint(pi0, epsilon)
 moisture_tissueRWC(psiSym, pi0, epsilon, 
                    psiApo, c, d, 
                    af, femb = 0)
-moisture_cohortFMC(spwb, SpParams)
-moisture_cohortFMCDay(spwb_day, x, SpParams)
 moisture_pressureVolumeCurvePlot(x, segment="leaf", 
                     fraction = "all",
                     psiVec =  seq(-0.1, -8.0, by =-0.01),
-                    speciesNames = FALSE)                    
+                    speciesNames = FALSE)
+moisture_sapwoodWaterCapacity(Al2As, height, V, L, wd)
+moisture_leafWaterCapacity(SLA, ld)
 }
 \arguments{
   \item{psiSym, psiApo}{Symplastic or apoplastic water potential (MPa).}
@@ -45,12 +46,14 @@ moisture_pressureVolumeCurvePlot(x, segment="leaf",
   \item{fraction}{ Tissue fraction, either \code{"symplastic"}, \code{"apoplastic"} or \code{"all"}.}
   \item{psiVec}{Vector of water potential values to evaluate for the pressure-volume curve.}
   \item{speciesNames}{A flag to indicate the use of species names instead of cohort names in plots.}
-  \item{spwb}{Object returned by function \code{\link{spwb}} or \code{\link{growth}}.}
-  \item{spwb_day}{Object returned by function \code{\link{spwb_day}} or \code{\link{growth_day}}.}
-  \item{SpParams}{A data frame with species parameters (see \code{\link{SpParamsMED}} and \code{\link{SpParamsMED}}).}
-}
-\details{
-Details of the tissue moisture calculations are given in a vignette. Function \code{moisture_cohortFMC()} calculates the fuel moisture content of leaves of each cohort, from the results of soil water balance.
+  \item{L}{Vector with the length of coarse roots (mm) for each soil layer.}
+  \item{V}{Vector with the proportion [0-1] of fine roots within each soil layer.}
+  \item{Al2As}{Leaf area to sapwood area (in m2·m-2).}
+  \item{height}{Plant height (in cm).}  
+  \item{SLA}{Specific leaf area (mm2·mg-1).}
+  \item{wd}{Wood density (g·cm-3).}
+  \item{ld}{Leaf tissue density (g·cm-3).}
+
 }
 \value{
 Values returned for each function are:
@@ -61,8 +64,6 @@ Values returned for each function are:
 \item{\code{moisture_apoplasticWaterPotential}: Water potential (in MPa) of the apoplastic fraction.}
 \item{\code{moisture_turgorLossPoint}: Water potential (in MPa) corresponding to turgor loss point.}
 \item{\code{moisture_segmentRWC}: Segment relative water content [0-1].}
-\item{\code{moisture_cohortFMC}: A matrix with daily moisture content per dry weight (in percent) of each cohort.}
-\item{\code{moisture_cohortFMCDay}: A vector with moisture content per dry weight (in percent) of each cohort.}
 }
 }
 \references{

@@ -11,7 +11,7 @@ using namespace Rcpp;
 // [[Rcpp::export("hydrology_erFactor")]]
 double erFactor(int doy, double pet, double prec, double Rconv = 5.6, double Rsyn = 1.5){
   double Ri = 0.0; //mm/h
-  if((doy<=120)|(doy>=335)) {
+  if((doy<=120) || (doy>=335)) {
     Ri = std::max(prec/24.0,Rsyn);
   } else {
     Ri = std::max(prec/24.0,Rconv);
@@ -38,7 +38,7 @@ NumericVector soilEvaporation(List soil, String soilFunctions, double pet, doubl
   NumericVector EsoilVec(nlayers,0.0);
   double swe = soil["SWE"]; //snow pack
   if(swe == 0.0) {
-    double PETsoil = pet*LgroundSWR;
+    double PETsoil = pet*(LgroundSWR/100.0);
     double Gsoil = soil["Gsoil"];
     double Ksoil = soil["Ksoil"];
     double Esoil = soilEvaporationAmount((Water_FC[0]*(1.0 - W[0])), PETsoil, Gsoil);
@@ -113,7 +113,7 @@ double snowMelt(double tday, double rad, double LgroundSWR, double elevation) {
   if(NumericVector::is_na(elevation)) stop("Missing elevation data for snow melt!");
   double rho = meteoland::utils_airDensity(tday, meteoland::utils_atmosphericPressure(elevation));
   double ten = (86400.0*tday*rho*1013.86*1e-6/100.0); //ten can be negative if temperature is below zero
-  double ren = (rad*LgroundSWR)*(0.1); //90% albedo of snow
+  double ren = (rad*(LgroundSWR/100.0))*(0.1); //90% albedo of snow
   double melt = std::max(0.0,(ren+ten)/0.33355); //Do not allow negative melting values
   return(melt);
 }
@@ -150,7 +150,7 @@ NumericVector soilWaterInputs(List soil, String soilFunctions, double prec, doub
   //Hydrologic input
   double NetRain = 0.0, Interception = 0.0;
   if(rain>0.0)  {
-    Interception = interceptionGashDay(rain,Cm,LgroundPAR,er);
+    Interception = interceptionGashDay(rain,Cm,LgroundPAR/100.0,er);
     NetRain = rain - Interception; 
   }
   if(modifySoil) {
@@ -192,13 +192,13 @@ NumericVector soilInfiltrationPercolation(List soil, String soilFunctions,
     double percolationExcess = 0.0;
     double Wn;
     for(int l=0;l<nlayers;l++) {
-      if((dVec[l]>0.0) & (Ivec[l]>0.0)) {
+      if((dVec[l]>0.0) && (Ivec[l]>0.0)) {
         Wn = W[l]*Water_FC[l] + Ivec[l]; //Update water volume
         if(l<(nlayers-1)) {
           Ivec[l+1] = Ivec[l+1] + std::max(Wn - Water_FC[l],0.0); //update Ivec adding the excess to the infiltrating water (saturated flow)
           W[l] = std::max(0.0,std::min(Wn, Water_FC[l])/Water_FC[l]); //Update theta (this modifies 'soil')
         } else {
-          if((rfc[l]<95.0) | rockyLayerDrainage) { //If not a rock layer or rocky layer drainage is allowed
+          if((rfc[l]<95.0) || rockyLayerDrainage) { //If not a rock layer or rocky layer drainage is allowed
             W[l] = std::max(0.0,std::min(Wn, Water_FC[l])/Water_FC[l]); //Update theta (this modifies 'soil')
             percolationExcess = std::max(Wn - Water_FC[l],0.0); //Set excess of the bottom layer using field capacity
           } else {
@@ -211,7 +211,7 @@ NumericVector soilInfiltrationPercolation(List soil, String soilFunctions,
     //If there still excess fill layers over field capacity
     if(percolationExcess>0.0) {
       for(int l=(nlayers-1);l>=0;l--) {
-        if((dVec[l]>0.0) & (percolationExcess>0.0)) {
+        if((dVec[l]>0.0) && (percolationExcess>0.0)) {
           Wn = W[l]*Water_FC[l] + percolationExcess; //Update water volume
           percolationExcess = std::max(Wn - Water_SAT[l],0.0); //Update excess, using the excess of water over saturation
           W[l] = std::max(0.0,std::min(Wn, Water_SAT[l])/Water_FC[l]); //Update theta (this modifies 'soil') here no upper
@@ -226,7 +226,7 @@ NumericVector soilInfiltrationPercolation(List soil, String soilFunctions,
   //If there is still room for additional drainage (water in macropores accumulated from previous days)
   double head = 0.0;
   for(int l=0;l<nlayers;l++) { //Add mm over field capacity
-    if((l<(nlayers-1)) | rockyLayerDrainage) {
+    if((l<(nlayers-1)) || rockyLayerDrainage) {
       head += Water_FC[l]*std::max(W[l] - 1.0, 0.0);
     }
   }
@@ -237,7 +237,7 @@ NumericVector soilInfiltrationPercolation(List soil, String soilFunctions,
       if(maxDrainage>0.0) {
         double Wn = W[l]*Water_FC[l];
         double toDrain = std::min(std::max(Wn - Water_FC[l], 0.0), maxDrainage);
-        if((l==(nlayers-1)) & (rfc[l] >= 95.0) & (!rockyLayerDrainage)) { //Prevent drainage for last rocky layer if not allowed
+        if((l==(nlayers-1)) && (rfc[l] >= 95.0) && (!rockyLayerDrainage)) { //Prevent drainage for last rocky layer if not allowed
           toDrain = 0.0;
         }
         if(toDrain > 0.0) {

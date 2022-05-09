@@ -10,7 +10,7 @@ High-level sub-models to represent transpiration, plant hydraulics and water rel
 }
 \usage{
 transp_transpirationGranier(x, meteo, day, 
-                            modifyInput = TRUE)
+                            elevation, modifyInput = TRUE)
 transp_transpirationSperry(x, meteo, day,
                            latitude, elevation, slope, aspect, 
                            canopyEvaporation = 0, snowMelt = 0, soilEvaporation = 0, 
@@ -51,6 +51,7 @@ Function \code{transp_transpirationGranier} and \code{transp_transpirationSperry
   \item{\code{"Plants"}: A data frame of results for each plant cohort. When using \code{transp_transpirationGranier}, element \code{"Plants"} includes:
     \itemize{
       \item{\code{"LAI"}: Leaf area index of the plant cohort.}
+      \item{\code{"LAIlive"}: Leaf area index of the plant cohort, assuming all leaves are unfolded.}
       \item{\code{"AbsorbedSWRFraction"}: Fraction of SWR absorbed by each cohort.}
       \item{\code{"Transpiration"}: Transpirated water (in mm) corresponding to each cohort.}
       \item{\code{"GrossPhotosynthesis"}: Gross photosynthesis (in gC/m2) corresponding to each cohort.}
@@ -60,6 +61,7 @@ Function \code{transp_transpirationGranier} and \code{transp_transpirationSperry
     When using \code{transp_transpirationSperry}, element \code{"Plants"} includes:
     \itemize{
       \item{\code{"LAI"}: Leaf area index of the plant cohort.}
+      \item{\code{"LAIlive"}: Leaf area index of the plant cohort, assuming all leaves are unfolded.}
       \item{\code{"Extraction"}: Water extracted from the soil (in mm) for each cohort.}
       \item{\code{"Transpiration"}: Transpirated water (in mm) corresponding to each cohort.}
       \item{\code{"GrossPhotosynthesis"}: Gross photosynthesis (in gC/m2) corresponding to each cohort.}
@@ -77,8 +79,7 @@ Function \code{transp_transpirationGranier} and \code{transp_transpirationSperry
       \item{\code{"DDS"}: Daily drought stress [0-1] (relative whole-plant conductance).}
       \item{\code{"StemRWC"}: Relative water content of stem tissue (including symplasm and apoplasm).}
       \item{\code{"LeafRWC"}: Relative water content of leaf tissue (including symplasm and apoplasm).}
-      \item{\code{"StemSympRWC"}: Relative water content of symplastic stem tissue.}
-      \item{\code{"LeafSympRWC"}: Relative water content of symplastic leaf tissue.}
+      \item{\code{"LFMC"}: Live fuel moisture content (in percent of dry weight).}
       \item{\code{"WaterBalance"}: Plant water balance (extraction - transpiration).}
     }
   }
@@ -157,8 +158,8 @@ data(exampleforestMED)
 #Default species parameterization
 data(SpParamsMED)
 
-#Initialize soil with default soil params (2 layers)
-examplesoil = soil(defaultSoilParams(2))
+#Initialize soil with default soil params (4 layers)
+examplesoil = soil(defaultSoilParams(4))
 
 #Initialize control parameters
 control = defaultControl("Granier")
@@ -169,16 +170,13 @@ x1 = forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
 # Transpiration according to Granier's model, plant water potential 
 # and plant stress for a given day
 t1 = transp_transpirationGranier(x1, examplemeteo, 1, 
-                            modifyInput = FALSE)
+                                 elevation = 100, modifyInput = FALSE)
 
 #Switch to 'Sperry' transpiration mode
 control = defaultControl("Sperry")
 
-#Initialize soil with default soil params (2 layers)
-examplesoil2 = soil(defaultSoilParams(2))
-
 #Initialize input
-x2 = forest2spwbInput(exampleforestMED,examplesoil2, SpParamsMED, control)
+x2 = forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
 
 # Transpiration according to Sperry's model
 t2 = transp_transpirationSperry(x2, examplemeteo, 1, 
