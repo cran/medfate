@@ -83,6 +83,7 @@ List transpirationGranier(List x, NumericVector meteovec,
   double verticalLayerSize = control["verticalLayerSize"];
   String rhizosphereOverlap = control["rhizosphereOverlap"];
   bool plantWaterPools = (rhizosphereOverlap!="total");
+  double hydraulicRedistributionFraction = control["hydraulicRedistributionFraction"];
   
   //Soil water at field capacity
   List soil = x["soil"];
@@ -95,8 +96,11 @@ List transpirationGranier(List x, NumericVector meteovec,
   double rhmin = meteovec["rhmin"];
   double tmax = meteovec["tmax"];
   double tmin = meteovec["tmin"];
+  double Catm = meteovec["Catm"];
   //Daily average water vapor pressure at the atmosphere (kPa)
-  double vpatm = meteoland::utils_averageDailyVP(tmin, tmax, rhmin,rhmax);
+  double vpatm = meteoland::utils_averageDailyVP(tmin, tmax, rhmin, rhmax);
+  double vpd = std::max(0.0, meteoland::utils_saturationVP((tmin+tmax)/2.0) - vpatm);
+    
   //Atmospheric pressure (kPa)
   double Patm = meteoland::utils_atmosphericPressure(elevation);
   
@@ -137,17 +141,27 @@ List transpirationGranier(List x, NumericVector meteovec,
   NumericVector Psi_Extract = Rcpp::as<Rcpp::NumericVector>(paramsTransp["Psi_Extract"]);
   NumericVector Psi_Critic = Rcpp::as<Rcpp::NumericVector>(paramsTransp["Psi_Critic"]);
   NumericVector WUE = Rcpp::as<Rcpp::NumericVector>(paramsTransp["WUE"]);
-  NumericVector WUE_decay(numCohorts, 0.2812);
+  NumericVector WUE_par(numCohorts, 0.3643);
+  NumericVector WUE_co2(numCohorts, 0.002757);
+  NumericVector WUE_vpd(numCohorts, -0.4636);
   NumericVector Tmax_LAI(numCohorts, 0.134);
   NumericVector Tmax_LAIsq(numCohorts, -0.006);
   if(paramsTransp.containsElementNamed("Tmax_LAI")) {
     Tmax_LAI = Rcpp::as<Rcpp::NumericVector>(paramsTransp["Tmax_LAI"]);
     Tmax_LAIsq = Rcpp::as<Rcpp::NumericVector>(paramsTransp["Tmax_LAIsq"]);
   }
-  if(paramsTransp.containsElementNamed("WUE_decay")) {
-    WUE_decay = Rcpp::as<Rcpp::NumericVector>(paramsTransp["WUE_decay"]);
+  if(paramsTransp.containsElementNamed("WUE_par")) {
+    WUE_par = Rcpp::as<Rcpp::NumericVector>(paramsTransp["WUE_par"]);
   }
-  
+  if(paramsTransp.containsElementNamed("WUE_decay")) { //For compatibility with previous versions (2.7.5)
+    WUE_par = Rcpp::as<Rcpp::NumericVector>(paramsTransp["WUE_decay"]);
+  }
+  if(paramsTransp.containsElementNamed("WUE_co2")) {
+    WUE_co2 = Rcpp::as<Rcpp::NumericVector>(paramsTransp["WUE_co2"]);
+  }
+  if(paramsTransp.containsElementNamed("WUE_vpd")) {
+    WUE_vpd = Rcpp::as<Rcpp::NumericVector>(paramsTransp["WUE_vpd"]);
+  }
   //Water storage parameters
   DataFrame paramsWaterStorage = Rcpp::as<Rcpp::DataFrame>(x["paramsWaterStorage"]);
   NumericVector maxFMC = Rcpp::as<Rcpp::NumericVector>(paramsWaterStorage["maxFMC"]);
@@ -204,7 +218,7 @@ List transpirationGranier(List x, NumericVector meteovec,
   //Actual plant transpiration
   int nlayers = Wpool.ncol();
   NumericMatrix Extraction(numCohorts, nlayers); // this is final extraction of each cohort from each layer
-  NumericMatrix ExtractionPoolsCoh(numCohorts, nlayers); //this is used to store extraction of a SINGLE plant cohort from all pools
+  List ExtractionPools(numCohorts);
   
   NumericVector Eplant(numCohorts, 0.0), Agplant(numCohorts, 0.0);
   NumericVector DDS(numCohorts, 0.0), LFMC(numCohorts, 0.0);
@@ -217,6 +231,7 @@ List transpirationGranier(List x, NumericVector meteovec,
   //Calculate soil water potential
   NumericVector psiSoil = psi(soil,soilFunctions);
 
+  NumericMatrix WaterM(numCohorts, nlayers);
   NumericMatrix KunsatM(numCohorts, nlayers);
   NumericMatrix psiSoilM(numCohorts, nlayers);
   if(plantWaterPools) {
@@ -229,10 +244,14 @@ List transpirationGranier(List x, NumericVector meteovec,
       KunsatM(j,_) = conductivity(soil_pool);
       //Calculate soil water potential
       psiSoilM(j,_) = psi(soil_pool, soilFunctions);
+      //Calculate available water
+      WaterM(j,_) = water(soil_pool, soilFunctions);
     }
   }
   
   for(int c=0;c<numCohorts;c++) {
+    NumericMatrix ExtractionPoolsCoh(numCohorts, nlayers); //this is used to store extraction of a SINGLE plant cohort from all pools
+    
     NumericVector parsVol = NumericVector::create(_["psi_critic"] = Psi_Critic[c], _["stem_plc"] = StemPLC[c],
                                                   _["leafpi0"] = LeafPI0[c], _["leafeps"] = LeafEPS[c],
                                                                                                    _["leafaf"] = LeafAF[c],_["stempi0"] = StemPI0[c],_["stemeps"] = StemEPS[c],
@@ -289,9 +308,9 @@ List transpirationGranier(List x, NumericVector meteovec,
     //Cuticular transpiration    
     double lvp_tmax = leafVapourPressure(tmax,  PlantPsi[c]);
     double lvp_tmin = leafVapourPressure(tmin,  PlantPsi[c]);
-    double vpd_tmax = std::max(0.0, lvp_tmax - vpatm);
-    double vpd_tmin = std::max(0.0, lvp_tmin - vpatm);
-    double E_gmin = Gswmin[c]*(vpd_tmin+vpd_tmax)/(2.0*Patm); // mol·s-1·m-2
+    double lvpd_tmax = std::max(0.0, lvp_tmax - vpatm);
+    double lvpd_tmin = std::max(0.0, lvp_tmin - vpatm);
+    double E_gmin = Gswmin[c]*(lvpd_tmin+lvpd_tmax)/(2.0*Patm); // mol·s-1·m-2
     double E_cut = E_gmin*LAIphe[c]*(24.0*3600.0*0.018);
 
     double oldVol = plantVol(PlantPsi[c], parsVol); 
@@ -321,15 +340,21 @@ List transpirationGranier(List x, NumericVector meteovec,
       } else { // recalculate also extraction from soil pools
         for(int j = 0;j<numCohorts;j++) {
           if(ext_sum>0.0) ExtractionPoolsCoh(j,l) += (volDiff+corr_extraction)*(ExtractionPoolsCoh(j,l)/ext_sum);
-          if(modifyInput) Wpool(j,l) = Wpool(j,l) - (ExtractionPoolsCoh(j,l)/(Water_FC[l]*poolProportions[j])); //Apply extraction from pools
         }
         //Recalculate extraction from soil layers
         Extraction(c,l) = sum(ExtractionPoolsCoh(_,l)); // Sum extraction from all pools (layer l)
       }
     }
-    
     //Photosynthesis
-    Agplant[c] = WUE[c]*Eplant[c]*std::min(1.0, pow(PARcohort[c]/100.0,WUE_decay[c]));
+    double fpar = std::min(1.0, pow(PARcohort[c]/100.0,WUE_par[c]));
+    double fco2 = (1.0 - exp((-1.0)*WUE_co2[c]*Catm));
+    double fvpd = pow(vpd, WUE_vpd[c]);
+    if(vpd < 0.25) fvpd = 2.5 - (2.5 - pow(0.25, WUE_vpd[c]))*(vpd/0.25);
+    // Rcout<<fpar<<" "<< fco2 << " "<< fvpd<< " "<< WUE[c]*fpar*fco2*fvpd<<"\n";
+    Agplant[c] = WUE[c]*Eplant[c]*fpar*fco2*fvpd;
+    
+    //Store extractionPool
+    ExtractionPools[c] = ExtractionPoolsCoh;
   }
   
   //Plant water status (StemPLC, RWC, DDS)
@@ -364,23 +389,84 @@ List transpirationGranier(List x, NumericVector meteovec,
     internalWater["StemPLC"] = StemPLC;
     internalWater["PlantPsi"] = PlantPsi;
   }
-  //Modifies input soil
-  if(modifyInput) {
-    NumericVector Ws = soil["W"];
-    for(int l=0;l<nlayers;l++) Ws[l] = Ws[l] - (sum(Extraction(_,l))/Water_FC[l]); 
-    if(!plantWaterPools){ //copy soil to the pools of all cohorts
-      for(int j=0;j<numCohorts;j++) {
-        for(int l=0;l<nlayers;l++) {
-          Wpool(j,l) = Ws[l];
+  //Atempt to implement hydraulic redistribution
+  if(hydraulicRedistributionFraction > 0.0) {
+    if(!plantWaterPools) {
+      for(int c=0;c<numCohorts;c++) {
+        double redAmount = Eplant[c]*hydraulicRedistributionFraction;
+        // Rcout<<c<< "red amount"<< redAmount;
+        NumericVector Ws = soil["W"];
+        NumericVector SW = water(soil, soilFunctions);
+        double soilRWC = sum(Ws*SW)/sum(SW);
+        NumericVector WDiff = Ws - soilRWC; 
+        NumericVector DonorDiff = pmax(0.0, WDiff);
+        NumericVector ReceiverDiff = pmax(0.0, -WDiff);
+        NumericVector HD(nlayers,0.0);
+        if(sum(DonorDiff)>0.0) {
+          for(int l=0;l<nlayers;l++) {
+            if(WDiff[l]>0.0) {
+              HD[l] = redAmount*DonorDiff[l]/sum(DonorDiff);
+            } else{
+              HD[l] = -redAmount*ReceiverDiff[l]/sum(ReceiverDiff);
+            }
+            // Rcout<<" "<<l<<" "<<HD[l];
+            Extraction(c,l) += HD[l];
+          }
+        }
+        // Rcout<< "\n";
+      }
+    } else {
+      for(int c=0;c<numCohorts;c++) {
+        NumericMatrix ExtractionPoolsCoh = ExtractionPools[c];
+        for(int j=0;j<numCohorts;j++) {
+          double redAmount = sum(ExtractionPoolsCoh(j,_))*hydraulicRedistributionFraction;
+          NumericVector Ws = Wpool(j,_);
+          NumericVector SW = WaterM(j,_);
+          double soilRWC = sum(Ws*SW)/sum(SW);
+          NumericVector WDiff = Ws - soilRWC; 
+          NumericVector DonorDiff = pmax(0.0, WDiff);
+          NumericVector ReceiverDiff = pmax(0.0, -WDiff);
+          NumericVector HD(nlayers,0.0);
+          if(sum(DonorDiff)>0.0) {
+            for(int l=0;l<nlayers;l++) {
+              if(WDiff[l]>0.0) {
+                HD[l] = redAmount*DonorDiff[l]/sum(DonorDiff);
+              } else{
+                HD[l] = -redAmount*ReceiverDiff[l]/sum(ReceiverDiff);
+              }
+              Extraction(c,l) += HD[l];
+              ExtractionPoolsCoh(j,l) += HD[l];
+            }
+          }
         }
       }
     }
   }
+  //Modifies input soil
+  if(modifyInput) {
+    NumericVector Ws = soil["W"];
+    for(int l=0;l<nlayers;l++) Ws[l] = Ws[l] - (sum(Extraction(_,l))/Water_FC[l]); 
+    for(int c=0;c<numCohorts;c++) {
+      for(int l=0;l<nlayers;l++) {
+        if(!plantWaterPools){ //copy soil to the pools of all cohorts
+          Wpool(c,l) = Ws[l];
+        } else {//Applies pool extraction by each plant cohort
+          NumericMatrix ExtractionPoolsCoh = ExtractionPools[c];
+          for(int j=0;j<numCohorts;j++) {
+            Wpool(c,l) = Wpool(c,l) - (ExtractionPoolsCoh(j,l)/(Water_FC[l]*poolProportions[c])); //Apply extraction from pools
+          }
+        }
+      }
+    } 
+  }
   
   //Copy LAIexpanded for output
   NumericVector LAIcohort(numCohorts);
-  for(int c=0;c<numCohorts;c++) LAIcohort[c]= LAIphe[c];
-  
+  NumericVector SoilExtractCoh(numCohorts,0.0);
+  for(int c=0;c<numCohorts;c++) {
+    LAIcohort[c]= LAIphe[c];
+    SoilExtractCoh[c] =  sum(Extraction(c,_));
+  }
   NumericVector Stand = NumericVector::create(_["LAI"] = LAIcell,
                                               _["LAIlive"] = LAIcelllive, 
                                               _["LAIexpanded"] = LAIcellexpanded, 
@@ -390,6 +476,7 @@ List transpirationGranier(List x, NumericVector meteovec,
                                        _["LAIlive"] = clone(LAIlive),
                                        _["FPAR"] = PARcohort,
                                        _["AbsorbedSWRFraction"] = 100.0*CohASWRF, 
+                                       _["Extraction"] = SoilExtractCoh,
                                        _["Transpiration"] = Eplant, 
                                        _["GrossPhotosynthesis"] = Agplant,
                                        _["PlantPsi"] = PlantPsi, 
@@ -410,7 +497,9 @@ List transpirationGranier(List x, NumericVector meteovec,
 
 // [[Rcpp::export("transp_transpirationGranier")]]
 List transpirationGranier(List x, DataFrame meteo, int day,
-                          double elevation, bool modifyInput = true) {
+                          double latitude, double elevation, double slope, double aspect,
+                          bool modifyInput = true) {
+  List control = x["control"];
   if(!meteo.containsElementNamed("MinTemperature")) stop("Please include variable 'MinTemperature' in weather input.");
   NumericVector MinTemperature = meteo["MinTemperature"];
   if(!meteo.containsElementNamed("MaxTemperature")) stop("Please include variable 'MaxTemperature' in weather input.");
@@ -419,23 +508,47 @@ List transpirationGranier(List x, DataFrame meteo, int day,
   NumericVector MinRelativeHumidity = meteo["MinRelativeHumidity"];
   if(!meteo.containsElementNamed("MaxRelativeHumidity")) stop("Please include variable 'MaxRelativeHumidity' in weather input.");
   NumericVector MaxRelativeHumidity = meteo["MaxRelativeHumidity"];
-  if(!meteo.containsElementNamed("MeanTemperature")) stop("Please include variable 'MeanTemperature' in weather input.");
-  NumericVector MeanTemperature = meteo["MeanTemperature"];
-  if(!meteo.containsElementNamed("PET")) stop("Please include variable 'PET' in weather input.");
-  NumericVector PET = meteo["PET"];
-  double pet = PET[day-1];
-  double tday = MeanTemperature[day-1];
+  if(!meteo.containsElementNamed("Radiation")) stop("Please include variable 'Radiation' in weather input.");
+  NumericVector Radiation = meteo["Radiation"];
+  NumericVector WindSpeed(MinTemperature.length(), NA_REAL);
+  if(meteo.containsElementNamed("WindSpeed")) WindSpeed = meteo["WindSpeed"];
+  NumericVector CO2(MinTemperature.length(), NA_REAL);
+  if(meteo.containsElementNamed("CO2")) CO2 = meteo["CO2"];
+  
+  if(NumericVector::is_na(latitude)) stop("Value for 'latitude' should not be missing.");
+  double latrad = latitude * (M_PI/180.0);
+  if(NumericVector::is_na(aspect)) aspect = 0.0;
+  if(NumericVector::is_na(slope)) slope = 0.0;
+  double asprad = aspect * (M_PI/180.0);
+  double slorad = slope * (M_PI/180.0);
+  
+  CharacterVector dateStrings = meteo.attr("row.names");
+  std::string c = as<std::string>(dateStrings[day-1]);
+  int J = meteoland::radiation_julianDay(std::atoi(c.substr(0, 4).c_str()),std::atoi(c.substr(5,2).c_str()),std::atoi(c.substr(8,2).c_str()));
+  double delta = meteoland::radiation_solarDeclination(J);
+  double solarConstant = meteoland::radiation_solarConstant(J);
+  
   double tmin = MinTemperature[day-1];
   double tmax = MaxTemperature[day-1];
+  double tday = meteoland::utils_averageDaylightTemperature(tmin, tmax);
   double rhmax = MaxRelativeHumidity[day-1];
   double rhmin = MinRelativeHumidity[day-1];
+  double rad = Radiation[day-1];
+  double wind = WindSpeed[day-1];
+  double Catm = CO2[day-1];
+  
+  double pet = meteoland::penman(latrad, elevation, slorad, asprad, J, 
+                             tmin, tmax, rhmin, rhmax, rad, wind);
+  
+  if(NumericVector::is_na(Catm)) Catm = control["defaultCO2"];
   NumericVector meteovec = NumericVector::create(
     Named("tmax") = tmax,
     Named("tmin") = tmin,
     Named("rhmin") = rhmin, 
     Named("rhmax") = rhmax,
     Named("tday") = tday, 
-    Named("pet") = pet);
+    Named("pet") = pet,
+    Named("Catm") = Catm);
   return(transpirationGranier(x, meteovec, elevation, modifyInput));
 } 
 

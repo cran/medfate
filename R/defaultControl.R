@@ -1,6 +1,7 @@
 defaultControl<-function(transpirationMode = "Granier") {
   return(list(
     #For all functions
+    fillMissingRootParams = TRUE,
     fillMissingSpParams = TRUE,
     verbose = TRUE,
     subdailyResults = FALSE,
@@ -9,6 +10,7 @@ defaultControl<-function(transpirationMode = "Granier") {
     transpirationMode = transpirationMode,
     soilFunctions = ifelse(transpirationMode=="Sperry", "VG", "SX"),
     defaultWindSpeed = 2.5, #m/s
+    defaultCO2 = 386, #ppm
     snowpack = TRUE,
     leafPhenology = TRUE,
     rockyLayerDrainage = TRUE,
@@ -19,35 +21,33 @@ defaultControl<-function(transpirationMode = "Granier") {
     windMeasurementHeight = 200,
     cavitationRefill = "total",
     
+    #spwb with granier
+    hydraulicRedistributionFraction = 0.1,
+    
     #spwb with sperry
     ndailysteps = 24,
     nsubsteps = 3600,
-    cochard = FALSE,
     capacitance = FALSE,
     taper = TRUE,
     multiLayerBalance = FALSE,
-    gainModifier = 1, 
-    costModifier = 1, 
-    costWater = "dEdP",
+    maximumStemConductance = 10,
     klatstem = 0.01, # stem symplastic-apoplastic lateral conductance
     klatleaf = 0.01, # leaf symplastic-apoplastic lateral conductance
     numericParams=list(maxNsteps = 400, ntrial = 200, psiTol = 0.0001, ETol = 0.0000001),
     fracLeafResistance = NA,
     fracRootResistance = 0.4,
     averageFracRhizosphereResistance = 0.15,
-    Catm = 386,
     thermalCapacityLAI = 1000000,
     boundaryLayerSize = 2000,
     refillMaximumRate = 0.05,
     
     # growth/mortality
+    subdailyCarbonBalance = FALSE,
     allowDessication = TRUE,
     allowStarvation = TRUE,
-    allowDefoliation = TRUE,
     sinkLimitation = TRUE,
     shrubDynamics = TRUE,
-    allocationStrategy = "Plant_kmax",
-    nonStomatalPhotosynthesisLimitation = TRUE,
+    allocationStrategy = "Al2As",
     phloemConductanceFactor = 0.2, # phloem conductance per leaf area basis (l*m-2*MPa-1*s-1)
     nonSugarConcentration = 0.25, # mol · l-1
     equilibriumOsmoticConcentration = list(leaf = 0.8, sapwood = 0.6),  # (Paljakka et al. 2017)
@@ -55,10 +55,10 @@ defaultControl<-function(transpirationMode = "Granier") {
     constructionCosts = list(leaf = 1.5, 
                              sapwood = 1.47, 
                              fineroot = 1.30), #  g gluc · g dw -1
-    senescenceRates = list(sapwood = 0.0001261398, # day-1 Equivalent to annual 4.5% 1-(1-0.045)^(1.0/365)
+    senescenceRates = list(sapwood = 0.000135, # day-1 Equivalent to annual 4.8% 1-(1-0.048)^(1.0/365)
                       fineroot = 0.001897231), #day-1 Equivalent to annual 50% 1-(1-0.5)^(1.0/365)
     maximumRelativeGrowthRates = list(leaf = 0.03, # m2 leaf ·cm-2 sapwood· day-1
-                                      cambium = 0.005, # cm2 sapwood ·cm-1 cambium· day-1
+                                      cambium = 0.0025, # cm2 sapwood ·cm-1 cambium· day-1
                                       sapwood = 0.002, # cm2 sapwood ·cm-2 sapwood· day-1
                                       fineroot = 0.1), # g dw · g dw -1 · day -1
     mortalityMode = "density/deterministic",

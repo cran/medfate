@@ -21,6 +21,7 @@ A list, with the following options (default values in parentheses):
 \bold{General}:
 \itemize{
    \item{\code{verbose (=TRUE)}: Boolean flag to indicate console output during calculations. In function \code{fordyn} \code{verbose} is always set to FALSE.}
+   \item{\code{fillMissingRootParams (=TRUE)}: Boolean flag to indicate that functions \code{\link{spwbInput}} and \code{\link{growthInput}} should provide estimates for Z50 and Z95 if these are lacking in the forest data. Note that if \code{fillMissingRootParams} is set to \code{FALSE} then simulations may fail if the user does not provide values for Z50 and Z95 in tree or shrub data.}
    \item{\code{fillMissingSpParams (=TRUE)}: Boolean flag to indicate that functions \code{\link{spwbInput}} and \code{\link{growthInput}} should provide estimates for functional parameters if these are lacking in the species parameter table \code{\link{SpParams}}. Note that if \code{fillMissingSpParams} is set to \code{FALSE} then simulations may fail if the user does not provide values for required parameters.}
    \item{\code{subdailyResults (=FALSE)}: Boolean flag to force subdaily results to be stored (as a list called 'subdaily' of \code{\link{spwb_day}} objects, one by simulated date) in calls to \code{\link{spwb}}. In function \code{fordyn} \code{subdailyResults} is always set to FALSE.}
 }
@@ -29,6 +30,7 @@ A list, with the following options (default values in parentheses):
    \item{\code{transpirationMode (="Granier")}: Transpiration model (either 'Granier' or 'Sperry'). See \code{\link{spwbInput}}.}
    \item{\code{soilFunctions (="SX")}: Soil water retention curve and conductivity functions, either 'SX' (for Saxton) or 'VG' (for Van Genuchten). If \code{transpirationMode = "Sperry"} then soilFunctions is set by default to \code{'VG'}.}
    \item{\code{defaultWindSpeed (= 2.5)}: Default wind speed value (in m/s) to be used when missing from data. }
+   \item{\code{defaultCO2 (= 386)}: Default atmospheric (abovecanopy) CO2 concentration (in micromol·mol-1 = ppm). This value will be used whenever CO2 concentration is not specified in the weather input. }
    \item{\code{snowpack (=TRUE)}: Boolean flag to indicate the simulation of snow accumulation and melting.}
    \item{\code{leafPhenology (=TRUE)}: Boolean flag to indicate the simulation of leaf phenology for winter-deciduous species.}
   \item{\code{rockyLayerDrainage (=TRUE)}: Boolean flag to indicate the simulation of drainage from rocky layers (> 95\% of rocks).}
@@ -52,15 +54,19 @@ A list, with the following options (default values in parentheses):
     }
   }
 }
+\bold{Water balance} (functions \code{\link{spwb}}, \code{\link{pwb}} or \code{\link{spwb_day}} when \code{traspirationMode = "Granier"}):
+\itemize{
+   \item{\code{hydraulicRedistributionFraction (= 0.1)}: Fraction of plant transpiration corresponding to hydraulic redistribution.}
+}
+
 \bold{Water balance} (functions \code{\link{spwb}}, \code{\link{pwb}} or \code{\link{spwb_day}} when \code{traspirationMode = "Sperry"}):
 \itemize{
    \item{\code{ndailysteps (= 24)}: Number of steps into which each day is divided for determination of stomatal conductance, transpiration and photosynthesis (24 equals 1-hour intervals).}
    \item{\code{nsubsteps (= 3600)}: Number of substeps into which each step is divided for multi-layer canopy energy balance solving.}
    \item{\code{capacitance (=FALSE)}: Whether the effect of plant water compartments is considered in simulations.}
    \item{\code{multiLayerBalance (=FALSE)}: Flag to indicate multiple canopy energy balance. If \code{FALSE}, canopy is considered a single layer for energy balance.}
-   \item{\code{cochard (=FALSE)}: Boolean flag to indicate the stomatal closure when leaf water potential is below turgor loss point so that transpiration depends on cuticular properties (Martin-StPaul et al. 2017).}
    \item{\code{taper (= TRUE)}: Whether taper of xylem conduits is accounted for when calculating aboveground stem conductance from xylem conductivity.}
-   \item{\code{gainModifier, costModifier (= 1)}: Modifiers (exponents) of the gain and cost functions defined in Sperry et al. (2016).}
+   \item{\code{maximumStemConductance (= 10)}: Maximum allowed value for the stem maximum hydraulic conductance (in mmol·s-1·m-2·MPa-1). Introduced to avoid excessive hydraulic redistribution caused by species with small size (i.e. very large stem conductance).}
    \item{\code{klatstem (= 0.01)}: Stem symplastic-apoplastic lateral conductance (in mmol·s-1·m-2·MPa-1). Only relevant when \code{capacitance = TRUE}.}
    \item{\code{klatleaf (= 0.01)}: Leaf symplastic-apoplastic lateral conductance (in mmol·s-1·m-2·MPa-1). Only relevant when \code{capacitance = TRUE}.}
    \item{\code{numericParams}: A list with the following elements:
@@ -72,22 +78,20 @@ A list, with the following options (default values in parentheses):
       }
    }
    \item{\code{thermalCapacityLAI (=1000000)}: Thermal canopy capacitance per LAI unit.}
-   \item{\code{Catm (=386)}: Default atmospheric (abovecanopy) CO2 concentration (in micromol·mol-1 = ppm). This value will be used whenever CO2 concentration is not specified in the weather input. }
    \item{\code{fracLeafResistance (= NA)}: Fraction of plant total resistance (leaf+stem+root) that corresponds to leaves. This fraction is used if \code{VCleaf_kmax = NA}.}
-   \item{\code{fracRootResistance (=0.40)}: Fraction of plant total resistance (leaf+stem+root) that corresponds to root system.}
+   \item{\code{fracRootResistance (= 0.40)}: Fraction of plant total resistance (leaf+stem+root) that corresponds to root system.}
    \item{\code{averageFracRhizosphereResistance (=0.15)}: Fraction to total continuum (leaf+stem+root+rhizosphere) resistance that corresponds to rhizosphere (averaged across soil water potential values).}
    \item{\code{boundaryLayerSize (= 2000)}: Size of the boundary layer (in cm) over the canopy (relevant for multi-layer canopy energy balance).}
    \item{\code{refillMaximumRate (= 0.05)}: Maximum rate of daily refilling of embolized conduits as sapwood area per leaf area (in cm2·m-2·day-1).}
 }
 \bold{Forest growth} (functions \code{\link{growth}} or \code{\link{growth_day}}):
 \itemize{
+   \item{\code{subdailyCarbonBalance (=FALSE)}: Boolean flag to indicate that labile carbon balance should be conducted at sub-daily steps (applies only to transpirationMode = "Sperry").}
    \item{\code{allowDessication (=TRUE)}: Boolean flag to indicate that mortality by dessication is allowed.}
    \item{\code{allowStarvation (=TRUE)}: Boolean flag to indicate that mortality by starvation is allowed.}
-   \item{\code{allowDefoliation (=TRUE)}: Boolean flag to indicate that complete drought-driven defoliation is allowed.}
    \item{\code{sinkLimitation (=TRUE): Boolean flag to indicate that temperature and turgor limitations to growth are applied.}}
    \item{\code{ shrubDynamics [= TRUE]}: Boolean flag to allow the application of demographic processes to shrubs.}
-   \item{\code{allocationStrategy (="Plant_kmax")}: Strategy for allocation (either "Plant_kmax", for constant maximum plant conductance, or "Al2As" for constant Huber value).}
-   \item{\code{nonStomatalPhotosynthesisLimitation (=TRUE)}: A flag to apply limitations of pho-tosynthesis when leaf sugar levels become too high.}
+   \item{\code{allocationStrategy (="Al2As")}: Strategy for allocation (either "Plant_kmax", for constant maximum plant conductance, or "Al2As" for constant Huber value).}
    \item{\code{phloemConductanceFactor (= 0.2))}: Factor to transform stem xylem conductance to stem phloem conductance (only for transpirationMode = "Sperry").}
    \item{\code{nonSugarConcentration (= 0.25)}: Non-sugar (inorganic) solute concentration  (mol·l-1) in cells.}
    \item{\code{equilibriumOsmoticConcentration [=  c(leaf = 0.8, sapwood = 0.6)]}: Equilibrium osmotic concentrations (mol·l-1) for leaf and sapwood cells. The difference between leaf and sapwood values helps maintaining phloem transport. The equilibrium sugar concentration is \code{equilibriumOsmoticConcentration - nonSugarConcentration} defaults to \code{[= c(leaf = 0.55, sapwood = 0.35)]}. }

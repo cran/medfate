@@ -218,10 +218,15 @@ plot.growth<-function(x, type="PET_Precipitation", cohorts = NULL, bySpecies = F
                        xlim = xlim, ylim=ylim, xlab=xlab, ylab=ylab, 
                        summary.freq = summary.freq, ...))
   }
+  else if(type == "CarbonBalance") {
+    return(.plot_carbon(CarbonBalance= x$CarbonBalance,
+                         type = type, dates = dates, 
+                         xlim = xlim, ylim=ylim, xlab=xlab, ylab=ylab, 
+                         summary.freq = summary.freq, ...))
+  }
   else if(type %in% c("GrossPhotosynthesis", "MaintenanceRespiration",  "GrowthCosts", 
                       "LabileCarbonBalance", 
-                      "SugarLeaf","StarchLeaf","SugarSapwood","StarchSapwood", "SugarTransport", "RootExudation",
-                      "LeafPI0", "StemPI0")) {
+                      "SugarLeaf","StarchLeaf","SugarSapwood","StarchSapwood", "SugarTransport", "RootExudation")) {
       OM = x$LabileCarbonBalance[[type]][,cohorts,drop=FALSE]
   } 
   else if(type == "PhotosynthesisMaintenanceRatio") {
@@ -377,10 +382,16 @@ plot.fordyn<-function(x, type="StandBasalArea",
                              xlim = xlim, ylim=ylim, xlab=xlab, ylab=ylab, 
                              summary.freq = summary.freq, ...))
       }
+      if(type=="CarbonBalance") {
+        OM = summary(x, freq = "days", output = "CarbonBalance")
+        return(.plot_carbon(OM, type,  
+                             dates = dates, 
+                             xlim = xlim, ylim=ylim, xlab=xlab, ylab=ylab, 
+                             summary.freq = summary.freq, ...))
+      }
       if(type %in% c("GrossPhotosynthesis", "MaintenanceRespiration",  "GrowthCosts", 
                      "LabileCarbonBalance", 
-                     "SugarLeaf","StarchLeaf","SugarSapwood","StarchSapwood", "SugarTransport", "RootExudation",
-                     "LeafPI0", "StemPI0")) {
+                     "SugarLeaf","StarchLeaf","SugarSapwood","StarchSapwood", "SugarTransport", "RootExudation")) {
         OM = summary(x, freq = "days", output = paste0("LabileCarbonBalance$",type))[,cohorts,drop=FALSE]
       } 
       if(type =="PhotosynthesisMaintenanceRatio") {

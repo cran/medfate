@@ -6,33 +6,27 @@
 Function \code{growth} is a process-based model that performs energy, water and carbon balances; and determines changes in water/carbon pools, functional variables (leaf area, sapwood area, root area) and structural ones (tree diameter, tree height, shrub cover) for woody plant cohorts in a given forest stand during a period specified in the input climatic data. 
 }
 \usage{
-growth(x, meteo,  latitude, elevation = NA, slope = NA, aspect = NA) 
+growth(x, meteo,  latitude, 
+       elevation = NA, slope = NA, aspect = NA,
+       CO2ByYear = numeric(0)) 
 }
 \arguments{
   \item{x}{An object of class \code{\link{growthInput}}.}
-  \item{meteo}{A data frame with daily meteorological data series. Row names of the data frame should correspond to date strings with format "yyyy-mm-dd" (see \code{\link{Date}}). When  \code{x$TranspirationMode = "Granier"} the following columns are required:
+  \item{meteo}{A data frame with daily meteorological data series. Row names of the data frame should correspond to date strings with format "yyyy-mm-dd" (see \code{\link{Date}}).The following columns are required:
    \itemize{
-     \item{\code{MeanTemperature}: Mean temperature (in degrees Celsius).}
-     \item{\code{Precipitation}: Precipitation (in mm).}
-     \item{\code{Radiation}: Solar radiation (in MJ/m2/day), required only if \code{snowpack = TRUE}.}
-     \item{\code{PET}: Potential evapotranspiration (in mm).}
-     \item{\code{WindSpeed}: Wind speed (in m/s). If not available, this column can be left with \code{NA} values.}
-    }
-  When \code{x$TranspirationMode = "Sperry"} the following columns are required:
-   \itemize{
-     \item{\code{MeanTemperature}: Mean temperature(in degrees Celsius).}
      \item{\code{MinTemperature}: Minimum temperature (in degrees Celsius).}
      \item{\code{MaxTemperature}: Maximum temperature (in degrees Celsius).}
      \item{\code{MinRelativeHumidity}: Minimum relative humidity (in percent).}
      \item{\code{MaxRelativeHumidity}: Maximum relative humidity (in percent).}
      \item{\code{Precipitation}: Precipitation (in mm).}
-     \item{\code{Radiation}: Solar radiation (in MJ/m2/day).}
+     \item{\code{Radiation}: Solar radiation (in MJ/m2/day), required only if \code{snowpack = TRUE}.}
      \item{\code{WindSpeed}: Wind speed (in m/s). If not available, this column can be left with \code{NA} values.}
      \item{\code{CO2}: Atmospheric (abovecanopy) CO2 concentration (in ppm). This column may not exist, or can be left with \code{NA} values. In both cases simulations will assume a constant value specified in \code{\link{defaultControl}}.}
     }
   }
   \item{latitude}{Latitude (in degrees). Required when \code{x$TranspirationMode = "Sperry"}.}
   \item{elevation, slope, aspect}{Elevation above sea level (in m), slope (in degrees) and aspect (in degrees from North). Required when \code{x$TranspirationMode = "Sperry"}. Elevation is also required for 'Granier' if snowpack dynamics are simulated.}
+  \item{CO2ByYear}{A named numeric vector with years as names and atmospheric CO2 concentration (in ppm) as values. Used to specify annual changes in CO2 concentration along the simulation (as an alternative to specifying daily values in \code{meteo}).}
 }
 \details{
   Detailed model description is available in the vignettes section. Simulations using the 'Sperry' transpiration mode are computationally much more expensive than those using the simple transpiration mode. 
@@ -47,7 +41,8 @@ growth(x, meteo,  latitude, elevation = NA, slope = NA, aspect = NA)
   \item{\code{"growthOutput"}: An copy of the final state of the object \code{x} of class \code{\link{growthInput}}.}
   \item{\code{"WaterBalance"}: A data frame where different water balance variables (see \code{\link{spwb}}).}
   \item{\code{"EnergyBalance"}: A data frame with the daily values of energy balance components for the soil and the canopy (only for \code{transpirationMode = "Sperry"}; see \code{\link{spwb}}).}
-  \item{\code{"BiomassBalance"}: A data frame with the daily values of biomass balance components.}
+  \item{\code{"CarbonBalance"}: A data frame where different stand-level carbon balance components (gross primary production, maintenance respiration, synthesis respiration and net primary production), all in g C · m-2.}
+  \item{\code{"BiomassBalance"}: A data frame with the daily values of stand biomass balance components (in g dry · m-2.}
   \item{\code{"Temperature"}: A data frame with the daily values of minimum/mean/maximum temperatures for the atmosphere (input), canopy and soil (only for \code{transpirationMode = "Sperry"}; see \code{\link{spwb}}).}
   \item{\code{"Soil"}: A data frame where different soil variables  (see \code{\link{spwb}}).}
   \item{\code{"Stand"}: A data frame where different stand-level variables (see \code{\link{spwb}}).}
@@ -65,8 +60,6 @@ growth(x, meteo,  latitude, elevation = NA, slope = NA, aspect = NA)
         \item{\code{"SugarSapwood"}: Sugar concentration (mol·l-1) in sapwood.}
         \item{\code{"StarchSapwood"}: Starch concentration (mol·l-1) in sapwood.}
         \item{\code{"SugarTransport"}:  Average instantaneous rate of carbon transferred between leaves and stem compartments via floem (mol gluc·s-1).}
-        \item{\code{"LeafPI0"}: Osmotic potential at full turgor of symplastic leaf tissue (MPa).}
-        \item{\code{"StemPI0"}: Osmotic potential at full turgor of symplastic stem tissue (MPa).}
       }
   \item{\code{"PlantBiomassBalance"}: A list of daily plant biomass balance results for plant cohorts, with elements:}
     \itemize{
@@ -136,8 +129,7 @@ control = defaultControl("Sperry")
 #Initialize vegetation input
 x2 = forest2growthInput(exampleforestMED,examplesoil, SpParamsMED, control)
 
-#Call simulation function (11 days)
-d = 100:110
-G2<-growth(x2, examplemeteo[d,], latitude = 41.82592, elevation = 100)
+#Call simulation function
+G2<-growth(x2, examplemeteo, latitude = 41.82592, elevation = 100)
 }
 }

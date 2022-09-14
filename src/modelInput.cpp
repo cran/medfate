@@ -37,6 +37,10 @@ DataFrame paramsPhenology(DataFrame above, DataFrame SpParams, bool fillMissingS
       LAI_expanded[j] = 0.0; //Set initial LAI to zero, assuming simulations start at Jan 1st
       if(phenoType[j] == "winter-semideciduous") LAI_dead[j] = LAI_live[j];
     }
+    if(phenoType[j]=="oneflush-evergreen") {
+      //Do not allow flushing all leaves at once (i.e. limit leaf duration to 1.25 yrs)
+      leafDuration[j] = std::max(leafDuration[j], 1.25);
+    }
   } 
   DataFrame paramsPhenologydf = DataFrame::create(
     _["PhenologyType"] = phenoType,
@@ -178,7 +182,9 @@ DataFrame paramsTranspirationGranier(DataFrame above,  DataFrame SpParams, bool 
   NumericVector Tmax_LAI = speciesNumericParameterWithImputation(SP, SpParams, "Tmax_LAI", true);
   NumericVector Tmax_LAIsq = speciesNumericParameterWithImputation(SP, SpParams, "Tmax_LAIsq", true);
   NumericVector WUE = speciesNumericParameterWithImputation(SP, SpParams, "WUE", fillMissingSpParams);
-  NumericVector WUE_decay = speciesNumericParameterWithImputation(SP, SpParams, "WUE_decay", true);
+  NumericVector WUE_par = speciesNumericParameterWithImputation(SP, SpParams, "WUE_par", true);
+  NumericVector WUE_co2 = speciesNumericParameterWithImputation(SP, SpParams, "WUE_co2", true);
+  NumericVector WUE_vpd = speciesNumericParameterWithImputation(SP, SpParams, "WUE_vpd", true);
   NumericVector Psi_Critic = speciesNumericParameterWithImputation(SP, SpParams, "Psi_Critic", fillMissingSpParams);
   NumericVector Psi_Extract = speciesNumericParameterWithImputation(SP, SpParams, "Psi_Extract", fillMissingSpParams);
   NumericVector Gswmin = speciesNumericParameterWithImputation(SP, SpParams, "Gswmin", fillMissingSpParams);
@@ -189,7 +195,9 @@ DataFrame paramsTranspirationGranier(DataFrame above,  DataFrame SpParams, bool 
                                                       _["Psi_Extract"]=Psi_Extract,
                                                       _["Psi_Critic"] = Psi_Critic,
                                                       _["WUE"] = WUE, 
-                                                      _["WUE_decay"] = WUE_decay);
+                                                      _["WUE_par"] = WUE_par, 
+                                                      _["WUE_co2"] = WUE_co2,
+                                                      _["WUE_vpd"] = WUE_vpd);
   paramsTranspirationdf.attr("row.names") = above.attr("row.names");
   return(paramsTranspirationdf);
 }
@@ -198,6 +206,8 @@ DataFrame paramsTranspirationSperry(DataFrame above, List soil, DataFrame SpPara
   IntegerVector SP = above["SP"];
   NumericVector H = above["H"];
   int numCohorts = SP.size();
+  
+  double maximumStemConductance = control["maximumStemConductance"];
   double fracRootResistance = control["fracRootResistance"];
   double fracLeafResistance = control["fracLeafResistance"];
   String transpirationMode = control["transpirationMode"];
@@ -233,7 +243,8 @@ DataFrame paramsTranspirationSperry(DataFrame above, List soil, DataFrame SpPara
   for(int c=0;c<numCohorts;c++){
     //Stem maximum conductance (in mmol·m-2·s-1·MPa-1)
     VCstem_kmax[c]=maximumStemHydraulicConductance(Kmax_stemxylem[c], Hmed[c], Al2As[c],H[c],control["taper"]); 
-  
+    VCstem_kmax[c]=std::min(VCstem_kmax[c], maximumStemConductance);
+    
     //Root maximum conductance
     double rstem = (1.0/VCstem_kmax[c]);
     double rleaf = (1.0/VCleaf_kmax[c]);
@@ -439,6 +450,7 @@ DataFrame paramsGrowth(DataFrame above, DataFrame SpParams, List control) {
   NumericVector RERleaf = speciesNumericParameterWithImputation(SP, SpParams, "RERleaf", fillMissingSpParams);
   NumericVector RERsapwood = speciesNumericParameterWithImputation(SP, SpParams, "RERsapwood", fillMissingSpParams);
   NumericVector RERfineroot = speciesNumericParameterWithImputation(SP, SpParams, "RERfineroot", fillMissingSpParams);
+  NumericVector SRsapwood = speciesNumericParameterWithImputation(SP, SpParams, "SRsapwood", fillMissingSpParams);
   
   
   NumericVector CCleaf = speciesNumericParameter(SP, SpParams, "CCleaf");
@@ -448,7 +460,6 @@ DataFrame paramsGrowth(DataFrame above, DataFrame SpParams, List control) {
   NumericVector RGRsapwoodmax = speciesNumericParameter(SP, SpParams, "RGRsapwoodmax");
   NumericVector RGRcambiummax = speciesNumericParameter(SP, SpParams, "RGRcambiummax");
   NumericVector RGRfinerootmax = speciesNumericParameter(SP, SpParams, "RGRfinerootmax");
-  NumericVector SRsapwood = speciesNumericParameter(SP, SpParams, "SRsapwood");
   NumericVector SRfineroot = speciesNumericParameter(SP, SpParams, "SRfineroot");
   NumericVector fHDmin = speciesNumericParameter(SP, SpParams, "fHDmin");
   NumericVector fHDmax = speciesNumericParameter(SP, SpParams, "fHDmax");
@@ -704,8 +715,7 @@ DataFrame internalWaterDataFrame(DataFrame above, String transpirationMode) {
                            Named("LeafPsi") = NumericVector(numCohorts, -0.033),
                            Named("StemSympPsi") = NumericVector(numCohorts, -0.033),
                            Named("LeafSympPsi") = NumericVector(numCohorts, -0.033),
-                           Named("StemPLC") = NumericVector(numCohorts, 0.0),
-                           Named("NSPL") = NumericVector(numCohorts, 1.0));
+                           Named("StemPLC") = NumericVector(numCohorts, 0.0));
   }
   df.attr("row.names") = above.attr("row.names");
   return(df);
@@ -965,51 +975,58 @@ List cloneInput(List input) {
   return(clone(input));
 }
 
-// [[Rcpp::export("forest2spwbInput")]]
-List forest2spwbInput(List x, List soil, DataFrame SpParams, List control, String mode = "MED") {
+List rootDistributionComplete(List x, DataFrame SpParams, bool fillMissingRootParams){
   DataFrame treeData = Rcpp::as<Rcpp::DataFrame>(x["treeData"]);
   DataFrame shrubData = Rcpp::as<Rcpp::DataFrame>(x["shrubData"]);
   int ntree = treeData.nrows();
   int nshrub = shrubData.nrows();
-  NumericVector treeZ95 = treeData["Z95"];
-  NumericVector shrubZ95 = shrubData["Z95"];  
-  NumericVector treeZ50 = treeData["Z50"];
-  NumericVector shrubZ50 = shrubData["Z50"];  
   NumericVector Z95(ntree+nshrub), Z50(ntree+nshrub);
+
+  NumericVector treeZ95 = treeData["Z95"];
+  NumericVector treeZ50 = treeData["Z50"];
+  IntegerVector treeSP = treeData["Species"];
+  NumericVector treeSPZ50 = speciesNumericParameter(treeSP, SpParams, "Z50");
+  NumericVector treeSPZ95 = speciesNumericParameter(treeSP, SpParams, "Z95");
   for(int i=0;i<ntree;i++) {
-    Z95[i] = treeZ95[i];
     Z50[i] = treeZ50[i];
+    Z95[i] = treeZ95[i];
+    if(fillMissingRootParams) {
+      if(NumericVector::is_na(Z50[i])) Z50[i] = treeSPZ50[i];
+      if(NumericVector::is_na(Z95[i])) Z95[i] = treeSPZ95[i];
+      if(NumericVector::is_na(Z50[i]) && !NumericVector::is_na(Z95[i])) Z50[i] = exp(log(Z95[i])/1.4);
+    }
   }
+  NumericVector shrubZ95 = shrubData["Z95"];  
+  NumericVector shrubZ50 = shrubData["Z50"];  
+  IntegerVector shrubSP = shrubData["Species"];
+  NumericVector shrubSPZ50 = speciesNumericParameter(shrubSP, SpParams, "Z50");
+  NumericVector shrubSPZ95 = speciesNumericParameter(shrubSP, SpParams, "Z95");
   for(int i=0;i<nshrub;i++) {
-    Z95[ntree+i] = shrubZ95[i]; 
     Z50[ntree+i] = shrubZ50[i]; 
+    Z95[ntree+i] = shrubZ95[i]; 
+    if(fillMissingRootParams) {
+      if(NumericVector::is_na(Z50[ntree+i])) Z50[ntree+i] = shrubSPZ50[i];
+      if(NumericVector::is_na(Z95[ntree+i])) Z95[ntree+i] = shrubSPZ95[i];
+      if(NumericVector::is_na(Z50[ntree+i]) && !NumericVector::is_na(Z95[ntree+i])) Z50[ntree+i] = exp(log(Z95[ntree+i])/1.4);
+    }
   }
+
+  return(List::create(_["Z50"] = Z50, _["Z95"] = Z95));  
+}
+
+// [[Rcpp::export("forest2spwbInput")]]
+List forest2spwbInput(List x, List soil, DataFrame SpParams, List control, String mode = "MED") {
+  List rdc = rootDistributionComplete(x, SpParams, control["fillMissingRootParams"]);
   DataFrame above = forest2aboveground(x, SpParams, NA_REAL, mode);
-  return(spwbInput(above, Z50, Z95, soil, SpParams, control));
+  return(spwbInput(above, rdc["Z50"], rdc["Z95"], soil, SpParams, control));
 }
 
 
 // [[Rcpp::export("forest2growthInput")]]
 List forest2growthInput(List x, List soil, DataFrame SpParams, List control) {
-  DataFrame treeData = Rcpp::as<Rcpp::DataFrame>(x["treeData"]);
-  DataFrame shrubData = Rcpp::as<Rcpp::DataFrame>(x["shrubData"]);
-  int ntree = treeData.nrows();
-  int nshrub = shrubData.nrows();
-  NumericVector treeZ95 = treeData["Z95"];
-  NumericVector shrubZ95 = shrubData["Z95"];  
-  NumericVector treeZ50 = treeData["Z50"];
-  NumericVector shrubZ50 = shrubData["Z50"];  
-  NumericVector Z95(ntree+nshrub), Z50(ntree+nshrub);
-  for(int i=0;i<ntree;i++) {
-    Z95[i] = treeZ95[i];
-    Z50[i] = treeZ50[i];
-  }
-  for(int i=0;i<nshrub;i++) {
-    Z95[ntree+i] = shrubZ95[i]; 
-    Z50[ntree+i] = shrubZ50[i]; 
-  }
+  List rdc = rootDistributionComplete(x, SpParams, control["fillMissingRootParams"]);
   DataFrame above = forest2aboveground(x, SpParams, NA_REAL);
-  return(growthInput(above,  Z50, Z95, soil, SpParams, control));
+  return(growthInput(above,  rdc["Z50"], rdc["Z95"], soil, SpParams, control));
 }
 
 // [[Rcpp::export("resetInputs")]]
@@ -1026,7 +1043,7 @@ void resetInputs(List x) {
     int ncanlayers = can.nrow();
     for(int i=0;i<ncanlayers;i++) {
       Tair[i] = NA_REAL;
-      Cair[i] = control["Catm"];
+      Cair[i] = NA_REAL;
       VPair[i] = NA_REAL;
     }
   }
@@ -1059,7 +1076,6 @@ void resetInputs(List x) {
     NumericVector LeafSympPsi = Rcpp::as<Rcpp::NumericVector>(internalWater["LeafSympPsi"]);
     NumericVector LeafPsi = Rcpp::as<Rcpp::NumericVector>(internalWater["LeafPsi"]);
     NumericVector Einst = Rcpp::as<Rcpp::NumericVector>(internalWater["Einst"]);
-    NumericVector NSPL = Rcpp::as<Rcpp::NumericVector>(internalWater["NSPL"]);
     for(int i=0;i<LeafPsi.size();i++) {
       Einst[i] = 0.0;
       RootCrownPsi[i] = -0.033;
@@ -1069,7 +1085,6 @@ void resetInputs(List x) {
       LeafSympPsi[i] = -0.033;
       StemSympPsi[i] = -0.033;
       StemPLC[i] = 0.0;
-      NSPL[i] = 1.0;
       for(int j=0;j<RhizoPsi.ncol();j++) RhizoPsi(i,j) = -0.033;
     }
   } else {

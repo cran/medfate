@@ -485,6 +485,15 @@ NumericVector maxFMCWithImputation(IntegerVector SP, DataFrame SpParams) {
   }
   return(maxFMC);
 }
+NumericVector minFMCWithImputation(IntegerVector SP, DataFrame SpParams) {
+  NumericVector minFMC = speciesNumericParameter(SP, SpParams, "minFMC");
+  for(int c=0;c<minFMC.size();c++) {
+    if(NumericVector::is_na(minFMC[c])) {
+      minFMC[c] = 80.0; //To be improved
+    }
+  }
+  return(minFMC);
+}
 NumericVector stemPI0WithImputation(IntegerVector SP, DataFrame SpParams) {
   NumericVector WoodDensity = woodDensityWithImputation(SP, SpParams);
   NumericVector StemPI0 = speciesNumericParameter(SP, SpParams, "StemPI0");
@@ -611,7 +620,7 @@ NumericVector WUEWithImputation(IntegerVector SP, DataFrame SpParams) {
   NumericVector WUE = speciesNumericParameter(SP, SpParams, "WUE");
   for(int c=0;c<WUE.size();c++) {
     if(NumericVector::is_na(WUE[c])) {
-      WUE[c] = 5.0; //default value
+      WUE[c] = 7.9; 
     }
   }
   //Access internal data frame "trait_family_means"
@@ -648,14 +657,32 @@ NumericVector WUEWithImputation(IntegerVector SP, DataFrame SpParams) {
   // }
   return(WUE);
 }
-NumericVector WUEDecayWithImputation(IntegerVector SP, DataFrame SpParams) {
-  NumericVector WUE_decay = speciesNumericParameter(SP, SpParams, "WUE_decay");
-  for(int c=0;c<WUE_decay.size();c++) {
-    if(NumericVector::is_na(WUE_decay[c])) {
-      WUE_decay[c] = 0.2812; //default value
+NumericVector WUEPARWithImputation(IntegerVector SP, DataFrame SpParams) {
+  NumericVector WUE_par = speciesNumericParameter(SP, SpParams, "WUE_par");
+  for(int c=0;c<WUE_par.size();c++) {
+    if(NumericVector::is_na(WUE_par[c])) {
+      WUE_par[c] = 0.3643; //default value
     }
   }
-  return(WUE_decay);
+  return(WUE_par);
+}
+NumericVector WUECO2WithImputation(IntegerVector SP, DataFrame SpParams) {
+  NumericVector WUE_co2 = speciesNumericParameter(SP, SpParams, "WUE_co2");
+  for(int c=0;c<WUE_co2.size();c++) {
+    if(NumericVector::is_na(WUE_co2[c])) {
+      WUE_co2[c] = 0.002757;
+    }
+  }
+  return(WUE_co2);
+}
+NumericVector WUEVPDWithImputation(IntegerVector SP, DataFrame SpParams) {
+  NumericVector WUE_vpd = speciesNumericParameter(SP, SpParams, "WUE_vpd");
+  for(int c=0;c<WUE_vpd.size();c++) {
+    if(NumericVector::is_na(WUE_vpd[c])) {
+      WUE_vpd[c] = -0.4636;
+    }
+  }
+  return(WUE_vpd);
 }
 NumericVector psi50Imputation(NumericVector psi50, IntegerVector SP, DataFrame SpParams) {
   CharacterVector Group = speciesCharacterParameter(SP, SpParams, "Group");
@@ -967,11 +994,13 @@ NumericVector VCrootDWithImputation(IntegerVector SP, DataFrame SpParams) {
   NumericVector VCstem_c = VCstemCWithImputation(SP, SpParams);
   for(int c=0;c<VCroot_d.size();c++) {
     if(NumericVector::is_na(VCroot_d[c])) {
-      double psi50stem = VCstem_d[c]*pow(0.6931472,1.0/VCstem_c[c]);
-      double psi50root = 0.742*psi50stem + 0.4892; //Regression using data from Bartlett et al. 2016
-      double psi88root = 1.2593*psi50root - 1.4264; //Regression using data from Choat et al. 2012
+      double psi50stem = std::min(-0.25, VCstem_d[c]*pow(0.6931472,1.0/VCstem_c[c]));
+      double psi50root = std::min(-0.25, 0.742*psi50stem + 0.4892); //Regression using data from Bartlett et al. 2016
+      double psi88root = std::min(-0.5, 1.2593*psi50root - 1.4264); //Regression using data from Choat et al. 2012
       NumericVector par = psi2Weibull(psi50root, psi88root);
       VCroot_d[c] = par["d"];
+      VCroot_d[c] = std::min(-0.25, VCroot_d[c]);
+      // Rcout<< c<< " d: "<< VCroot_d[c]<<"\n";
     }
   }
   return(VCroot_d);
@@ -982,11 +1011,12 @@ NumericVector VCrootCWithImputation(IntegerVector SP, DataFrame SpParams) {
   NumericVector VCstem_c = VCstemCWithImputation(SP, SpParams);
   for(int c=0;c<VCroot_c.size();c++) {
     if(NumericVector::is_na(VCroot_c[c])) {
-      double psi50stem = VCstem_d[c]*pow(0.6931472,1.0/VCstem_c[c]);
-      double psi50root = 0.742*psi50stem + 0.4892; //Regression using data from Bartlett et al. 2016
-      double psi88root = 1.2593*psi50root - 1.4264; //Regression using data from Choat et al. 2012
+      double psi50stem = std::min(-0.25, VCstem_d[c]*pow(0.6931472,1.0/VCstem_c[c]));
+      double psi50root = std::min(-0.25, 0.742*psi50stem + 0.4892); //Regression using data from Bartlett et al. 2016
+      double psi88root = std::min(-0.5, 1.2593*psi50root - 1.4264); //Regression using data from Choat et al. 2012
       NumericVector par = psi2Weibull(psi50root, psi88root);
       VCroot_c[c] = par["c"];
+      // Rcout<< c<< " c: "<< VCroot_c[c]<<"\n";
     }
   }
   return(VCroot_c);
@@ -1014,11 +1044,22 @@ NumericVector SapwoodRespirationRateWithImputation(IntegerVector SP, DataFrame S
       // double RER_nmolCO2_g_s = pow(10.0, 1.024 + 1.344*log10(Nsapwood_mmol_g)); //nmol CO2·g-1·s-1
       // RERsapwood[c] = 24.0*3600.0*(RER_nmolCO2_g_s/6.0)*(1e-9)*180.156; // nmol CO2·g-1·s-1 to g gluc·g-1·d-1
       // ESTIMATES ARE TOO HIGH
-      RERsapwood[c] = 5.18e-05;
+      RERsapwood[c] = 4.93e-05;
     }
   }
   return(RERsapwood);
 }
+NumericVector SapwoodSenescenceRateWithImputation(IntegerVector SP, DataFrame SpParams) {
+  NumericVector SRsapwood = speciesNumericParameter(SP, SpParams, "SRsapwood");
+  NumericVector RGRcambiummax = speciesNumericParameter(SP, SpParams, "RGRcambiummax");
+  for(int c=0;c<SRsapwood.size();c++) {
+    if(NumericVector::is_na(SRsapwood[c])) {
+      if(!NumericVector::is_na(RGRcambiummax[c])) SRsapwood[c] = 0.05544*RGRcambiummax[c];
+    }
+  }
+  return(SRsapwood);
+}
+
 NumericVector FinerootRespirationRateWithImputation(IntegerVector SP, DataFrame SpParams) {
   NumericVector RERfineroot = speciesNumericParameter(SP, SpParams, "RERfineroot");
   NumericVector Nfineroot = NsapwoodWithImputation(SP, SpParams);
@@ -1289,6 +1330,7 @@ NumericVector speciesNumericParameterWithImputation(IntegerVector SP, DataFrame 
     else if(parName == "RLD") return(rootLengthDensityWithImputation(SP, SpParams));
     else if(parName == "conduit2sapwood") return(conduit2sapwoodWithImputation(SP, SpParams));
     else if(parName == "maxFMC") return(maxFMCWithImputation(SP, SpParams));
+    else if(parName == "minFMC") return(minFMCWithImputation(SP, SpParams));
     else if(parName == "StemPI0") return(stemPI0WithImputation(SP, SpParams));
     else if(parName == "StemEPS") return(stemEPSWithImputation(SP, SpParams));
     else if(parName == "StemAF") return(stemAFWithImputation(SP, SpParams));
@@ -1298,7 +1340,9 @@ NumericVector speciesNumericParameterWithImputation(IntegerVector SP, DataFrame 
     else if(parName == "Tmax_LAI") return(TmaxLAIWithImputation(SP, SpParams));
     else if(parName == "Tmax_LAIsq") return(TmaxLAIsqWithImputation(SP, SpParams));
     else if(parName == "WUE") return(WUEWithImputation(SP, SpParams));
-    else if(parName == "WUE_decay") return(WUEDecayWithImputation(SP, SpParams));
+    else if(parName == "WUE_par") return(WUEPARWithImputation(SP, SpParams));
+    else if(parName == "WUE_co2") return(WUECO2WithImputation(SP, SpParams));
+    else if(parName == "WUE_vpd") return(WUEVPDWithImputation(SP, SpParams));
     else if(parName == "Psi_Critic") return(psiCriticWithImputation(SP, SpParams));
     else if(parName == "Psi_Extract") return(psiExtractWithImputation(SP, SpParams));
     else if(parName == "Kmax_stemxylem") return(KmaxStemXylemWithImputation(SP, SpParams));
@@ -1312,6 +1356,7 @@ NumericVector speciesNumericParameterWithImputation(IntegerVector SP, DataFrame 
     else if(parName == "RERleaf") return(LeafRespirationRateWithImputation(SP, SpParams));
     else if(parName == "RERsapwood") return(SapwoodRespirationRateWithImputation(SP, SpParams));
     else if(parName == "RERfineroot") return(FinerootRespirationRateWithImputation(SP, SpParams));
+    else if(parName == "SRsapwood") return(SapwoodSenescenceRateWithImputation(SP, SpParams));
     else if(parName == "Vmax298") return(Vmax298WithImputation(SP, SpParams));
     else if(parName == "Jmax298") return(Jmax298WithImputation(SP, SpParams));
     else if(parName == "VCstem_c") return(VCstemCWithImputation(SP, SpParams));

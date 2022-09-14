@@ -326,11 +326,11 @@ List growthDayInner(List x, NumericVector meteovec,
   String transpirationMode = control["transpirationMode"];
   String soilFunctions = control["soilFunctions"];
   String mortalityMode = control["mortalityMode"];
+  bool subdailyCarbonBalance = control["subdailyCarbonBalance"];
   double mortalityRelativeSugarThreshold= control["mortalityRelativeSugarThreshold"];
   double mortalityRWCThreshold= control["mortalityRWCThreshold"];
   bool allowDessication = control["allowDessication"];
   bool allowStarvation = control["allowStarvation"];
-  bool allowDefoliation = control["allowDefoliation"];
   bool sinkLimitation = control["sinkLimitation"];
   bool shrubDynamics = control["shrubDynamics"];
   String allocationStrategy = control["allocationStrategy"];
@@ -339,14 +339,14 @@ List growthDayInner(List x, NumericVector meteovec,
   String rhizosphereOverlap = control["rhizosphereOverlap"];
   bool plantWaterPools = (rhizosphereOverlap!="total");
   bool taper = control["taper"];
-  bool nonStomatalPhotosynthesisLimitation = control["nonStomatalPhotosynthesisLimitation"];
   double averageFracRhizosphereResistance = control["averageFracRhizosphereResistance"];
   double phloemConductanceFactor = control["phloemConductanceFactor"];
   double nonSugarConcentration = control["nonSugarConcentration"];
   List equilibriumOsmoticConcentration  = control["equilibriumOsmoticConcentration"];
   double equilibriumLeafTotalConc = equilibriumOsmoticConcentration["leaf"];
   double equilibriumSapwoodTotalConc = equilibriumOsmoticConcentration["sapwood"];
-
+  double maximumStemConductance = control["maximumStemConductance"];
+  
   //Soil-plant water balance
   List spwbOut;
   if(transpirationMode=="Granier") {
@@ -426,9 +426,7 @@ List growthDayInner(List x, NumericVector meteovec,
   
   //Internal state variables
   internalWater = Rcpp::as<Rcpp::DataFrame>(x["internalWater"]);
-  NumericVector NSPL;
-  if(transpirationMode=="Sperry")  NSPL= Rcpp::as<Rcpp::NumericVector>(internalWater["NSPL"]);
-  
+
   //Values at the end of the day (after calling spwb)
   NumericVector StemPLC = Rcpp::as<Rcpp::NumericVector>(internalWater["StemPLC"]);
   NumericVector PlantPsi, psiApoLeaf, psiApoStem, psiSympLeaf, psiSympStem;
@@ -463,11 +461,11 @@ List growthDayInner(List x, NumericVector meteovec,
   
   DataFrame Plants = Rcpp::as<Rcpp::DataFrame>(spwbOut["Plants"]);
   List PlantsInst;
-  NumericVector Ag, PARcohort;
+  NumericVector Ag = Plants["GrossPhotosynthesis"];
+  NumericVector PARcohort;
   NumericMatrix AgStep, AnStep;
   int numSteps = 1;
   if(transpirationMode=="Granier") {
-    Ag = Plants["GrossPhotosynthesis"];
     PARcohort= Plants["FPAR"];
   } else {
     PlantsInst = spwbOut["PlantsInst"];
@@ -480,6 +478,7 @@ List growthDayInner(List x, NumericVector meteovec,
   NumericVector Tcan;
   NumericMatrix StemSympPsiInst, LeafSympPsiInst, StemSympRWCInst, LeafSympRWCInst;
   List eb;
+  double tcan_day = NA_REAL;
   if(transpirationMode=="Sperry") {
     StemSympPsiInst =  Rcpp::as<Rcpp::NumericMatrix>(PlantsInst["StemSympPsi"]);
     LeafSympPsiInst =  Rcpp::as<Rcpp::NumericMatrix>(PlantsInst["LeafSympPsi"]);
@@ -489,6 +488,7 @@ List growthDayInner(List x, NumericVector meteovec,
     eb = spwbOut["EnergyBalance"];  
     DataFrame tempDF =  Rcpp::as<Rcpp::DataFrame>(eb["Temperature"]);
     Tcan = Rcpp::as<Rcpp::NumericVector>(tempDF["Tcan"]);
+    tcan_day = meteoland::utils_averageDaylightTemperature(min(Tcan), max(Tcan));
   }
   
 
@@ -532,11 +532,17 @@ List growthDayInner(List x, NumericVector meteovec,
   
   //Transpiration parameters
   DataFrame paramsTransp = Rcpp::as<Rcpp::DataFrame>(x["paramsTranspiration"]);
-  NumericVector Psi_Extract, WUE_decay, Kmax_stemxylem, Plant_kmax, VCleaf_kmax, VCleaf_c, VCleaf_d;
+  NumericVector Psi_Extract, Kmax_stemxylem, Plant_kmax, VCleaf_kmax, VCleaf_c, VCleaf_d;
   NumericVector VCstem_kmax, VCstem_c, VCstem_d, VCroot_kmaxVEC, VCroot_c, VCroot_d, VGrhizo_kmaxVEC;
+  NumericVector WUE_par(numCohorts, 0.3643);
   if(transpirationMode=="Granier") {
     Psi_Extract = Rcpp::as<Rcpp::NumericVector>(paramsTransp["Psi_Extract"]);
-    WUE_decay = Rcpp::as<Rcpp::NumericVector>(paramsTransp["WUE_decay"]);
+    if(paramsTransp.containsElementNamed("WUE_par")) {
+      WUE_par = Rcpp::as<Rcpp::NumericVector>(paramsTransp["WUE_par"]);
+    }
+    if(paramsTransp.containsElementNamed("WUE_decay")) { //For compatibility with previous versions (2.7.5)
+      WUE_par = Rcpp::as<Rcpp::NumericVector>(paramsTransp["WUE_decay"]);
+    }
   } else {
     Kmax_stemxylem = paramsTransp["Kmax_stemxylem"];
     Plant_kmax= paramsTransp["Plant_kmax"];
@@ -558,8 +564,6 @@ List growthDayInner(List x, NumericVector meteovec,
   NumericVector StemEPS = Rcpp::as<Rcpp::NumericVector>(paramsWaterStorage["StemEPS"]);
   NumericVector StemAF = Rcpp::as<Rcpp::NumericVector>(paramsWaterStorage["StemAF"]);
   NumericVector Vsapwood = Rcpp::as<Rcpp::NumericVector>(paramsWaterStorage["Vsapwood"]); //l·m-2 = mm
-  NumericVector LeafPI0 = Rcpp::as<Rcpp::NumericVector>(paramsWaterStorage["LeafPI0"]);
-  NumericVector LeafEPS = Rcpp::as<Rcpp::NumericVector>(paramsWaterStorage["LeafEPS"]);
   NumericVector LeafAF = Rcpp::as<Rcpp::NumericVector>(paramsWaterStorage["LeafAF"]);
   NumericVector Vleaf = Rcpp::as<Rcpp::NumericVector>(paramsWaterStorage["Vleaf"]); //l·m-2 = mm
   
@@ -591,11 +595,16 @@ List growthDayInner(List x, NumericVector meteovec,
   NumericVector deltaLAgrowth(numCohorts,0.0);
   NumericVector deltaSAgrowth(numCohorts,0.0);
   
+  //Stand carbon balance
+  double standGrossPrimaryProduction = 0.0;
+  double standMaintenanceRespiration = 0.0;
+  double standSynthesisRespiration = 0.0;
+  
   double equilibriumLeafSugarConc = equilibriumLeafTotalConc - nonSugarConcentration;
   double equilibriumSapwoodSugarConc = equilibriumSapwoodTotalConc - nonSugarConcentration;
   double mortalitySugarThreshold = equilibriumSapwoodSugarConc*mortalityRelativeSugarThreshold;
 
-  double rcellmax = relative_expansion_rate(0.0 ,30.0, -2.0,0.5,0.05,5.0);
+  double rcellmax = relative_expansion_rate(0.0 ,30.0, -1.0, 0.5, 0.05, 5.0);
   
   //Initial Biomass balance
   NumericVector LeafBiomassBalance(numCohorts,0.0), FineRootBiomassBalance(numCohorts,0.0);
@@ -630,10 +639,13 @@ List growthDayInner(List x, NumericVector meteovec,
       double leafRespDay = 0.0;
       double sapwoodResp = 0.0;
       double finerootResp = 0.0;
+      double synthesisRespLA = 0.0;
+      double synthesisRespSA = 0.0;
+      double synthesisRespFRB = 0.0;   
       
       //Estimate phloem conductance as a factor of stem conductance
       double k_phloem = NA_REAL;
-      if(transpirationMode=="Sperry") k_phloem = VCstem_kmax[j]*phloemConductanceFactor*(0.018/1000.0);
+      if(subdailyCarbonBalance) k_phloem = VCstem_kmax[j]*phloemConductanceFactor*(0.018/1000.0);
       
       //Xylogenesis
       // List ring = ringList[j];
@@ -641,17 +653,17 @@ List growthDayInner(List x, NumericVector meteovec,
       NumericVector rfineroot(numLayers);
       if(transpirationMode=="Granier") {
         // grow_ring(ring, PlantPsi[j] ,tday, 10.0);
-        rleafcell = std::min(rcellmax, relative_expansion_rate(PlantPsi[j] ,tday, LeafPI0[j],0.5,0.05,5.0));
-        rcambiumcell = std::min(rcellmax, relative_expansion_rate(PlantPsi[j] ,tday, StemPI0[j],0.5,0.05,5.0));
-        for(int s=0;s<numLayers;s++) rfineroot[s] = relative_expansion_rate(psiSoil[s] ,tday, StemPI0[j],0.5,0.05,5.0);
+        rleafcell = std::min(rcellmax, relative_expansion_rate(PlantPsi[j] ,tday, -1.0, 0.5,0.05,5.0));
+        rcambiumcell = std::min(rcellmax, relative_expansion_rate(PlantPsi[j] ,tday, -1.0, 0.5,0.05,5.0));
+        for(int l=0;l<numLayers;l++) rfineroot[l] = std::min(rcellmax, relative_expansion_rate(psiSoil[l] ,tday, -1.0 ,0.5,0.05,5.0));
+        // if(j==0) Rcout<<j<< " Psi:"<< PlantPsi[j]<< " r:"<< rcambiumcell<<"\n";
       } else {
-        // grow_ring(ringList[j], psiSympStem[j] ,tday, 10.0);
-        rleafcell = std::min(rcellmax, relative_expansion_rate(psiSympLeaf[j] ,tday, LeafPI0[j],0.5,0.05,5.0));
-        rcambiumcell = std::min(rcellmax, relative_expansion_rate(psiSympStem[j] ,tday, StemPI0[j],0.5,0.05,5.0));
-        for(int s=0;s<numLayers;s++) rfineroot[s] = relative_expansion_rate(RhizoPsi(j,s) ,tday, StemPI0[j],0.5,0.05,5.0);
+        rleafcell = std::min(rcellmax, relative_expansion_rate(psiSympLeaf[j] ,tcan_day, -1.0, 0.5,0.05,5.0));
+        rcambiumcell = std::min(rcellmax, relative_expansion_rate(psiSympStem[j] ,tcan_day, -1.0, 0.5,0.05,5.0));
+        for(int l=0;l<numLayers;l++) rfineroot[l] = std::min(rcellmax, relative_expansion_rate(RhizoPsi(j,l) ,Tsoil[l], -1.0, 0.5,0.05,5.0));
+        // if(j==0) Rcout<<j<< " Psi:"<< psiSympStem[j]<< " pi0:"<< " r:"<< rcambiumcell<<"\n";
       }
-      
-      if(transpirationMode=="Granier") {
+      if(!subdailyCarbonBalance) {
         //MAINTENANCE RESPIRATION
         //Respiratory biomass (g dw · ind-1)
         double leafSugarMass = sugarLeaf[j]*(Volume_leaves[j]*glucoseMolarMass);
@@ -662,14 +674,15 @@ List growthDayInner(List x, NumericVector meteovec,
         double B_resp_fineroots = fineRootBiomass[j];
         double QR = qResp(tday);
         if(LAexpanded>0.0) {
-          leafRespDay = B_resp_leaves*RERleaf[j]*QR*std::min(1.0, pow(PARcohort[j]/100.0,WUE_decay[j]));
+          leafRespDay = B_resp_leaves*RERleaf[j]*QR*std::min(1.0, pow(PARcohort[j]/100.0,WUE_par[j]));
         }
         sapwoodResp = B_resp_sapwood*RERsapwood[j]*QR;
         finerootResp = B_resp_fineroots*RERfineroot[j]*QR*(LAexpanded/LAlive);
         MaintenanceRespiration[j] += (leafRespDay+sapwoodResp+finerootResp)/TotalLivingBiomass[j]; 
-        
+
         //PHOTOSYNTHESIS
         if(LAexpanded>0.0) {
+          standGrossPrimaryProduction += Ag[j]; //Add GPP in gC · m-2
           
           //gross fotosynthesis
           double leafAgC = Ag[j]/(N[j]/10000.0); //Translate g C · m-2 to g C ·ind-1
@@ -686,13 +699,14 @@ List growthDayInner(List x, NumericVector meteovec,
         
         
         if(leafUnfolding[j]) {
-          double deltaLApheno = std::max(leafAreaTarget[j] - LAexpanded, 0.0);
+          double deltaLApheno = std::max(leafAreaTarget[j]*(1.0 - StemPLC[j]) - LAexpanded, 0.0);
           double deltaLAsink = std::min(deltaLApheno, SA[j]*RGRleafmax[j]*(rleafcell/rcellmax));
           if(!sinkLimitation) deltaLAsink = std::min(deltaLApheno, SA[j]*RGRleafmax[j]); //Deactivates temperature and turgor limitation
           double deltaLAavailable = 0.0;
           deltaLAavailable = std::max(0.0, (starchSapwood[j]-minimumStarchForPrimaryGrowth)*(glucoseMolarMass*Volume_sapwood[j])/costPerLA);
           deltaLAgrowth[j] = std::min(deltaLAsink, deltaLAavailable);
           growthCostLA = deltaLAgrowth[j]*costPerLA;
+          synthesisRespLA = growthCostLA*(CCleaf[j] - 1.0)/CCleaf[j];
         }
         
         //fine root growth
@@ -704,6 +718,7 @@ List growthDayInner(List x, NumericVector meteovec,
             double deltaFRBavailable = std::max(0.0,(starchSapwood[j]-minimumStarchForPrimaryGrowth)*(glucoseMolarMass*Volume_sapwood[j])/CCfineroot[j]);
             deltaFRBgrowth[s] = std::min(deltaFRBpheno, std::min(deltaFRBsink, deltaFRBavailable));
             growthCostFRB += deltaFRBgrowth[s]*CCfineroot[j];
+            synthesisRespFRB += growthCostFRB*(CCfineroot[j] - 1.0)/CCfineroot[j];
           }
         }
         
@@ -724,12 +739,12 @@ List growthDayInner(List x, NumericVector meteovec,
           }
           double deltaSAavailable = std::max(0.0, (starchSapwood[j]-minimumStarchForSecondaryGrowth)*(glucoseMolarMass*Volume_sapwood[j])/costPerSA);
           deltaSAgrowth[j] = std::min(deltaSAsink, deltaSAavailable);
-          // Rcout<< SAring.size()<<" " <<j<< " "<< PlantPsi[j]<< " "<< LeafPI0[j]<<" dSAring "<<deltaSAring<< " dSAsink "<< deltaSAsink<<" dSAgrowth "<< deltaSAgrowth<<" rgrcellfile"<< rgrcellfile<<"\n";
+          // Rcout<< SAring.size()<<" " <<j<< " "<< PlantPsi[j]<< " "<<" dSAring "<<deltaSAring<< " dSAsink "<< deltaSAsink<<" dSAgrowth "<< deltaSAgrowth<<" rgrcellfile"<< rgrcellfile<<"\n";
           growthCostSA = deltaSAgrowth[j]*costPerSA; //increase cost (may be non zero if leaf growth was charged onto sapwood)
+          synthesisRespSA = growthCostSA*(CCsapwood[j] - 1.0)/CCsapwood[j];
         }
         
         GrowthCosts[j] +=(growthCostLA + growthCostSA + growthCostFRB)/TotalLivingBiomass[j]; //growth cost in g gluc · gdry-1
-        
         
         //PARTIAL CARBON BALANCE
         double leafSugarMassDelta = leafAgG - leafRespDay;
@@ -758,26 +773,16 @@ List growthDayInner(List x, NumericVector meteovec,
         //3.1 Carbon balance and growth by steps
         for(int s=0;s<numSteps;s++) {
           
-          // minimum concentration (mol gluc·l-1) to avoid turgor loss
-          // double leafTLP = turgorLossPoint(LeafPI0[j], LeafEPS[j]);
-          // double stemTLP = turgorLossPoint(StemPI0[j], StemEPS[j]);
-          // double rwcLeafTLP = symplasticRelativeWaterContent(leafTLP, LeafPI0[j], LeafEPS[j]);
-          // double rwcStemTLP = symplasticRelativeWaterContent(stemTLP, StemPI0[j], StemEPS[j]);
-          // tlpConcLeaf = sugarConcentration(leafTLP,Tcan[s], nonSugarConc)*(rwcLeafTLP/rwcLeaf(j,s)); 
-          // tlpConcSapwood = sugarConcentration(stemTLP,Tcan[s], nonSugarConc)*(rwcStemTLP/rwcStem(j,s)); 
-          
           //Transform sugar concentration (mol gluc · l-1) to sugar mass (g gluc)
-          // double lstvol = 0.001*(starchLeaf[j]/starchDensity);
-          // double sstvol = 0.001*(starchSapwood[j]/starchDensity);
           double leafSugarMassStep = sugarLeaf[j]*(Volume_leaves[j]*glucoseMolarMass);
           double sapwoodSugarMassStep = sugarSapwood[j]*(Volume_sapwood[j]*glucoseMolarMass);
-          
-
           
           //LEAF PHOTOSYNTHESIS and RESPIRATION
           double leafRespStep = 0.0;
           double leafAgStepG = 0.0, leafAnStepG=0.0;
           if(LAexpanded>0.0){
+            standGrossPrimaryProduction += AgStep(j,s); //Add GPP in gC · m-2
+            
             double leafAgStepC = AgStep(j,s)/(N[j]/10000.0); //Translate g C · m-2 · h-1 to g C · h-1
             double leafAnStepC = AnStep(j,s)/(N[j]/10000.0); //Translate g C · m-2 · h-1 to g C · h-1
             leafAgStepG = leafAgStepC*(glucoseMolarMass/(carbonMolarMass*6.0)); // from g C· h-1 to g gluc · h-1
@@ -809,7 +814,7 @@ List growthDayInner(List x, NumericVector meteovec,
           
           //Leaf growth
           if(leafUnfolding[j]) {
-            double deltaLApheno = std::max(leafAreaTarget[j] - LAexpanded, 0.0);
+            double deltaLApheno = std::max(leafAreaTarget[j]*(1.0 - StemPLC[j]) - LAexpanded, 0.0);
             double deltaLAsink = std::min(deltaLApheno, (1.0/((double) numSteps))*SA[j]*RGRleafmax[j]*(rleafcell/rcellmax));
             if(!sinkLimitation) deltaLAsink = std::min(deltaLApheno, (1.0/((double) numSteps))*SA[j]*RGRleafmax[j]); //Deactivates temperature and turgor limitation
             //Grow at expense of stem sugar
@@ -817,17 +822,19 @@ List growthDayInner(List x, NumericVector meteovec,
             double deltaLAgrowthStep = std::min(deltaLAsink, deltaLAavailable);
             growthCostLAStep += deltaLAgrowthStep*costPerLA;
             deltaLAgrowth[j] += deltaLAgrowthStep;
+            synthesisRespLA += deltaLAgrowthStep*(CCleaf[j] - 1.0)/CCleaf[j];
           }
           //fine root growth
           if(fineRootBiomass[j] < fineRootBiomassTarget[j]) {
-            for(int s = 0;s<numLayers;s++) {
+            for(int l = 0;l<numLayers;l++) {
               double deltaFRBpheno = std::max(fineRootBiomassTarget[j] - fineRootBiomass[j], 0.0);
-              double deltaFRBsink = (1.0/((double) numSteps))*(V(j,s)*fineRootBiomass[j])*RGRfinerootmax[j]*(rfineroot[s]/rcellmax);
-              if(!sinkLimitation) deltaFRBsink = (1.0/((double) numSteps))*(V(j,s)*fineRootBiomass[j])*RGRfinerootmax[j]; //Deactivates temperature and turgor limitation
+              double deltaFRBsink = (1.0/((double) numSteps))*(V(j,l)*fineRootBiomass[j])*RGRfinerootmax[j]*(rfineroot[l]/rcellmax);
+              if(!sinkLimitation) deltaFRBsink = (1.0/((double) numSteps))*(V(j,l)*fineRootBiomass[j])*RGRfinerootmax[j]; //Deactivates temperature and turgor limitation
               double deltaFRBavailable = std::max(0.0, (starchSapwood[j]-minimumStarchForPrimaryGrowth)*(glucoseMolarMass*Volume_sapwood[j])/CCfineroot[j]);
               double deltaFRBgrowthStep = std::min(deltaFRBpheno, std::min(deltaFRBsink, deltaFRBavailable));
               growthCostFRBStep += deltaFRBgrowthStep*CCfineroot[j];
-              deltaFRBgrowth[s] += deltaFRBgrowthStep;
+              deltaFRBgrowth[l] += deltaFRBgrowthStep;
+              synthesisRespFRB += deltaFRBgrowthStep*(CCfineroot[j] - 1.0)/CCfineroot[j];
             }
           }
           //sapwood area growth
@@ -855,6 +862,7 @@ List growthDayInner(List x, NumericVector meteovec,
             }
             growthCostSAStep += deltaSAgrowthStep*costPerSA; //increase cost (may be non zero if leaf growth was charged onto sapwood)
             deltaSAgrowth[j]  +=deltaSAgrowthStep;
+            synthesisRespSA += growthCostSAStep*(CCsapwood[j] - 1.0)/CCsapwood[j];
           }
           GrowthCostsInst(j,s) += (growthCostLAStep + growthCostSAStep + growthCostFRBStep)/TotalLivingBiomass[j];
           GrowthCosts[j] +=GrowthCostsInst(j,s); //growth cost in g gluc · gdry-1
@@ -903,14 +911,7 @@ List growthDayInner(List x, NumericVector meteovec,
             starchSapwood[j] = Starch_max_sapwood[j];
           }
           
-          // if(starchSapwoodIncrease > Starch_max_sapwood[j] - starchSapwood[j]) {
-          //   RootExudationInst(j,s) += ((starchSapwood[j] + starchSapwoodIncrease - Starch_max_sapwood[j])*(Volume_sapwood[j]*glucoseMolarMass)/TotalLivingBiomass[j]);
-          //   starchSapwoodIncrease = Starch_max_sapwood[j] - starchSapwood[j];
-          // }
-          // if(starchLeafIncrease > Starch_max_leaves[j] - starchLeaf[j]) {
-          //   RootExudationInst(j,s) += ((starchLeaf[j] + starchLeafIncrease - Starch_max_leaves[j])*(Volume_leaves[j]*glucoseMolarMass)/TotalLivingBiomass[j]);
-          //   starchLeafIncrease = Starch_max_leaves[j] - starchLeaf[j];
-          // }
+
           //Add instantaneous root exudation to daily root exudation
           RootExudation[j] += RootExudationInst(j,s);
           
@@ -925,12 +926,15 @@ List growthDayInner(List x, NumericVector meteovec,
           PlantSugarTransportInst(j,s) = 1000.0*ff/(3600.0); //mmol·s-1
           PlantSugarTransport[j] += ff/((double) numSteps); //Average daily rate To calculate daily phloem balance (positive means towards stem)
           // Rcout<<" coh:"<<j<< " s:"<<s<< " conc leaf: "<< sugarLeaf[j] << " conc sap: "<< sugarSapwood[j]<<" ff: "<<ff<< "\n";
-          
-          // Rcout<<j<<" LeafTLP "<< turgorLossPoint(LeafPI0[j], LeafEPS[j])<< " Leaf PI "<< osmoticWaterPotential(sugarLeaf[j], tday)<< " Conc "<< sugarLeaf[j]<< " TLPconc"<< tlpConcLeaf<<"\n";
         }
       }
+
       double leafBiomassIncrement = deltaLAgrowth[j]*(1000.0/SLA[j]);
       double finerootBiomassIncrement = sum(deltaFRBgrowth);
+      
+      //add maintenance and synthesis respiration as g C·m-2
+      standMaintenanceRespiration += (leafRespDay+sapwoodResp+finerootResp)*(N[j]/10000.0)*((carbonMolarMass*6.0)/glucoseMolarMass);
+      standSynthesisRespiration += (synthesisRespSA+synthesisRespLA+synthesisRespFRB)*(N[j]/10000.0)*((carbonMolarMass*6.0)/glucoseMolarMass);
       
 
       //SENESCENCE
@@ -938,64 +942,48 @@ List growthDayInner(List x, NumericVector meteovec,
       double propLeafSenescence = 0.0;
       //Leaf senescence due to age (Ca+ accumulation) only in evergreen species
       if(phenoType[j] == "progressive-evergreen") {
-        propLeafSenescence = (LAexpanded/(365.25*LAlive*leafDuration[j]));
+        propLeafSenescence = std::min(1.0,(LAexpanded/(365.25*LAlive*leafDuration[j])));
       }
       else if((phenoType[j] == "oneflush-evergreen") && (leafSenescence[j])) {
-        propLeafSenescence = (LAexpanded/(LAlive*leafDuration[j])); // Fraction of old leaves that die
+        propLeafSenescence = std::min(1.0,(LAexpanded/(LAlive*leafDuration[j]))); // Fraction of old leaves that die
         leafSenescence[j] = false; //To prevent further loss
       }
       else if(((phenoType[j] == "winter-deciduous") || (phenoType[j] == "winter-semideciduous")) && leafSenescence[j]) {
         propLeafSenescence = 1.0;
         leafSenescence[j] = false; //To prevent further loss
       }
-      //Leaf senescence due to negative carbon (needs to be done integrating longer time-spans)
-      // if((LAexpanded>0.0) && (!leafUnfolding[j])) {
-      //   // double leafRespBal = leafAgG - sapwoodResp - finerootResp;
-      //   if(leafAgG < leafRespDay) {
-      //     double leafRespPerLA = leafRespDay/LAexpanded;
-      //     double LAexcess = (leafRespDay - leafAgG)/leafRespPerLA;
-      //     //Maximum of 1% defoliation per day (to have a progressive process)
-      //     double propDefoliation = std::min(0.01, LAexcess/LAexpanded);
-      //     propLeafSenescence = std::max(propDefoliation, propLeafSenescence);
-      //   }
-      // }
+
       //Leaf senescence due to drought (only when PLC increases)
       double PLCinc = (StemPLC[j]-StemPLCprev[j]);
       if(PLCinc>0.0) {
         double LAplc = std::min(LAexpanded, (1.0-StemPLC[j])*leafAreaTarget[j]);
         if(LAplc<LAexpanded) {
-          propLeafSenescence = std::max((LAexpanded-LAplc)/LAexpanded, propLeafSenescence); 
+          propLeafSenescence = std::max((LAexpanded-LAplc)/LAexpanded, propLeafSenescence);
         }
       }
-      if(transpirationMode=="Sperry") {
-        //Complete defoliation if RWCsymp < 0.5
-        double leafSympRWC = sum(LeafSympRWCInst(j,_))/((double) numSteps);
-        if((LAexpanded > 0.0) && (leafSympRWC<0.5)){
-          if(allowDefoliation) {
-            propLeafSenescence = 1.0;
-            if(verbose) Rcout<<" [Cohort "<< j<<" defoliated ] ";
-          }
-        }
-      }
+
       double deltaLAsenescence = std::min(LAexpanded, LAexpanded*propLeafSenescence);
       double senescenceLeafLoss = deltaLAsenescence*(1000.0/SLA[j]);
 
       //Define sapwood senescense
-      double propSASenescence = SRsapwood[j]/(1.0+15.0*exp(-0.01*H[j]));
-      double deltaSASenescence = propSASenescence*SA[j]*std::max(0.0,(tday-5.0)/20.0);
+      double propSASenescence = SRsapwood[j]*std::max(0.0,(tday-5.0)/20.0)/(1.0+15.0*exp(-0.01*H[j]));
+      double deltaSASenescence = propSASenescence*SA[j];
       
       //FRB SENESCENCE
       NumericVector deltaFRBsenescence(numLayers, 0.0);
-      for(int s=0;s<numLayers;s++) {
+      for(int l=0;l<numLayers;l++) {
         double daySenescence = NA_REAL;
         if(transpirationMode=="Granier") daySenescence = SRfineroot[j]*std::max(0.0,(tday-5.0)/20.0);
-        else daySenescence = SRfineroot[j]*std::max(0.0,(Tsoil[s]-5.0)/20.0);
-        deltaFRBsenescence[s] = fineRootBiomass[j]*V(j,s)*daySenescence;
+        else daySenescence = SRfineroot[j]*std::max(0.0,(Tsoil[l]-5.0)/20.0);
+        deltaFRBsenescence[l] = fineRootBiomass[j]*V(j,l)*daySenescence;
       }
       double senescenceFinerootLoss = sum(deltaFRBsenescence);
       
+      // if(j==(numCohorts-1)) Rcout<< j << " before translocation "<< sugarLeaf[j]<< " "<< starchLeaf[j]<<"\n";
+      
 
       //TRANSLOCATION (in mol gluc) of labile carbon
+      // Rcout<<"-translocation";
       double translocationSugarLeaf = propLeafSenescence*Volume_leaves[j]*sugarLeaf[j];
       double translocationStarchLeaf = propLeafSenescence*Volume_leaves[j]*starchLeaf[j];
       double translocationSugarSapwood = propSASenescence*Volume_sapwood[j]*starchSapwood[j];
@@ -1003,14 +991,17 @@ List growthDayInner(List x, NumericVector meteovec,
         if(starchLeaf[j] > Starch_max_leaves[j]) { // Add excess leaf starch to translocation
           translocationStarchLeaf += ((starchLeaf[j] - Starch_max_leaves[j])*Volume_leaves[j]);
         }
+        // if(j==(numCohorts-1)) Rcout<< j << " translocation "<< propLeafSenescence<< " "<< translocationSugarLeaf<<"\n";
         sugarLeaf[j] = ((sugarLeaf[j]*Volume_leaves[j]) - translocationSugarLeaf)/Volume_leaves[j]; 
         starchLeaf[j] = ((starchLeaf[j]*Volume_leaves[j]) - translocationStarchLeaf)/Volume_leaves[j]; 
       }
       sugarSapwood[j] = ((sugarSapwood[j]*Volume_sapwood[j]) - translocationSugarSapwood)/Volume_sapwood[j]; 
       starchSapwood[j] = ((starchSapwood[j]*Volume_sapwood[j]) + translocationSugarLeaf + translocationStarchLeaf + translocationSugarSapwood)/Volume_sapwood[j]; 
       
-      //ROOT EXUDATION and close carbon balance (Granier)
-      if(transpirationMode=="Granier") {
+      // if(j==(numCohorts-1)) Rcout<< j << " after translocation " << sugarLeaf[j]<< " "<< starchLeaf[j]<<"\n";
+      
+      //ROOT EXUDATION and close carbon balance (non-subdaily carbon balance)
+      if(!subdailyCarbonBalance) {
         //Excess sapwood starch carbon is lost as root exudation
         if(starchSapwood[j] > Starch_max_sapwood[j]) {
           RootExudation[j] += ((starchSapwood[j] - Starch_max_sapwood[j])*(Volume_sapwood[j]*glucoseMolarMass)/TotalLivingBiomass[j]);
@@ -1022,6 +1013,7 @@ List growthDayInner(List x, NumericVector meteovec,
       
         
       //UPDATE LEAF AREA, SAPWOOD AREA, FINE ROOT BIOMASS AND CONCENTRATION IN LABILE POOLS
+      // Rcout<<"-update";
       double LAprev = LAexpanded;
       LAexpanded += deltaLAgrowth[j] - deltaLAsenescence;
       if(LAexpanded < 0.0) {
@@ -1044,6 +1036,7 @@ List growthDayInner(List x, NumericVector meteovec,
 
       
       //UPDATE DERIVED QUANTITIES (individual level)   
+      // Rcout<<"-updatederived";
       if(transpirationMode=="Granier") {
         //Update Huber value
         if(LAlive>0.0) {
@@ -1062,6 +1055,7 @@ List growthDayInner(List x, NumericVector meteovec,
           
           Al2As[j] = (LAlive)/(SA[j]/10000.0);
           VCstem_kmax[j]=maximumStemHydraulicConductance(Kmax_stemxylem[j], Hmed[j], Al2As[j] ,H[j], taper); 
+          VCstem_kmax[j]=std::min(VCstem_kmax[j], maximumStemConductance);
           
           //Update rhizosphere maximum conductance
           NumericVector VGrhizo_new = rhizosphereMaximumConductance(Ksat, newFRB, LAI_live[j], N[j],
@@ -1084,12 +1078,6 @@ List growthDayInner(List x, NumericVector meteovec,
           VCroot_kmax(j,_) = VCroot_kmaxVEC[j]*xp;
           //Update Plant_kmax
           Plant_kmax[j] = 1.0/((1.0/VCleaf_kmax[j])+(1.0/VCstem_kmax[j])+(1.0/VCroot_kmaxVEC[j]));
-          //Update leaf and stem osmotic water potential at full turgor
-          LeafPI0[j] = osmoticWaterPotential(sugarLeaf[j], 20.0, nonSugarConcentration); //Osmotic potential at full turgor assuming RWC = 1 and 20ºC
-          StemPI0[j] = osmoticWaterPotential(sugarSapwood[j], 20.0, nonSugarConcentration);
-          //Update non-stomatal photosynthesis limitations
-          if(nonStomatalPhotosynthesisLimitation) NSPL[j] = 1.0 - std::max(0.0, std::min(1.0, sugarLeaf[j] - 0.5)); //photosynthesis limited when conc > 0.5 and zero when conc > 1.5 mol·l-1
-          else NSPL[j] = 1.0;
         }
       }
       //Decrease PLC due to new SA growth
@@ -1102,6 +1090,7 @@ List growthDayInner(List x, NumericVector meteovec,
       FineRootBiomassBalance[j] = finerootBiomassIncrement - senescenceFinerootLoss;
       
       //MORTALITY Death by carbon starvation or dessication
+      // Rcout<<"-mortality";
       double Nprev = N[j]; //Store initial density (for biomass balance)
       double Ndead_day = 0.0;
       bool dynamicCohort = true;
@@ -1125,7 +1114,7 @@ List growthDayInner(List x, NumericVector meteovec,
           if(allowStarvation) starvationRate[j] = dailyMortalityProbability(basalMortalityRate, sugarSapwood[j], mortalitySugarThreshold, 0.0);
           if(allowDessication) dessicationRate[j] = dailyMortalityProbability(basalMortalityRate, stemSympRWC, mortalityRWCThreshold, 0.0);
           mortalityRate[j] = max(NumericVector::create(basalMortalityRate, dessicationRate[j],  starvationRate[j]));
-          
+          // Rcout<< j << " "<< stemSympRWC<< " "<< dessicationRate[j]<<"\n";
           if(mortalityMode =="density/deterministic") {
             Ndead_day = N[j]*mortalityRate[j];
           } else if(mortalityMode =="whole-cohort/stochastic") {
@@ -1159,6 +1148,7 @@ List growthDayInner(List x, NumericVector meteovec,
       
 
       //UPDATE TARGETS
+      // Rcout<<"-updatetargets";
       //Set target leaf area if bud formation is allowed
       if(budFormation[j]) {
         if(allocationStrategy == "Plant_kmax") {
@@ -1175,6 +1165,7 @@ List growthDayInner(List x, NumericVector meteovec,
         } else {
           NumericVector VGrhizo_target(numLayers,0.0);
           for(int s=0;s<numLayers;s++) {
+            // Rcout<<VCroot_kmaxVEC[j]<< " "<<VCstem_kmax[j]<<"\n";
             VGrhizo_target[s] = V(j,s)*findRhizosphereMaximumConductance(averageFracRhizosphereResistance*100.0,
                                                    VG_n[s], VG_alpha[s],
                                                    VCroot_kmaxVEC[j], VCroot_c[j], VCroot_d[j],
@@ -1189,6 +1180,7 @@ List growthDayInner(List x, NumericVector meteovec,
       }
       
       //Output variables
+      // Rcout<<"-output";
       SapwoodArea[j] = SA[j];
       FineRootArea[j] = fineRootBiomass[j]*specificRootSurfaceArea(SRL[j], FineRootDensity[j])*1e-4;
       SapwoodBiomass[j] = sapwoodStructuralBiomass(SA[j], H[j], L(j,_), V(j,_),WoodDensity[j]);
@@ -1210,14 +1202,15 @@ List growthDayInner(List x, NumericVector meteovec,
     double newVolumeSapwood = sapwoodStorageVolume(SA[j], H[j], L(j,_),V(j,_),WoodDensity[j], conduit2sapwood[j]);
     double newVolumeLeaves = leafStorageVolume(LAI_expanded[j],  N[j], SLA[j], LeafDensity[j]);
     if(newVolumeLeaves > 0.0) {
-      sugarLeaf[j] = sugarLeaf[j]*(Volume_leaves[j]/newVolumeLeaves);
-      starchLeaf[j] = starchLeaf[j]*(Volume_leaves[j]/newVolumeLeaves); 
+      sugarLeaf[j] = std::max(0.0, sugarLeaf[j]*(Volume_leaves[j]/newVolumeLeaves));
+      starchLeaf[j] = std::max(0.0, starchLeaf[j]*(Volume_leaves[j]/newVolumeLeaves)); 
     } else {
       sugarLeaf[j] = 0.0;
       starchLeaf[j] = 0.0;
     }
-    sugarSapwood[j] = sugarSapwood[j]*(Volume_sapwood[j]/newVolumeSapwood);
-    starchSapwood[j] = starchSapwood[j]*(Volume_sapwood[j]/newVolumeSapwood); 
+    sugarSapwood[j] = std::max(0.0, sugarSapwood[j]*(Volume_sapwood[j]/newVolumeSapwood));
+    starchSapwood[j] = std::max(0.0, starchSapwood[j]*(Volume_sapwood[j]/newVolumeSapwood)); 
+    // if(j==(numCohorts-1)) Rcout<< j << " after recalculation "<< sugarLeaf[j]<< " "<< starchLeaf[j]<<"\n";
     
     //OUTPUT VARIABLES
     PlantSugarLeaf[j] = sugarLeaf[j];
@@ -1243,7 +1236,7 @@ List growthDayInner(List x, NumericVector meteovec,
   
 
   List labileCBInst;
-  if(transpirationMode=="Sperry") {
+  if(subdailyCarbonBalance) {
     GrossPhotosynthesisInst.attr("dimnames") = List::create(above.attr("row.names"), seq(1,numSteps));
     MaintenanceRespirationInst.attr("dimnames") = List::create(above.attr("row.names"), seq(1,numSteps));
     LabileCarbonBalanceInst.attr("dimnames") = List::create(above.attr("row.names"), seq(1,numSteps));
@@ -1276,12 +1269,13 @@ List growthDayInner(List x, NumericVector meteovec,
                                                    _["StarchLeaf"] = PlantStarchLeaf,
                                                    _["SugarSapwood"] = PlantSugarSapwood,
                                                    _["StarchSapwood"] = PlantStarchSapwood,
-                                                   _["SugarTransport"] = PlantSugarTransport,
-                                                   _["StemPI0"] = clone(StemPI0), //Store a copy of the current osmotic potential at full turgor
-                                                   _["LeafPI0"] = clone(LeafPI0));
+                                                   _["SugarTransport"] = PlantSugarTransport);
   labileCarbonBalance.attr("row.names") = above.attr("row.names");
   
-
+  NumericVector standCB = {standGrossPrimaryProduction, standMaintenanceRespiration, standSynthesisRespiration,
+                           standGrossPrimaryProduction - standMaintenanceRespiration - standSynthesisRespiration};
+  standCB.attr("names") = CharacterVector({"GrossPrimaryProduction", "MaintenanceRespiration", "SynthesisRespiration", "NetPrimaryProduction"});
+    
   //Final Biomass compartments
   DataFrame plantStructure = DataFrame::create(
     _["LeafBiomass"] = LeafBiomass,
@@ -1309,7 +1303,10 @@ List growthDayInner(List x, NumericVector meteovec,
   List l;
   if(transpirationMode=="Granier"){
        l = List::create(_["cohorts"] = clone(cohorts),
+                        _["topography"] = spwbOut["topography"],
+                        _["weather"] = spwbOut["weather"],
                         _["WaterBalance"] = spwbOut["WaterBalance"], 
+                        _["CarbonBalance"] = standCB,
                         _["Soil"] = spwbOut["Soil"], 
                         _["Stand"] = spwbOut["Stand"], 
                         _["Plants"] = spwbOut["Plants"],
@@ -1319,8 +1316,11 @@ List growthDayInner(List x, NumericVector meteovec,
                         _["GrowthMortality"] = growthMortality);
   } else {
          l = List::create(_["cohorts"] = clone(cohorts),
+                          _["topography"] = spwbOut["topography"],
+                          _["weather"] = spwbOut["weather"],
                           _["WaterBalance"] = spwbOut["WaterBalance"], 
                           _["EnergyBalance"] = spwbOut["EnergyBalance"],
+                          _["CarbonBalance"] = standCB,
                           _["Soil"] = spwbOut["Soil"], 
                           _["Stand"] = spwbOut["Stand"],
                           _["Plants"] = spwbOut["Plants"],
@@ -1334,10 +1334,10 @@ List growthDayInner(List x, NumericVector meteovec,
                           _["ExtractionInst"] = spwbOut["ExtractionInst"],
                           _["PlantsInst"] = spwbOut["PlantsInst"],
                           _["SunlitLeavesInst"] = spwbOut["SunlitLeavesInst"],
-                          _["ShadeLeavesInst"] = spwbOut["ShadeLeavesInst"],
-                          _["LabileCarbonBalanceInst"] = labileCBInst,
-                          _["LightExtinction"] = spwbOut["LightExtinction"],
-                          _["CanopyTurbulence"] = spwbOut["CanopyTurbulence"]);
+                          _["ShadeLeavesInst"] = spwbOut["ShadeLeavesInst"]);
+    if(subdailyCarbonBalance) l.push_back(labileCBInst,"LabileCarbonBalanceInst");
+    l.push_back(spwbOut["LightExtinction"], "LightExtinction");
+    l.push_back(spwbOut["CanopyTurbulence"], "CanopyTurbulence");
   }
   l.attr("class") = CharacterVector::create("growth_day","list");
   return(l);
@@ -1351,14 +1351,15 @@ List growthDayInner(List x, NumericVector meteovec,
 List growthDay(List x, CharacterVector date, double tmin, double tmax, double rhmin, 
                double rhmax, double rad, double wind, 
                double latitude, double elevation, double slope, double aspect,  
-               double prec, double runon=0.0, bool modifyInput = true) {
+               double prec, double CO2 = NA_REAL, double runon=0.0, bool modifyInput = true) {
   //Control parameters
   List control = x["control"];
   bool verbose = control["verbose"];
   
   bool leafPhenology = control["leafPhenology"];
   String transpirationMode = control["transpirationMode"];
-  double Catm = control["Catm"];
+  double Catm = CO2;
+  if(NumericVector::is_na(Catm)) Catm = control["defaultCO2"];
   
   //Will not modify input x 
   if(!modifyInput) {
@@ -1369,11 +1370,13 @@ List growthDay(List x, CharacterVector date, double tmin, double tmax, double rh
   int J = meteoland::radiation_julianDay(std::atoi(c.substr(0, 4).c_str()),std::atoi(c.substr(5,2).c_str()),std::atoi(c.substr(8,2).c_str()));
   double delta = meteoland::radiation_solarDeclination(J);
   double solarConstant = meteoland::radiation_solarConstant(J);
-  double tday = meteoland::utils_averageDaylightTemperature(tmin, tmax);
   double latrad = latitude * (M_PI/180.0);
+  if(NumericVector::is_na(aspect)) aspect = 0.0;
+  if(NumericVector::is_na(slope)) slope = 0.0;
   double asprad = aspect * (M_PI/180.0);
   double slorad = slope * (M_PI/180.0);
   double photoperiod = meteoland::radiation_daylength(latrad, 0.0, 0.0, delta);
+  double tday = meteoland::utils_averageDaylightTemperature(tmin, tmax);
   double pet = meteoland::penman(latrad, elevation, slorad, asprad, J, tmin, tmax, rhmin, rhmax, rad, wind);
   //Derive doy from date  
   int J0101 = meteoland::radiation_julianDay(std::atoi(c.substr(0, 4).c_str()),1,1);
@@ -1497,7 +1500,9 @@ void checkgrowthInput(List x, String transpirationMode, String soilFunctions) {
 }
 
 // [[Rcpp::export("growth")]]
-List growth(List x, DataFrame meteo, double latitude, double elevation = NA_REAL, double slope = NA_REAL, double aspect = NA_REAL) {
+List growth(List x, DataFrame meteo, double latitude, 
+            double elevation = NA_REAL, double slope = NA_REAL, double aspect = NA_REAL,
+            NumericVector CO2ByYear = NumericVector(0)) {
 
   //Control params 
   List control =x["control"];  
@@ -1526,6 +1531,10 @@ List growth(List x, DataFrame meteo, double latitude, double elevation = NA_REAL
   
   if(NumericVector::is_na(latitude)) stop("Value for 'latitude' should not be missing.");
   double latrad = latitude * (M_PI/180.0);
+  if(NumericVector::is_na(aspect)) aspect = 0.0;
+  if(NumericVector::is_na(slope)) slope = 0.0;
+  double asprad = aspect * (M_PI/180.0);
+  double slorad = slope * (M_PI/180.0);
   
   //Meteorological input    
   NumericVector MinTemperature, MaxTemperature;
@@ -1534,8 +1543,6 @@ List growth(List x, DataFrame meteo, double latitude, double elevation = NA_REAL
   if(!meteo.containsElementNamed("Precipitation")) stop("Please include variable 'Precipitation' in weather input.");
   NumericVector Precipitation = meteo["Precipitation"];
   int numDays = Precipitation.size();
-  if(!meteo.containsElementNamed("MeanTemperature")) stop("Please include variable 'MeanTemperature' in weather input.");
-  NumericVector MeanTemperature = meteo["MeanTemperature"];
   if(NumericVector::is_na(elevation)) stop("Value for 'elevation' should not be missing.");
   if(!meteo.containsElementNamed("MinTemperature")) stop("Please include variable 'MinTemperature' in weather input.");
   MinTemperature = meteo["MinTemperature"];
@@ -1545,49 +1552,44 @@ List growth(List x, DataFrame meteo, double latitude, double elevation = NA_REAL
   MinRelativeHumidity = meteo["MinRelativeHumidity"];
   if(!meteo.containsElementNamed("MaxRelativeHumidity")) stop("Please include variable 'MaxRelativeHumidity' in weather input.");
   MaxRelativeHumidity = meteo["MaxRelativeHumidity"];
+  if(!meteo.containsElementNamed("Radiation")) stop("Please include variable 'Radiation' in weather input.");
+  Radiation = meteo["Radiation"];
+  
   NumericVector WindSpeed(numDays, NA_REAL);
   if(meteo.containsElementNamed("WindSpeed")) WindSpeed = meteo["WindSpeed"];
-  NumericVector PET = NumericVector(numDays,0.0);
+  
+  NumericVector PET = NumericVector(numDays, NA_REAL);
+  
   NumericVector CO2(Precipitation.length(), NA_REAL);
+  if(meteo.containsElementNamed("CO2")) {
+    CO2 = meteo["CO2"];
+    if(verbose) {
+      Rcout<<"CO2 taken from input column 'CO2'\n";
+    }
+  }
+  
   IntegerVector DOY, JulianDay;
   NumericVector Photoperiod;
   bool doy_input = false, photoperiod_input = false, julianday_input = false;
-  if(transpirationMode=="Granier") {
-    if(!meteo.containsElementNamed("PET")) stop("Please include variable 'PET' in weather input.");
-    PET = meteo["PET"];
-    if(control["snowpack"]) {
-      if(!meteo.containsElementNamed("Radiation")) stop("If 'snowpack = TRUE', variable 'Radiation' must be provided.");
-      else Radiation = meteo["Radiation"];
+  if(meteo.containsElementNamed("DOY")) {
+    DOY = meteo["DOY"];
+    doy_input = true;
+    if(verbose) {
+      Rcout<<"DOY taken from input column 'DOY'\n";
     }
-  } else if(transpirationMode=="Sperry") {
-    if(!meteo.containsElementNamed("Radiation")) stop("Please include variable 'Radiation' in weather input.");
-    Radiation = meteo["Radiation"];
-    if(meteo.containsElementNamed("CO2")) {
-      CO2 = meteo["CO2"];
-      if(verbose) {
-        Rcout<<"CO2 taken from input column 'CO2'\n";
-      }
+  }
+  if(meteo.containsElementNamed("Photoperiod")) {
+    Photoperiod = meteo["Photoperiod"];
+    photoperiod_input = true;
+    if(verbose) {
+      Rcout<<"Photoperiod taken from input column 'Photoperiod'\n";
     }
-    if(meteo.containsElementNamed("DOY")) {
-      DOY = meteo["DOY"];
-      doy_input = true;
-      if(verbose) {
-        Rcout<<"DOY taken from input column 'DOY'\n";
-      }
-    }
-    if(meteo.containsElementNamed("Photoperiod")) {
-      Photoperiod = meteo["Photoperiod"];
-      photoperiod_input = true;
-      if(verbose) {
-        Rcout<<"Photoperiod taken from input column 'Photoperiod'\n";
-      }
-    }
-    if(meteo.containsElementNamed("JulianDay")) {
-      JulianDay = meteo["JulianDay"];
-      julianday_input = true;
-      if(verbose) {
-        Rcout<<"Julian day taken from input column 'JulianDay'\n";
-      }
+  }
+  if(meteo.containsElementNamed("JulianDay")) {
+    JulianDay = meteo["JulianDay"];
+    julianday_input = true;
+    if(verbose) {
+      Rcout<<"Julian day taken from input column 'JulianDay'\n";
     }
   }
   CharacterVector dateStrings = meteo.attr("row.names");
@@ -1656,7 +1658,6 @@ List growth(List x, DataFrame meteo, double latitude, double elevation = NA_REAL
   NumericMatrix starvationRate(numDays, numCohorts), dessicationRate(numDays, numCohorts), mortalityRate(numDays, numCohorts);
   NumericMatrix GrossPhotosynthesis(numDays, numCohorts);
   NumericMatrix PlantLAIexpanded(numDays, numCohorts), PlantLAIdead(numDays, numCohorts), PlantLAIlive(numDays, numCohorts);
-  NumericMatrix StemPI0(numDays, numCohorts), LeafPI0(numDays, numCohorts);
   NumericMatrix RootExudation(numDays, numCohorts);
   NumericMatrix StructuralBiomassBalance(numDays, numCohorts);
   NumericMatrix LabileBiomassBalance(numDays, numCohorts);
@@ -1664,6 +1665,7 @@ List growth(List x, DataFrame meteo, double latitude, double elevation = NA_REAL
   NumericMatrix MortalityBiomassLoss(numDays, numCohorts);
   NumericMatrix CohortBiomassBalance(numDays, numCohorts);
   NumericMatrix StandBiomassBalance(numDays, 5);
+  NumericMatrix StandCarbonBalance(numDays, 4);
   
   //Water balance output variables
   DataFrame DWB = defineWaterBalanceDailyOutput(meteo, PET, transpirationMode);
@@ -1703,12 +1705,14 @@ List growth(List x, DataFrame meteo, double latitude, double elevation = NA_REAL
   bool error_occurence = false;
   if(verbose) Rcout << "Performing daily simulations\n";
   List s;
+  std::string yearString;
   int iyear = 0;
   for(int i=0;i<numDays;i++) {
+    std::string c = as<std::string>(dateStrings[i]);
+    yearString = c.substr(0, 4);
     if(verbose) {
       if(DOY[i]==1 || i==0) {
-        std::string c = as<std::string>(dateStrings[i]);
-        Rcout<<"\n [Year "<< c.substr(0, 4)<< "]: ";
+        Rcout<<"\n Year "<< yearString<< ":";
       } 
       else if(i%10 == 0) Rcout<<".";//<<i;
     } 
@@ -1717,18 +1721,23 @@ List growth(List x, DataFrame meteo, double latitude, double elevation = NA_REAL
     if(NumericVector::is_na(wind)) wind = control["defaultWindSpeed"]; //Default 1 m/s -> 10% of fall every day
     if(wind<0.1) wind = 0.1; //Minimum windspeed abovecanopy
     
+    double Catm = CO2[i];
+    //If missing, use
+    if(NumericVector::is_na(Catm)) {
+      if(CO2ByYear.attr("names") != R_NilValue) Catm = CO2ByYear[yearString];
+    }
+    //If still missing, use default control value
+    if(NumericVector::is_na(Catm)) {
+      Catm = control["defaultCO2"];
+    }
+    
+    
     if(unlimitedSoilWater) {
       NumericVector W = soil["W"];
       for(int h=0;h<W.size();h++) W[h] = 1.0;
     }
     
-    //1. Phenology (only leaf fall)
-    if(leafPhenology) {
-      updatePhenology(x, DOY[i], Photoperiod[i], MeanTemperature[i]);
-      updateLeaves(x, wind, true);
-    }
 
-    //2. Water balance and photosynthesis
     //Julian day from either input column or date
     int J = NA_INTEGER;
     if(julianday_input) J = JulianDay[i];
@@ -1738,25 +1747,31 @@ List growth(List x, DataFrame meteo, double latitude, double elevation = NA_REAL
     }
     double delta = meteoland::radiation_solarDeclination(J);
     double solarConstant = meteoland::radiation_solarConstant(J);
-    double latrad = latitude * (M_PI/180.0);
-    if(NumericVector::is_na(aspect)) aspect = 0.0;
-    if(NumericVector::is_na(slope)) slope = 0.0;
-    double asprad = aspect * (M_PI/180.0);
-    double slorad = slope * (M_PI/180.0);
     
     double tmin = MinTemperature[i];
     double tmax = MaxTemperature[i];
+    double tday = meteoland::utils_averageDaylightTemperature(tmin, tmax);
     double rhmin = MinRelativeHumidity[i];
     double rhmax = MaxRelativeHumidity[i];
     double rad = Radiation[i];
-    double tday = MeanTemperature[i];
+
+    PET[i] = meteoland::penman(latrad, elevation, slorad, asprad, J, 
+                               tmin, tmax, rhmin, rhmax, rad, wind);
     
+    //1. Phenology (only leaf fall)
+    if(leafPhenology) {
+      updatePhenology(x, DOY[i], Photoperiod[i], tday);
+      updateLeaves(x, wind, true);
+    }
+    
+    //2. Water balance and photosynthesis
     if(transpirationMode=="Granier") {
       NumericVector meteovec = NumericVector::create(
         Named("tday") = tday, Named("tmax") = tmax, Named("tmin") = tmin,
         Named("prec") = Precipitation[i], Named("rhmin") = rhmin, Named("rhmax") = rhmax,
         Named("rad") = rad, 
         Named("pet") = PET[i],
+        Named("Catm") = Catm,
         Named("er") = erFactor(DOY[i], PET[i], Precipitation[i]));
       try{
         s = growthDayInner(x, meteovec,  
@@ -1776,9 +1791,6 @@ List growth(List x, DataFrame meteo, double latitude, double elevation = NA_REAL
         tminPrev = MinTemperature[i-1];
       }
       if(i<(numDays-1)) tminNext = MinTemperature[i+1]; 
-      double Catm = CO2[i];
-      if(NumericVector::is_na(Catm)) Catm = control["Catm"];
-      PET[i] = meteoland::penman(latrad, elevation, slorad, asprad, J, tmin, tmax, rhmin, rhmax, rad, wind);
       NumericVector meteovec = NumericVector::create(
         Named("tday") = tday,
         Named("tmin") = tmin, 
@@ -1839,8 +1851,6 @@ List growth(List x, DataFrame meteo, double latitude, double elevation = NA_REAL
     PlantSugarSapwood(i,_) = Rcpp::as<Rcpp::NumericVector>(cb["SugarSapwood"]);
     PlantStarchSapwood(i,_) = Rcpp::as<Rcpp::NumericVector>(cb["StarchSapwood"]);
     PlantSugarTransport(i,_) = Rcpp::as<Rcpp::NumericVector>(cb["SugarTransport"]);
-    StemPI0(i,_) = Rcpp::as<Rcpp::NumericVector>(cb["StemPI0"]); 
-    LeafPI0(i,_) = Rcpp::as<Rcpp::NumericVector>(cb["LeafPI0"]); 
     RootExudation(i,_) = Rcpp::as<Rcpp::NumericVector>(cb["RootExudation"]);
     
     SapwoodBiomass(i,_) = Rcpp::as<Rcpp::NumericVector>(ps["SapwoodBiomass"]);
@@ -1870,7 +1880,8 @@ List growth(List x, DataFrame meteo, double latitude, double elevation = NA_REAL
     dessicationRate(i,_) = Rcpp::as<Rcpp::NumericVector>(gm["DessicationRate"]);
     mortalityRate(i,_) = Rcpp::as<Rcpp::NumericVector>(gm["MortalityRate"]);
     
-
+    StandCarbonBalance(i,_) = Rcpp::as<Rcpp::NumericVector>(s["CarbonBalance"]);
+    
     //5 Update structural variables
     // if(((i<(numDays-1)) && (DOY[i+1]==1)) || (i==(numDays-1))) { 
     //   //reset ring structures
@@ -1932,8 +1943,6 @@ List growth(List x, DataFrame meteo, double latitude, double elevation = NA_REAL
   dessicationRate.attr("dimnames") = List::create(meteo.attr("row.names"), cohorts.attr("row.names")) ;
   mortalityRate.attr("dimnames") = List::create(meteo.attr("row.names"), cohorts.attr("row.names")) ;
   starvationRate.attr("dimnames") = List::create(meteo.attr("row.names"), cohorts.attr("row.names"));
-  StemPI0.attr("dimnames") = List::create(meteo.attr("row.names"), above.attr("row.names"));
-  LeafPI0.attr("dimnames") = List::create(meteo.attr("row.names"), above.attr("row.names"));
   RootExudation.attr("dimnames") = List::create(meteo.attr("row.names"), cohorts.attr("row.names"));
   StructuralBiomassBalance.attr("dimnames") = List::create(meteo.attr("row.names"), cohorts.attr("row.names"));
   LabileBiomassBalance.attr("dimnames") = List::create(meteo.attr("row.names"), cohorts.attr("row.names"));
@@ -1943,7 +1952,8 @@ List growth(List x, DataFrame meteo, double latitude, double elevation = NA_REAL
 
   StandBiomassBalance.attr("dimnames") = List::create(meteo.attr("row.names"), 
                            CharacterVector::create("StructuralBalance", "LabileBalance", "PlantBalance", "MortalityLoss", "CohortBalance"));
-  
+  StandCarbonBalance.attr("dimnames") = List::create(meteo.attr("row.names"), 
+                          CharacterVector::create("GrossPrimaryProduction", "MaintenanceRespiration", "SynthesisRespiration", "NetPrimaryProduction"));
   subdailyRes.attr("names") = meteo.attr("row.names") ;
   
   NumericVector topo = NumericVector::create(elevation, slope, aspect);
@@ -1966,9 +1976,7 @@ List growth(List x, DataFrame meteo, double latitude, double elevation = NA_REAL
     Named("StarchLeaf") = PlantStarchLeaf,
     Named("SugarSapwood") = PlantSugarSapwood,
     Named("StarchSapwood") = PlantStarchSapwood,
-    Named("SugarTransport") = PlantSugarTransport,
-    Named("LeafPI0") = LeafPI0,
-    Named("StemPI0") = StemPI0
+    Named("SugarTransport") = PlantSugarTransport
   );
   List plantBiomassBalance = List::create(_["StructuralBiomassBalance"] = StructuralBiomassBalance,
                                      _["LabileBiomassBalance"] = LabileBiomassBalance,
@@ -2002,6 +2010,7 @@ List growth(List x, DataFrame meteo, double latitude, double elevation = NA_REAL
                      Named("growthInput") = growthInput,
                      Named("growthOutput") = clone(x),
                      Named("WaterBalance")=DWB, 
+                     Named("CarbonBalance")=StandCarbonBalance, 
                      Named("BiomassBalance") = StandBiomassBalance,
                      Named("Soil")=SWB,
                      Named("Stand")=Stand,
@@ -2009,9 +2018,7 @@ List growth(List x, DataFrame meteo, double latitude, double elevation = NA_REAL
                      Named("LabileCarbonBalance") = labileCarbonBalance,
                      Named("PlantBiomassBalance") = plantBiomassBalance,
                      Named("PlantStructure") = plantStructure,
-                     Named("GrowthMortality") = growthMortality,
-                     Named("subdaily") =  subdailyRes);
-    
+                     Named("GrowthMortality") = growthMortality);
   } else {
     l = List::create(Named("latitude") = latitude,
                    Named("topography") = topo,
@@ -2019,6 +2026,7 @@ List growth(List x, DataFrame meteo, double latitude, double elevation = NA_REAL
                    Named("growthInput") = growthInput,
                    Named("growthOutput") = clone(x),
                    Named("WaterBalance")=DWB, 
+                   Named("CarbonBalance")=StandCarbonBalance, 
                    Named("EnergyBalance") = DEB,
                    Named("BiomassBalance") = StandBiomassBalance,
                    Named("Temperature") = DT,
@@ -2031,10 +2039,10 @@ List growth(List x, DataFrame meteo, double latitude, double elevation = NA_REAL
                    Named("LabileCarbonBalance") = labileCarbonBalance,
                    Named("PlantBiomassBalance") = plantBiomassBalance,
                    Named("PlantStructure") = plantStructure,
-                   Named("GrowthMortality") = growthMortality,
-                   Named("subdaily") =  subdailyRes);
+                   Named("GrowthMortality") = growthMortality);
     if(multiLayerBalance) l["TemperatureLayers"] = DLT;
   }
+  if(subdailyResults) l.push_back(subdailyRes,"subdaily");
   l.attr("class") = CharacterVector::create("growth","list");
   return(l);
 }

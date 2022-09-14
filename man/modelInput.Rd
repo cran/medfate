@@ -113,8 +113,10 @@ Functions \code{forest2spwbInput()} and \code{spwbInput()} return a list of clas
        \item{\code{Tmax_LAIsq}: Coefficient relating squared LAI with the ratio of maximum transpiration over potential evapotranspiration.}
        \item{\code{Psi_Extract}: Water potential corresponding to 50\% relative conductance (in MPa).}
        \item{\code{Psi_Critic}: Water potential corresponding to 50\% of stem cavitation (in MPa).}
-       \item{\code{WUE}: Water use efficiency for carbon assimilation (g C/mm water).}
-       \item{\code{WUE_decay}: Exponential decay coeffient of WUE with PAR.}
+       \item{\code{WUE}: Daily water use efficiency (gross photosynthesis over transpiration) under no light, water or CO2 limitations and VPD = 1kPa (g C/mm water).}
+       \item{\code{WUE_par}: Coefficient regulating the influence of \% PAR on gross photosynthesis.}
+       \item{\code{WUE_par}: Coefficient regulating the influence of atmospheric CO2 concentration on gross photosynthesis.}
+       \item{\code{WUE_par}: Coefficient regulating the influence of vapor pressure deficit (VPD) on gross photosynthesis.}
     }
     If \code{control$transpirationMode = "Sperry"} columns are:
     \itemize{
@@ -132,7 +134,7 @@ Functions \code{forest2spwbInput()} and \code{spwbInput()} return a list of clas
        \item{\code{Plant_kmax}: Maximum whole-plant conductance.}
     }
   }
-  \item{\code{paramsWaterStorage}: A data frame with plant water storage parameters for each cohort (only if \code{control$transpirationMode = "Sperry"}):
+  \item{\code{paramsWaterStorage}: A data frame with plant water storage parameters for each cohort:
      \itemize{
        \item{\code{LeafPI0}: Osmotic potential at full turgor of leaves (MPa).}
        \item{\code{LeafEPS}: Modulus of elasticity (capacity of the cell wall to resist changes in volume in response to changes in turgor) of leaves (MPa).}

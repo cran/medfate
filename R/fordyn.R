@@ -99,6 +99,7 @@ recruitment<-function(forest, SpParams, control,
 fordyn<-function(forest, soil, SpParams,
                  meteo, control,
                  latitude , elevation = NA, slope = NA, aspect = NA,
+                 CO2ByYear = numeric(0),
                  management_function = NULL, management_args = NULL) {
   
   # Modify control parameters
@@ -127,6 +128,19 @@ fordyn<-function(forest, soil, SpParams,
     if(control$allowRecruitment) {
       forest$treeData = forest$treeData[,c("Species","DBH", "Height","N","Z50","Z95")]
       forest$shrubData = forest$shrubData[,c("Species","Height","Cover", "Z50","Z95")]
+    }
+    #Fill missing root params
+    if(control$fillMissingRootParams) {
+      treeSPZ95 = species_parameter(forest$treeData$Species, SpParams, "Z95")
+      treeSPZ50 = species_parameter(forest$treeData$Species, SpParams, "Z50")
+      treeSPZ50[is.na(treeSPZ50)] = exp(log(treeSPZ95[is.na(treeSPZ50)])/1.4)
+      shrubSPZ50 = species_parameter(forest$shrubData$Species, SpParams, "Z50")
+      shrubSPZ95 = species_parameter(forest$shrubData$Species, SpParams, "Z95")
+      shrubSPZ50[is.na(shrubSPZ50)] = exp(log(shrubSPZ95[is.na(shrubSPZ50)])/1.4)
+      forest$treeData$Z50[is.na(forest$treeData$Z50)] = treeSPZ50[is.na(forest$treeData$Z50)]
+      forest$treeData$Z95[is.na(forest$treeData$Z95)] = treeSPZ95[is.na(forest$treeData$Z95)]
+      forest$shrubData$Z50[is.na(forest$shrubData$Z50)] = shrubSPZ50[is.na(forest$shrubData$Z50)]
+      forest$shrubData$Z95[is.na(forest$shrubData$Z95)] = shrubSPZ95[is.na(forest$shrubData$Z95)]
     }
     xi = forest2growthInput(forest, soil, SpParams, control)
   }
@@ -159,7 +173,9 @@ fordyn<-function(forest, soil, SpParams,
     monthsYear = months[years==year]
     # 1.1 Calls growth model
     if(verboseDyn) cat(paste0(" (a) Growth/mortality"))
-    Gi = growth(xi, meteoYear, latitude = latitude, elevation = elevation, slope = slope, aspect = aspect)
+    Gi = growth(xi, meteoYear, latitude = latitude, 
+                elevation = elevation, slope = slope, aspect = aspect,
+                CO2ByYear = CO2ByYear)
     
     # 1.2 Store growth results
     growthResults[[iYear]] = Gi
@@ -261,7 +277,9 @@ fordyn<-function(forest, soil, SpParams,
     # 3. Simulate species recruitment
     if(control$allowRecruitment) {
       if(verboseDyn) cat(paste0(", (b) Recruitment"))
-      monthlyTemp = tapply(meteoYear$MeanTemperature, monthsYear, FUN="mean", na.rm=TRUE)
+      monthlyMinTemp = tapply(meteoYear$MinTemperature, monthsYear, FUN="mean", na.rm=TRUE)
+      monthlyMaxTemp = tapply(meteoYear$MaxTemperature, monthsYear, FUN="mean", na.rm=TRUE)
+      monthlyTemp = 0.606*monthlyMaxTemp + 0.394*monthlyMinTemp
       minMonthTemp = min(monthlyTemp, na.rm=TRUE)
       moistureIndex = sum(meteoYear$Precipitation, na.rm=TRUE)/sum(meteoYear$PET, na.rm=TRUE)
       # if(verboseDyn) cat(paste0("       Coldest month mean temp. (Celsius): ", round(minMonthTemp,2), "   Moisture index: ", round(moistureIndex,2), "   FPAR (%): ", round(PARperc,1), "\n"))

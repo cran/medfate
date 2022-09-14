@@ -57,6 +57,7 @@ The following plots are currently available for \code{\link{spwb}} (most of them
     \item{\code{"SoilTheta"}:}{ Soil moisture water content (in percent volume).}
     \item{\code{"SoilVol"}:}{ Soil water volumetric content (in mm).}
     \item{\code{"PlantExtraction"}:}{ Water extracted by plants from each soil layer.}
+    \item{\code{"HydraulicRedistribution"}: Water added to each soil layer coming from other soil layers, transported through the plant hydraulic network.}
     \item{\code{"WTD"}:}{ Water table depth.}
     \item{\code{"LAI"}:}{ Expanded and dead leaf area index of the whole stand.}
     \item{\code{"PlantLAI"}:}{ Plant cohort leaf area index (expanded leaves).}
@@ -78,7 +79,6 @@ The following plots are currently available for \code{\link{spwb}} (most of them
   }
   The following plots are available for \code{\link{spwb}} and \code{\link{pwb}} \emph{only if} \code{transpirationMode = "Sperry"}:
   \itemize{
-    \item{\code{"HydraulicRedistribution"}: Water added to each soil layer coming from other soil layers, transported through the plant hydraulic network.}
     \item{\code{"SoilPlantConductance"}: Average instantaneous overall soil plant conductance (calculated as the derivative of the supply function).}
     \item{\code{"LeafPsiMin"}:  Midday leaf water potential.}
     \item{\code{"LeafPsiMax"}:  Pre-dawn leaf water potential.}
@@ -112,6 +112,7 @@ The following plots are currently available for \code{\link{spwb}} (most of them
   }
 In addition to the former, the following plots are available for objects \code{\link{growth}} or \code{\link{fordyn}}:
  \itemize{
+    \item{\code{"CarbonBalance"}:  Stand-level carbon balance components.}
     \item{\code{"BiomassBalance"}:  Stand-level biomass balance components.}
     \item{\code{"GrossPhotosynthesis"}:  Gross photosynthesis rate per dry weight.}
     \item{\code{"MaintenanceRespiration"}:  Maintenance respiration cost per dry weight.}
@@ -123,8 +124,6 @@ In addition to the former, the following plots are available for objects \code{\
     \item{\code{"SugarSapwood"}:  Sugar concentration in sapwood.}
     \item{\code{"StarchSapwood"}:  Starch concentration in sapwood.}
     \item{\code{"SugarTransport"}:  Phloem sugar transport rate.}
-    \item{\code{"LeafPI0"}:  Leaf osmotic concentration at full turgor.}
-    \item{\code{"StemPI0"}:  Sapwood osmotic concentration at full turgor.}
     \item{\code{"StructuralBiomassBalance"}:  Daily structural biomass balance (g dry · ind-2).}
     \item{\code{"LabileBiomassBalance"}:  Daily labile biomass balance (g dry · ind-2).}
     \item{\code{"PlantBiomassBalance"}:  Daily plant biomass balance, i.e. labile change + structural change (g dry · ind-2).}

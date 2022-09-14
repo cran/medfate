@@ -8,30 +8,22 @@
 Function \code{spwb()} is a water balance model that determines changes in soil moisture, soil water potentials, plant transpiration and drought stress at daily steps for a given forest stand during a period specified in the input climatic data. Function \code{pwb()} performs plant water balance only (i.e. soil moisture dynamics is an input) at daily steps for a given forest stand during a period specified in the input climatic data. On both simulation functions plant transpiration and photosynthesis processes are conducted with different level of detail depending on the transpiration mode.
 }
 \usage{
-spwb(x, meteo,  latitude , elevation = NA, slope = NA, aspect = NA)
+spwb(x, meteo,  latitude , elevation = NA, slope = NA, aspect = NA,
+     CO2ByYear = numeric(0))
 pwb(x, meteo, W, latitude, elevation = NA, slope = NA, aspect = NA,
-    canopyEvaporation = numeric(0), 
-    snowMelt = numeric(0), 
-    soilEvaporation = numeric(0))
+    canopyEvaporation = numeric(0), snowMelt = numeric(0), 
+    soilEvaporation = numeric(0), CO2ByYear = numeric(0))
 }
 \arguments{
   \item{x}{An object of class \code{\link{spwbInput}}.}
-  \item{meteo}{A data frame with daily meteorological data series. Row names of the data frame should correspond to date strings with format "yyyy-mm-dd" (see \code{\link{Date}}). When using the 'Granier' transpiration mode the following columns are required:
-   \itemize{
-     \item{\code{MeanTemperature}: Mean temperature (in degrees Celsius).}
-     \item{\code{Precipitation}: Precipitation (in mm).}
-     \item{\code{Radiation}: Solar radiation (in MJ/m2/day), required only if \code{snowpack = TRUE}.}
-     \item{\code{PET}: Potential evapotranspiration (in mm).}
-    }
-  When using the 'Sperry' transpiration mode the following columns are required:
-   \itemize{
-     \item{\code{MeanTemperature}: Mean temperature (in degrees Celsius).}
+  \item{meteo}{A data frame with daily meteorological data series. Row names of the data frame should correspond to date strings with format "yyyy-mm-dd" (see \code{\link{Date}}). The following columns are required:
+     \itemize{
      \item{\code{MinTemperature}: Minimum temperature (in degrees Celsius).}
      \item{\code{MaxTemperature}: Maximum temperature (in degrees Celsius).}
      \item{\code{MinRelativeHumidity}: Minimum relative humidity (in percent).}
      \item{\code{MaxRelativeHumidity}: Maximum relative humidity (in percent).}
      \item{\code{Precipitation}: Precipitation (in mm).}
-     \item{\code{Radiation}: Solar radiation (in MJ/m2/day).}
+     \item{\code{Radiation}: Solar radiation (in MJ/m2/day), required only if \code{snowpack = TRUE}.}
      \item{\code{WindSpeed}: Wind speed (in m/s). If not available, this column can be left with \code{NA} values.}
      \item{\code{CO2}: Atmospheric (abovecanopy) CO2 concentration (in ppm). This column may not exist, or can be left with \code{NA} values. In both cases simulations will assume a constant value specified in \code{\link{defaultControl}}.}
     }
@@ -39,6 +31,7 @@ pwb(x, meteo, W, latitude, elevation = NA, slope = NA, aspect = NA,
   \item{W}{A matrix with the same number of rows as \code{meteo} and as many columns as soil layers, containing the soil moisture of each layer as proportion of field capacity.}
   \item{latitude}{Latitude (in degrees).}
   \item{elevation, slope, aspect}{Elevation above sea level (in m), slope (in degrees) and aspect (in degrees from North). Required when using the 'Sperry' transpiration mode. Elevation is also required for 'Granier' if snowpack dynamics are simulated.}
+  \item{CO2ByYear}{A named numeric vector with years as names and atmospheric CO2 concentration (in ppm) as values. Used to specify annual changes in CO2 concentration along the simulation (as an alternative to specifying daily values in \code{meteo}).}
   \item{canopyEvaporation}{A vector of daily canopy evaporation (from interception) values (mm). The length should match the number of rows in \code{meteo}.}
   \item{soilEvaporation}{A vector of daily bare soil evaporation values (mm). The length should match the number of rows in \code{meteo}.}
   \item{snowMelt}{A vector of daily snow melt values (mm). The length should match the number of rows in \code{meteo}.}
@@ -190,18 +183,17 @@ control = defaultControl("Sperry")
 #Initialize input
 x2 = forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
 
-#Call simulation function (11 days)
-d = 100:110
-S2<-spwb(x2, examplemeteo[d,], latitude = 41.82592, elevation = 100)
+#Call simulation function
+S2<-spwb(x2, examplemeteo, latitude = 41.82592, elevation = 100)
 
 # Run the model with 'Sperry' transpiration mode using the water balance of 
 # simulated with the 'Granier' model
 WS = as.matrix(S1$Soil[, c("W.1", "W.2", "W.3", "W.4")])
-P2<-pwb(x2, examplemeteo[d,], latitude = 41.82592, elevation = 100, 
-        W = WS[d,],
-        canopyEvaporation = S1$WaterBalance$Interception[d],
-        snowMelt = S1$WaterBalance$Snowmelt[d],
-        soilEvaporation = S1$WaterBalance$SoilEvaporation[d])
+P2<-pwb(x2, examplemeteo, latitude = 41.82592, elevation = 100, 
+        W = WS,
+        canopyEvaporation = S1$WaterBalance$Interception,
+        snowMelt = S1$WaterBalance$Snowmelt,
+        soilEvaporation = S1$WaterBalance$SoilEvaporation)
 }
 
 }

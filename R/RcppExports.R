@@ -301,12 +301,12 @@ mortality_dailyProbability <- function(basalMortalityRate, stressValue, stressTh
     .Call(`_medfate_dailyMortalityProbability`, basalMortalityRate, stressValue, stressThreshold, minValue, exponent)
 }
 
-growth_day <- function(x, date, tmin, tmax, rhmin, rhmax, rad, wind, latitude, elevation, slope, aspect, prec, runon = 0.0, modifyInput = TRUE) {
-    .Call(`_medfate_growthDay`, x, date, tmin, tmax, rhmin, rhmax, rad, wind, latitude, elevation, slope, aspect, prec, runon, modifyInput)
+growth_day <- function(x, date, tmin, tmax, rhmin, rhmax, rad, wind, latitude, elevation, slope, aspect, prec, CO2 = NA_real_, runon = 0.0, modifyInput = TRUE) {
+    .Call(`_medfate_growthDay`, x, date, tmin, tmax, rhmin, rhmax, rad, wind, latitude, elevation, slope, aspect, prec, CO2, runon, modifyInput)
 }
 
-growth <- function(x, meteo, latitude, elevation = NA_real_, slope = NA_real_, aspect = NA_real_) {
-    .Call(`_medfate_growth`, x, meteo, latitude, elevation, slope, aspect)
+growth <- function(x, meteo, latitude, elevation = NA_real_, slope = NA_real_, aspect = NA_real_, CO2ByYear = numeric(0)) {
+    .Call(`_medfate_growth`, x, meteo, latitude, elevation, slope, aspect, CO2ByYear)
 }
 
 hydraulics_psi2K <- function(psi, Psi_extract, ws = 3.0) {
@@ -381,24 +381,24 @@ hydraulics_E2psiTwoElements <- function(E, psiSoil, krhizomax, kxylemmax, n, alp
     .Call(`_medfate_E2psiTwoElements`, E, psiSoil, krhizomax, kxylemmax, n, alpha, c, d, psiCav, psiStep, psiMax)
 }
 
-hydraulics_E2psiBelowground <- function(E, psiSoil, krhizomax, nsoil, alphasoil, krootmax, rootc, rootd, psiIni = as.numeric( c(0)), ntrial = 10L, psiTol = 0.0001, ETol = 0.0001) {
-    .Call(`_medfate_E2psiBelowground`, E, psiSoil, krhizomax, nsoil, alphasoil, krootmax, rootc, rootd, psiIni, ntrial, psiTol, ETol)
+hydraulics_E2psiBelowground <- function(E, hydraulicNetwork, psiIni = as.numeric( c(0)), ntrial = 10L, psiTol = 0.0001, ETol = 0.0001) {
+    .Call(`_medfate_E2psiBelowground`, E, hydraulicNetwork, psiIni, ntrial, psiTol, ETol)
 }
 
-hydraulics_E2psiAboveground <- function(E, psiRootCrown, kstemmax, stemc, stemd, kleafmax, leafc, leafd, PLCstem) {
-    .Call(`_medfate_E2psiAboveground`, E, psiRootCrown, kstemmax, stemc, stemd, kleafmax, leafc, leafd, PLCstem)
+hydraulics_E2psiAboveground <- function(E, psiRootCrown, hydraulicNetwork) {
+    .Call(`_medfate_E2psiAboveground`, E, psiRootCrown, hydraulicNetwork)
 }
 
-hydraulics_E2psiFineRootLeaf <- function(E, psiFineRoot, krootmax, rootc, rootd, kstemmax, stemc, stemd, kleafmax, leafc, leafd, PLCstem) {
-    .Call(`_medfate_E2psiFineRootLeaf`, E, psiFineRoot, krootmax, rootc, rootd, kstemmax, stemc, stemd, kleafmax, leafc, leafd, PLCstem)
+hydraulics_E2psiFineRootLeaf <- function(E, psiFineRoot, hydraulicNetwork) {
+    .Call(`_medfate_E2psiFineRootLeaf`, E, psiFineRoot, hydraulicNetwork)
 }
 
-hydraulics_E2psiNetworkStem1 <- function(E, psiSoil, krhizomax, nsoil, alphasoil, krootmax, rootc, rootd, kstemmax, stemc, stemd, PLCstem, psiIni = as.numeric( c(0)), ntrial = 10L, psiTol = 0.0001, ETol = 0.0001) {
-    .Call(`_medfate_E2psiNetworkStem1`, E, psiSoil, krhizomax, nsoil, alphasoil, krootmax, rootc, rootd, kstemmax, stemc, stemd, PLCstem, psiIni, ntrial, psiTol, ETol)
+hydraulics_E2psiNetworkStem1 <- function(E, hydraulicNetwork, psiIni = as.numeric( c(0)), ntrial = 10L, psiTol = 0.0001, ETol = 0.0001) {
+    .Call(`_medfate_E2psiNetworkStem1`, E, hydraulicNetwork, psiIni, ntrial, psiTol, ETol)
 }
 
-hydraulics_E2psiNetwork <- function(E, psiSoil, krhizomax, nsoil, alphasoil, krootmax, rootc, rootd, kstemmax, stemc, stemd, kleafmax, leafc, leafd, PLCstem, psiIni = as.numeric( c(0)), ntrial = 10L, psiTol = 0.0001, ETol = 0.0001) {
-    .Call(`_medfate_E2psiNetwork`, E, psiSoil, krhizomax, nsoil, alphasoil, krootmax, rootc, rootd, kstemmax, stemc, stemd, kleafmax, leafc, leafd, PLCstem, psiIni, ntrial, psiTol, ETol)
+hydraulics_E2psiNetwork <- function(E, hydraulicNetwork, psiIni = as.numeric( c(0)), ntrial = 10L, psiTol = 0.0001, ETol = 0.0001) {
+    .Call(`_medfate_E2psiNetwork`, E, hydraulicNetwork, psiIni, ntrial, psiTol, ETol)
 }
 
 hydraulics_supplyFunctionOneXylem <- function(psiSoil, v, kstemmax, stemc, stemd, psiCav = 0.0, maxNsteps = 200L, dE = 0.01) {
@@ -413,24 +413,24 @@ hydraulics_supplyFunctionThreeElements <- function(Emax, psiSoil, krhizomax, kxy
     .Call(`_medfate_supplyFunctionThreeElements`, Emax, psiSoil, krhizomax, kxylemmax, kleafmax, n, alpha, stemc, stemd, leafc, leafd, psiCav, dE, psiMax)
 }
 
-hydraulics_supplyFunctionBelowground <- function(psiSoil, krhizomax, nsoil, alphasoil, krootmax, rootc, rootd, minFlow = 0.0, maxNsteps = 400L, ntrial = 10L, psiTol = 0.0001, ETol = 0.0001, pCrit = 0.001) {
-    .Call(`_medfate_supplyFunctionBelowground`, psiSoil, krhizomax, nsoil, alphasoil, krootmax, rootc, rootd, minFlow, maxNsteps, ntrial, psiTol, ETol, pCrit)
+hydraulics_supplyFunctionBelowground <- function(hydraulicNetwork, minFlow = 0.0, maxNsteps = 400L, ntrial = 10L, psiTol = 0.0001, ETol = 0.0001, pCrit = 0.001) {
+    .Call(`_medfate_supplyFunctionBelowground`, hydraulicNetwork, minFlow, maxNsteps, ntrial, psiTol, ETol, pCrit)
 }
 
-hydraulics_supplyFunctionAboveground <- function(Erootcrown, psiRootCrown, kstemmax, stemc, stemd, kleafmax, leafc, leafd, PLCstem) {
-    .Call(`_medfate_supplyFunctionAboveground`, Erootcrown, psiRootCrown, kstemmax, stemc, stemd, kleafmax, leafc, leafd, PLCstem)
+hydraulics_supplyFunctionAboveground <- function(Erootcrown, psiRootCrown, hydraulicNetwork) {
+    .Call(`_medfate_supplyFunctionAboveground`, Erootcrown, psiRootCrown, hydraulicNetwork)
 }
 
-hydraulics_supplyFunctionFineRootLeaf <- function(psiFineRoot, krootmax, rootc, rootd, kstemmax, stemc, stemd, kleafmax, leafc, leafd, PLCstem, minFlow = 0.0, maxNsteps = 400L, ETol = 0.0001, pCrit = 0.001) {
-    .Call(`_medfate_supplyFunctionFineRootLeaf`, psiFineRoot, krootmax, rootc, rootd, kstemmax, stemc, stemd, kleafmax, leafc, leafd, PLCstem, minFlow, maxNsteps, ETol, pCrit)
+hydraulics_supplyFunctionFineRootLeaf <- function(psiFineRoot, hydraulicNetwork, minFlow = 0.0, maxNsteps = 400L, ETol = 0.0001, pCrit = 0.001) {
+    .Call(`_medfate_supplyFunctionFineRootLeaf`, psiFineRoot, hydraulicNetwork, minFlow, maxNsteps, ETol, pCrit)
 }
 
-hydraulics_supplyFunctionNetworkStem1 <- function(psiSoil, krhizomax, nsoil, alphasoil, krootmax, rootc, rootd, kstemmax, stemc, stemd, PLCstem, minFlow = 0.0, maxNsteps = 400L, ntrial = 200L, psiTol = 0.0001, ETol = 0.0001, pCrit = 0.001) {
-    .Call(`_medfate_supplyFunctionNetworkStem1`, psiSoil, krhizomax, nsoil, alphasoil, krootmax, rootc, rootd, kstemmax, stemc, stemd, PLCstem, minFlow, maxNsteps, ntrial, psiTol, ETol, pCrit)
+hydraulics_supplyFunctionNetworkStem1 <- function(hydraulicNetwork, minFlow = 0.0, maxNsteps = 400L, ntrial = 200L, psiTol = 0.0001, ETol = 0.0001, pCrit = 0.001) {
+    .Call(`_medfate_supplyFunctionNetworkStem1`, hydraulicNetwork, minFlow, maxNsteps, ntrial, psiTol, ETol, pCrit)
 }
 
-hydraulics_supplyFunctionNetwork <- function(psiSoil, krhizomax, nsoil, alphasoil, krootmax, rootc, rootd, kstemmax, stemc, stemd, kleafmax, leafc, leafd, PLCstem, minFlow = 0.0, maxNsteps = 400L, ntrial = 200L, psiTol = 0.0001, ETol = 0.0001, pCrit = 0.001) {
-    .Call(`_medfate_supplyFunctionNetwork`, psiSoil, krhizomax, nsoil, alphasoil, krootmax, rootc, rootd, kstemmax, stemc, stemd, kleafmax, leafc, leafd, PLCstem, minFlow, maxNsteps, ntrial, psiTol, ETol, pCrit)
+hydraulics_supplyFunctionNetwork <- function(hydraulicNetwork, minFlow = 0.0, maxNsteps = 400L, ntrial = 200L, psiTol = 0.0001, ETol = 0.0001, pCrit = 0.001) {
+    .Call(`_medfate_supplyFunctionNetwork`, hydraulicNetwork, minFlow, maxNsteps, ntrial, psiTol, ETol, pCrit)
 }
 
 hydraulics_regulatedPsiXylem <- function(E, psiUpstream, kxylemmax, c, d, psiStep = -0.01) {
@@ -893,16 +893,16 @@ soil_thermalConductivity <- function(soil, model = "SX") {
     .Call(`_medfate_thermalConductivity`, soil, model)
 }
 
-spwb_day <- function(x, date, tmin, tmax, rhmin, rhmax, rad, wind, latitude, elevation, slope, aspect, prec, runon = 0.0, modifyInput = TRUE) {
-    .Call(`_medfate_spwbDay`, x, date, tmin, tmax, rhmin, rhmax, rad, wind, latitude, elevation, slope, aspect, prec, runon, modifyInput)
+spwb_day <- function(x, date, tmin, tmax, rhmin, rhmax, rad, wind, latitude, elevation, slope, aspect, prec, CO2 = NA_real_, runon = 0.0, modifyInput = TRUE) {
+    .Call(`_medfate_spwbDay`, x, date, tmin, tmax, rhmin, rhmax, rad, wind, latitude, elevation, slope, aspect, prec, CO2, runon, modifyInput)
 }
 
-spwb <- function(x, meteo, latitude, elevation = NA_real_, slope = NA_real_, aspect = NA_real_) {
-    .Call(`_medfate_spwb`, x, meteo, latitude, elevation, slope, aspect)
+spwb <- function(x, meteo, latitude, elevation = NA_real_, slope = NA_real_, aspect = NA_real_, CO2ByYear = numeric(0)) {
+    .Call(`_medfate_spwb`, x, meteo, latitude, elevation, slope, aspect, CO2ByYear)
 }
 
-pwb <- function(x, meteo, W, latitude, elevation = NA_real_, slope = NA_real_, aspect = NA_real_, canopyEvaporation = numeric(0), snowMelt = numeric(0), soilEvaporation = numeric(0)) {
-    .Call(`_medfate_pwb`, x, meteo, W, latitude, elevation, slope, aspect, canopyEvaporation, snowMelt, soilEvaporation)
+pwb <- function(x, meteo, W, latitude, elevation = NA_real_, slope = NA_real_, aspect = NA_real_, canopyEvaporation = numeric(0), snowMelt = numeric(0), soilEvaporation = numeric(0), CO2ByYear = numeric(0)) {
+    .Call(`_medfate_pwb`, x, meteo, W, latitude, elevation, slope, aspect, canopyEvaporation, snowMelt, soilEvaporation, CO2ByYear)
 }
 
 moisture_sapwoodWaterCapacity <- function(Al2As, height, V, L, wd) {
@@ -937,16 +937,16 @@ moisture_tissueRWC <- function(psiSym, pi0, epsilon, psiApo, c, d, af, femb = 0.
     .Call(`_medfate_tissueRelativeWaterContent`, psiSym, pi0, epsilon, psiApo, c, d, af, femb)
 }
 
-transp_profitMaximization <- function(supplyFunction, photosynthesisFunction, Gswmin, Gswmax, gainModifier = 1.0, costModifier = 1.0, costWater = "dEdP") {
-    .Call(`_medfate_profitMaximization`, supplyFunction, photosynthesisFunction, Gswmin, Gswmax, gainModifier, costModifier, costWater)
+transp_profitMaximization <- function(supplyFunction, photosynthesisFunction, Gswmin, Gswmax) {
+    .Call(`_medfate_profitMaximization`, supplyFunction, photosynthesisFunction, Gswmin, Gswmax)
 }
 
 transp_transpirationSperry <- function(x, meteo, day, latitude, elevation, slope, aspect, canopyEvaporation = 0.0, snowMelt = 0.0, soilEvaporation = 0.0, stepFunctions = NA_integer_, modifyInput = TRUE) {
     .Call(`_medfate_transpirationSperry`, x, meteo, day, latitude, elevation, slope, aspect, canopyEvaporation, snowMelt, soilEvaporation, stepFunctions, modifyInput)
 }
 
-transp_transpirationGranier <- function(x, meteo, day, elevation, modifyInput = TRUE) {
-    .Call(`_medfate_transpirationGranier`, x, meteo, day, elevation, modifyInput)
+transp_transpirationGranier <- function(x, meteo, day, latitude, elevation, slope, aspect, modifyInput = TRUE) {
+    .Call(`_medfate_transpirationGranier`, x, meteo, day, latitude, elevation, slope, aspect, modifyInput)
 }
 
 wind_canopyTurbulenceModel <- function(zm, Cx, hm, d0, z0, model = "k-epsilon") {

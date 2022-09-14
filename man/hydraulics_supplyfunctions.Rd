@@ -29,7 +29,7 @@
 Hydraulic supply functions
 }
 \description{
-Set of functions used in the implementation of hydraulic supply functions (Sperry \& Love 2015).
+Set of functions used in the implementation of hydraulic supply functions (Sperry and Love 2015).
 }
 \usage{
 hydraulics_EXylem(psiPlant, psiUpstream, 
@@ -51,33 +51,17 @@ hydraulics_E2psiVanGenuchten(E, psiSoil, krhizomax, n, alpha,
 hydraulics_E2psiTwoElements(E, psiSoil, krhizomax, kxylemmax, n, alpha, c, d, 
                       psiCav = 0, psiStep = -1e-04, psiMax = -10.0)
 hydraulics_E2psiFineRootLeaf(E, psiFineRoot, 
-                      krootmax, rootc, rootd,
-                      kstemmax, stemc, stemd,
-                      kleafmax, leafc, leafd,
-                      PLCstem)
-hydraulics_E2psiBelowground(E, psiSoil, 
-                      krhizomax, nsoil, alphasoil,
-                      krootmax, rootc, rootd, 
+                      hydraulicNetwork)
+hydraulics_E2psiBelowground(E, hydraulicNetwork, 
                       psiIni = as.numeric(c(0)),
                       ntrial = 10, psiTol = 0.0001, ETol = 0.0001)
 hydraulics_E2psiAboveground(E, psiRootCrown, 
-                      kstemmax, stemc, stemd,
-                      kleafmax, leafc, leafd,
-                      PLCstem)  
-hydraulics_E2psiNetwork(E, psiSoil, 
-                  krhizomax, nsoil, alphasoil,
-                  krootmax, rootc, rootd, 
-                  kstemmax, stemc, stemd,
-                  kleafmax, leafc, leafd,
-                  PLCstem,
+                      hydraulicNetwork)  
+hydraulics_E2psiNetwork(E, hydraulicNetwork,
                   psiIni = as.numeric(c(0)),
                   ntrial = 10, 
                   psiTol = 0.0001, ETol = 0.0001)
-hydraulics_E2psiNetworkStem1(E, psiSoil, 
-                  krhizomax, nsoil, alphasoil,
-                  krootmax, rootc, rootd, 
-                  kstemmax, stemc, stemd,
-                  PLCstem,
+hydraulics_E2psiNetworkStem1(E, hydraulicNetwork,
                   psiIni = as.numeric(c(0)),
                   ntrial = 10, 
                   psiTol = 0.0001, ETol = 0.0001)
@@ -93,40 +77,25 @@ hydraulics_supplyFunctionThreeElements(Emax, psiSoil,
                   psiCav = 0, dE = 0.1, psiMax = -10.0)
                           
                           
-hydraulics_supplyFunctionBelowground(psiSoil, 
-                  krhizomax, nsoil, alphasoil,
-                  krootmax, rootc, rootd, 
+hydraulics_supplyFunctionBelowground(hydraulicNetwork, 
                   minFlow = 0.0, maxNsteps=400,  
                   ntrial = 10, psiTol = 0.0001, ETol = 0.0001, pCrit = 0.001)
 
 hydraulics_supplyFunctionAboveground(Erootcrown, psiRootCrown, 
-                  kstemmax, stemc, stemd,
-                  kleafmax, leafc, leafd,
-                  PLCstem)
+                  hydraulicNetwork)
 
 hydraulics_supplyFunctionFineRootLeaf(psiFineRoot,
-                    krootmax, rootc, rootd,
-                    kstemmax, stemc, stemd,
-                    kleafmax, leafc, leafd,
-                    PLCstem,
+                    hydraulicNetwork,
                     minFlow = 0.0, maxNsteps=400, 
                     ETol = 0.0001, pCrit = 0.001)
-hydraulics_supplyFunctionNetworkStem1(psiSoil, 
-                    krhizomax, nsoil, alphasoil,
-                    krootmax, rootc, rootd, 
-                    kstemmax, stemc, stemd,
-                    PLCstem,
+hydraulics_supplyFunctionNetworkStem1(hydraulicNetwork,
                     minFlow = 0.0, maxNsteps=400, 
                     ntrial = 200, psiTol = 0.0001, ETol = 0.0001, pCrit = 0.001)
-hydraulics_supplyFunctionNetwork(psiSoil, 
-                  krhizomax, nsoil, alphasoil,
-                  krootmax, rootc, rootd, 
-                  kstemmax, stemc, stemd,
-                  kleafmax, leafc, leafd,
-                  PLCstem, minFlow = 0.0, maxNsteps=400,
+hydraulics_supplyFunctionNetwork(hydraulicNetwork, 
+                  minFlow = 0.0, maxNsteps=400,
                   ntrial = 200, psiTol = 0.0001, ETol = 0.0001, pCrit = 0.001)
                            
-hydraulics_supplyFunctionPlot(x, soil, draw = TRUE, type = "E",
+hydraulics_supplyFunctionPlot(x, draw = TRUE, type = "E",
                               speciesNames = FALSE, ylim=NULL)   
 hydraulics_regulatedPsiXylem(E, psiUpstream, kxylemmax, c, d, psiStep = -0.01)
 hydraulics_regulatedPsiTwoElements(Emax, psiSoil, krhizomax, kxylemmax, n, alpha, 
@@ -139,7 +108,6 @@ hydraulics_regulatedPsiTwoElements(Emax, psiSoil, krhizomax, kxylemmax, n, alpha
   \item{kxylemmax}{Maximum xylem hydraulic conductance (defined as flow per leaf surface unit and per pressure drop).}
   \item{kleafmax}{Maximum leaf hydraulic conductance (defined as flow per leaf surface unit and per pressure drop).}
   \item{kstemmax}{Maximum stem xylem hydraulic conductance (defined as flow per leaf surface unit and per pressure drop).}
-  \item{krootmax}{Maximum root xylem hydraulic conductance (defined as flow per leaf surface unit and per pressure drop).}
   \item{E}{Flow per surface unit.}
   \item{Emax}{Maximum flow per surface unit.}
   \item{Erootcrown}{Flow per surface unit at the root crown.}
@@ -150,6 +118,7 @@ hydraulics_regulatedPsiTwoElements(Emax, psiSoil, krhizomax, kxylemmax, n, alpha
   \item{psiCav}{Minimum water potential (in MPa) experienced (for irreversible cavitation).}
   \item{minFlow}{Minimum flow in supply function.}
   \item{psiPlant}{Plant water potential (in MPa).}
+  \item{hydraulicNetwork}{List with the hydraulic characteristics of nodes in the hydraulic network.}
   \item{psiFineRoot}{Water potential (in MPa) inside fine roots.}
   \item{psiSoil}{Soil water potential (in MPa). A scalar or a vector depending on the function.}
   \item{psiRhizo}{Soil water potential (in MPa) in the rhizosphere (root surface).}
@@ -159,7 +128,6 @@ hydraulics_regulatedPsiTwoElements(Emax, psiSoil, krhizomax, kxylemmax, n, alpha
   \item{psiIni}{Vector of initial water potential values (in MPa).}
   \item{psiMax}{Minimum (maximum in absolute value) water potential to be considered (in MPa).}
   \item{pCrit}{Critical water potential (in MPa).}
-  \item{PLCstem}{Proportion of loss conductance in the stem [0-1].}
   \item{PLCprev}{Previous proportion of loss conductance [0-1].}
   \item{V}{Capacity of the compartment per leaf area (in L/m2).}
   \item{fapo}{Apoplastic fraction (proportion) in the segment.}
@@ -168,16 +136,13 @@ hydraulics_regulatedPsiTwoElements(Emax, psiSoil, krhizomax, kxylemmax, n, alpha
   \item{dE}{Increment of flow per surface unit.}
   \item{ETol}{Precision for water flow per surface unit.}
   \item{c, d}{Parameters of the Weibull function (generic xylem vulnerability curve).}
-  \item{rootc, rootd}{Parameters of the Weibull function for roots (root xylem vulnerability curve).}
   \item{stemc, stemd}{Parameters of the Weibull function for stems (stem xylem vulnerability curve).}
   \item{leafc, leafd}{Parameters of the Weibull function for leaves (leaf vulnerability curve).}
   \item{n, alpha, l}{Parameters of the Van Genuchten function (rhizosphere vulnerability curve).}
-  \item{nsoil, alphasoil}{Parameter vectors of the Van Genuchten function (rhizosphere vulnerability curve) with one value for each soil layer.}
   \item{allowNegativeFlux}{A boolean to indicate wether negative flux (i.e. from plant to soil) is allowed.}
   \item{maxNsteps}{Maximum number of steps in the construction of supply functions.}
   \item{ntrial}{Maximum number of steps in Newton-Raphson optimization.}
   \item{x}{An object of class \code{\link{spwbInput}}.}
-  \item{soil}{A list containing the description of the soil (see \code{\link{soil}}).}
   \item{type}{Plot type for \code{hydraulics_supplyFunctionPlot}, either \code{"E"}, \code{"ERhizo"}, \code{"psiStem"}, \code{"psiRoot"}, \code{"psiRhizo"} or \code{"dEdP"}).}
   \item{draw}{A flag to indicate whether the supply function should be drawn or just returned.}
   \item{speciesNames}{A flag to indicate the use of species names instead of cohort names in plots.}
@@ -215,7 +180,7 @@ Values returned for each function are:
 }
 }
 \references{
-Sperry, J. S., F. R. Adler, G. S. Campbell, and J. P. Comstock. 1998. Limitation of plant water use by rhizosphere and xylem conductance: results from a model. Plant, Cell \& Environment 21:347–359.
+Sperry, J. S., F. R. Adler, G. S. Campbell, and J. P. Comstock. 1998. Limitation of plant water use by rhizosphere and xylem conductance: results from a model. Plant, Cell and Environment 21:347–359.
 
 Sperry, J. S., and D. M. Love. 2015. What plant hydraulics can tell us about responses to climate-change droughts. New Phytologist 207:14–27.
 }
