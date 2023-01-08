@@ -17,6 +17,22 @@
 #include <meteoland.h>
 using namespace Rcpp;
 
+//' Mortality
+//' 
+//' A simple function to determine a daily mortality likelihood according to the value of a stress variable.
+//'
+//' @param basalMortalityRate Basal daily mortality rate per individual.
+//' @param stressValue Current value of the stress variable (lower values indicate stronger stress).
+//' @param stressThreshold Threshold to indicate that lower values increase mortality likelihood.
+//' @param minValue Minimum value of the stress variable (i.e. maximum stress), corresponding to probability of mortality equal to 1.
+//' @param exponent Coefficient modulating the steepness of the relationship.
+//' 
+//' @return Returns a probability (between 0 and 1).
+//' 
+//' @author Miquel De \enc{Cáceres}{Caceres} Ainsa, CREAF
+//' 
+//' @seealso \code{\link{growth}}, \code{\link{recruitment}}
+//' 
 // [[Rcpp::export("mortality_dailyProbability")]]
 double dailyMortalityProbability(double basalMortalityRate, double stressValue, double stressThreshold,
                                  double minValue = 0.0, double exponent=10.0) {
@@ -180,7 +196,7 @@ void closePlantBiomassBalance(DataFrame plantBiomassBalance, List x,
   NumericVector CohortBiomassChange = Rcpp::as<Rcpp::NumericVector>(plantBiomassBalance["CohortBiomassChange"]);
   
   //PLANT BIOMASS balance (g_ind)
-  for(int j; j<numCohorts;j++) {
+  for(int j=0; j<numCohorts;j++) {
     double sapwoodBiomassBalance = finalSapwoodBiomass_ind[j] - InitialSapwoodBiomass[j];
     StructuralBiomassChange[j] = structuralFinalBiomass_ind[j] - InitialStructuralBiomass[j];
     LabileBiomassChange[j] = labileFinalBiomass_ind[j] - InitialLabileBiomass[j];
@@ -361,20 +377,6 @@ List growthDayInner(List x, NumericVector meteovec,
   }
   //Weather
   double tday = meteovec["tday"];
-  double tmin = meteovec["tmin"];
-  double tmax = meteovec["tmax"];
-  double rhmin = meteovec["rhmin"];
-  double rhmax = meteovec["rhmax"];
-  double rad = meteovec["rad"];
-  double wind = NA_REAL, tminPrev = NA_REAL, tmaxPrev = NA_REAL, tminNext = NA_REAL;
-  double Catm = NA_REAL;
-  if(transpirationMode=="Sperry") {
-    wind = meteovec["wind"];
-    tminPrev = meteovec["tminPrev"];
-    tmaxPrev = meteovec["tmaxPrev"];
-    tminNext = meteovec["tminNext"];
-    Catm = meteovec["Catm"];
-  }
 
 
   //Cohort info
@@ -774,7 +776,7 @@ List growthDayInner(List x, NumericVector meteovec,
         for(int s=0;s<numSteps;s++) {
           
           //Transform sugar concentration (mol gluc · l-1) to sugar mass (g gluc)
-          double leafSugarMassStep = sugarLeaf[j]*(Volume_leaves[j]*glucoseMolarMass);
+          // double leafSugarMassStep = sugarLeaf[j]*(Volume_leaves[j]*glucoseMolarMass);
           double sapwoodSugarMassStep = sugarSapwood[j]*(Volume_sapwood[j]*glucoseMolarMass);
           
           //LEAF PHOTOSYNTHESIS and RESPIRATION
@@ -794,7 +796,7 @@ List growthDayInner(List x, NumericVector meteovec,
           }
           
           //MAINTENANCE RESPIRATION
-          double B_resp_leaves = LeafStructBiomass[j] + leafSugarMassStep;
+          // double B_resp_leaves = LeafStructBiomass[j] + leafSugarMassStep;
           double B_resp_sapwood = SapwoodLivingStructBiomass[j] + sapwoodSugarMassStep;
           double B_resp_fineroots = fineRootBiomass[j];
           double QR = qResp(Tcan[s]);
@@ -1014,7 +1016,7 @@ List growthDayInner(List x, NumericVector meteovec,
         
       //UPDATE LEAF AREA, SAPWOOD AREA, FINE ROOT BIOMASS AND CONCENTRATION IN LABILE POOLS
       // Rcout<<"-update";
-      double LAprev = LAexpanded;
+      // double LAprev = LAexpanded;
       LAexpanded += deltaLAgrowth[j] - deltaLAsenescence;
       if(LAexpanded < 0.0) {
         deltaLAsenescence -= LAexpanded;
@@ -1023,7 +1025,7 @@ List growthDayInner(List x, NumericVector meteovec,
       LAdead += deltaLAsenescence;
       LAI_dead[j] = LAdead*N[j]/10000.0;
       LAI_expanded[j] = LAexpanded*N[j]/10000.0;
-      double SAprev = SA[j];
+      // double SAprev = SA[j];
       SA[j] = SA[j] + deltaSAgrowth[j] - deltaSASenescence; 
       NumericVector newFRB(numLayers,0.0);
       for(int s=0;s<numLayers;s++) {
@@ -1091,7 +1093,7 @@ List growthDayInner(List x, NumericVector meteovec,
       
       //MORTALITY Death by carbon starvation or dessication
       // Rcout<<"-mortality";
-      double Nprev = N[j]; //Store initial density (for biomass balance)
+      // double Nprev = N[j]; //Store initial density (for biomass balance)
       double Ndead_day = 0.0;
       bool dynamicCohort = true;
       bool isShrub = !NumericVector::is_na(Cover[j]);
@@ -1346,7 +1348,7 @@ List growthDayInner(List x, NumericVector meteovec,
 
 
 
-
+//' @rdname spwb_day
 // [[Rcpp::export("growth_day")]]
 List growthDay(List x, CharacterVector date, double tmin, double tmax, double rhmin, 
                double rhmax, double rad, double wind, 
@@ -1499,6 +1501,134 @@ void checkgrowthInput(List x, String transpirationMode, String soilFunctions) {
   }
 }
 
+//' Forest growth
+//' 
+//' Function \code{growth} is a process-based model that performs energy, water and carbon balances; 
+//' and determines changes in water/carbon pools, functional variables (leaf area, sapwood area, root area) 
+//' and structural ones (tree diameter, tree height, shrub cover) for woody plant cohorts in a given forest stand 
+//' during a period specified in the input climatic data. 
+//' 
+//' @param x An object of class \code{\link{growthInput}}.
+//' @param meteo A data frame with daily meteorological data series. Row names of the data frame should correspond to date strings with format "yyyy-mm-dd" (see \code{\link{Date}}).The following columns are required:
+//'   \itemize{
+//'     \item{\code{MinTemperature}: Minimum temperature (in degrees Celsius).}
+//'     \item{\code{MaxTemperature}: Maximum temperature (in degrees Celsius).}
+//'     \item{\code{MinRelativeHumidity}: Minimum relative humidity (in percent).}
+//'     \item{\code{MaxRelativeHumidity}: Maximum relative humidity (in percent).}
+//'     \item{\code{Precipitation}: Precipitation (in mm).}
+//'     \item{\code{Radiation}: Solar radiation (in MJ/m2/day), required only if \code{snowpack = TRUE}.}
+//'     \item{\code{WindSpeed}: Wind speed (in m/s). If not available, this column can be left with \code{NA} values.}
+//'     \item{\code{CO2}: Atmospheric (abovecanopy) CO2 concentration (in ppm). This column may not exist, or can be left with \code{NA} values. In both cases simulations will assume a constant value specified in \code{\link{defaultControl}}.}
+//'   }
+//' @param latitude Latitude (in degrees). Required when \code{x$TranspirationMode = "Sperry"}.
+//' @param elevation,slope,aspect Elevation above sea level (in m), slope (in degrees) and aspect (in degrees from North). Required when \code{x$TranspirationMode = "Sperry"}. Elevation is also required for 'Granier' if snowpack dynamics are simulated.
+//' @param CO2ByYear A named numeric vector with years as names and atmospheric CO2 concentration (in ppm) as values. Used to specify annual changes in CO2 concentration along the simulation (as an alternative to specifying daily values in \code{meteo}).
+//' 
+//' @details
+//' Detailed model description is available in the medfate book. 
+//' Simulations using the 'Sperry' transpiration mode are computationally much more expensive 
+//' than those using the simple transpiration mode. 
+//' 
+//' @return
+//' A list of class 'growth' with the following elements:
+//' \itemize{
+//'   \item{\code{"latitude"}: Latitude (in degrees) given as input.} 
+//'   \item{\code{"topography"}: Vector with elevation, slope and aspect given as input.} 
+//'   \item{\code{"weather"}: A copy of the input weather data frame.}
+//'   \item{\code{"growthInput"}: A copy of the object \code{x} of class \code{\link{growthInput}} given as input.}
+//'   \item{\code{"growthOutput"}: An copy of the final state of the object \code{x} of class \code{\link{growthInput}}.}
+//'   \item{\code{"WaterBalance"}: A data frame where different water balance variables (see \code{\link{spwb}}).}
+//'   \item{\code{"EnergyBalance"}: A data frame with the daily values of energy balance components for the soil and the canopy (only for \code{transpirationMode = "Sperry"}; see \code{\link{spwb}}).}
+//'   \item{\code{"CarbonBalance"}: A data frame where different stand-level carbon balance components (gross primary production, maintenance respiration, synthesis respiration and net primary production), all in g C · m-2.}
+//'   \item{\code{"BiomassBalance"}: A data frame with the daily values of stand biomass balance components (in g dry · m-2.}
+//'   \item{\code{"Temperature"}: A data frame with the daily values of minimum/mean/maximum temperatures for the atmosphere (input), canopy and soil (only for \code{transpirationMode = "Sperry"}; see \code{\link{spwb}}).}
+//'   \item{\code{"Soil"}: A data frame where different soil variables  (see \code{\link{spwb}}).}
+//'   \item{\code{"Stand"}: A data frame where different stand-level variables (see \code{\link{spwb}}).}
+//'   \item{\code{"Plants"}: A list of daily results for plant cohorts (see \code{\link{spwb}}).}
+//'   \item{\code{"SunlitLeaves"} and \code{"ShadeLeaves"}: A list with daily results for sunlit and shade leaves (only for \code{transpirationMode = "Sperry"}; see \code{\link{spwb}}).}
+//'   \item{\code{"LabileCarbonBalance"}: A list of daily labile carbon balance results for plant cohorts, with elements:}
+//'   \itemize{
+//'     \item{\code{"GrossPhotosynthesis"}: Daily gross photosynthesis per dry weight of living biomass (g gluc · g dry-1).}
+//'     \item{\code{"MaintentanceRespiration"}: Daily maintenance respiration per dry weight of living biomass (g gluc · g dry-1).}
+//'     \item{\code{"GrowthCosts"}: Daily growth costs per dry weight of living biomass (g gluc · g dry-1).}
+//'     \item{\code{"RootExudation"}: Root exudation per dry weight of living biomass (g gluc · g dry-1).}    
+//'     \item{\code{"LabileCarbonBalance"}: Daily labile carbon balance (photosynthesis - maintenance respiration - growth costs - root exudation) per dry weight of living biomass (g gluc · g dry-1).}
+//'     \item{\code{"SugarLeaf"}: Sugar concentration (mol·l-1) in leaves.}
+//'     \item{\code{"StarchLeaf"}: Starch concentration (mol·l-1) in leaves.}
+//'     \item{\code{"SugarSapwood"}: Sugar concentration (mol·l-1) in sapwood.}
+//'     \item{\code{"StarchSapwood"}: Starch concentration (mol·l-1) in sapwood.}
+//'     \item{\code{"SugarTransport"}:  Average instantaneous rate of carbon transferred between leaves and stem compartments via floem (mol gluc·s-1).}
+//'   }
+//'   \item{\code{"PlantBiomassBalance"}: A list of daily plant biomass balance results for plant cohorts, with elements:}
+//'   \itemize{
+//'     \item{\code{"StructuralBiomassBalance"}: Daily structural biomass balance (g dry · m-2).}
+//'     \item{\code{"LabileBiomassBalance"}: Daily labile biomass balance (g dry · m-2).}
+//'     \item{\code{"PlantBiomassBalance"}: Daily plant biomass balance, i.e. labile change + structural change (g dry · m-2).}
+//'     \item{\code{"MortalityBiomassLoss"}: Biomass loss due to mortality (g dry · m-2).}    
+//'     \item{\code{"CohortBiomassBalance"}: Daily cohort biomass balance (including mortality) (g dry · m-2).}
+//'   }
+//'   \item{\code{"PlantStructure"}: A list of daily area and biomass values for compartments of plant cohorts, with elements:}
+//'   \itemize{
+//'     \item{\code{"LeafBiomass"}: Daily amount of leaf structural biomass (in g dry) for an average individual of each plant cohort.}
+//'     \item{\code{"SapwoodBiomass"}: Daily amount of sapwood structural biomass (in g dry) for an average individual of each plant cohort.}
+//'     \item{\code{"FineRootBiomass"}: Daily amount of fine root biomass (in g dry) for an average individual of each plant cohort.}
+//'     \item{\code{"LeafArea"}: Daily amount of leaf area (in m2) for an average individual of each plant cohort.}
+//'     \item{\code{"SapwoodArea"}: Daily amount of sapwood area (in cm2) for an average individual of each plant cohort.}
+//'     \item{\code{"FineRootArea"}: Daily amount of fine root area (in m2) for an average individual of each plant cohort.}
+//'     \item{\code{"HuberValue"}: The ratio of sapwood area to (target) leaf area (in cm2/m2).}
+//'     \item{\code{"RootAreaLeafArea"}: The ratio of fine root area to (target) leaf area (in m2/m2).}
+//'     \item{\code{"DBH"}: Diameter at breast height (in cm) for an average individual of each plant cohort.}
+//'     \item{\code{"Height"}: Height (in cm) for an average individual of each plant cohort.}
+//'   }
+//'   \item{\code{"GrowthMortality"}: A list of daily growth and mortality rates for plant cohorts, with elements:}
+//'   \itemize{
+//'     \item{\code{"LAgrowth"}: Leaf area growth (in m2·day-1) for an average individual of each plant cohort.}
+//'     \item{\code{"SAgrowth"}: Sapwood area growth rate (in cm2·day-1) for an average individual of each plant cohort.}
+//'     \item{\code{"FRAgrowth"}: Fine root area growth (in m2·day-1) for an average individual of each plant cohort.}
+//'     \item{\code{"StarvationRate"}: Daily mortality rate from starvation (ind/d-1).}
+//'     \item{\code{"DessicationRate"}: Daily mortality rate from dessication (ind/d-1).}
+//'     \item{\code{"MortalityRate"}: Daily mortality rate (any cause) (ind/d-1).}
+//'   }
+//'   \item{\code{"subdaily"}: A list of objects of class \code{\link{growth_day}}, one per day simulated (only if required in \code{control} parameters, see \code{\link{defaultControl}}).}
+//' }
+//' 
+//' @author Miquel De \enc{Cáceres}{Caceres} Ainsa, CREAF
+//' 
+//' @seealso \code{\link{growthInput}}, \code{\link{growth_day}}, \code{\link{plot.growth}}
+//' 
+//' @examples
+//' #Load example daily meteorological data
+//' data(examplemeteo)
+//' 
+//' #Load example plot plant data
+//' data(exampleforestMED)
+//' 
+//' #Default species parameterization
+//' data(SpParamsMED)
+//'   
+//' #Initialize control parameters
+//' control = defaultControl("Granier")
+//'   
+//' #Initialize soil with default soil params (4 layers)
+//' examplesoil = soil(defaultSoilParams(4))
+//' 
+//' #Initialize vegetation input
+//' x1 = forest2growthInput(exampleforestMED, examplesoil, SpParamsMED, control)
+//' 
+//' #Call simulation function
+//' G1<-growth(x1, examplemeteo, latitude = 41.82592, elevation = 100)
+//'  
+//' \dontrun{
+//' #Switch to 'Sperry' transpiration mode
+//' control = defaultControl("Sperry")
+//' 
+//' #Initialize vegetation input
+//' x2 = forest2growthInput(exampleforestMED,examplesoil, SpParamsMED, control)
+//' 
+//' #Call simulation function
+//' G2<-growth(x2, examplemeteo, latitude = 41.82592, elevation = 100)
+//' }
+//'       
 // [[Rcpp::export("growth")]]
 List growth(List x, DataFrame meteo, double latitude, 
             double elevation = NA_REAL, double slope = NA_REAL, double aspect = NA_REAL,
@@ -1513,7 +1643,6 @@ List growth(List x, DataFrame meteo, double latitude,
   bool leafPhenology = control["leafPhenology"];
   bool unlimitedSoilWater = control["unlimitedSoilWater"];
   bool multiLayerBalance = control["multiLayerBalance"];
-  bool shrubDynamics = control["shrubDynamics"];
   checkgrowthInput(x, transpirationMode, soilFunctions);
 
   //Store input
@@ -1527,8 +1656,7 @@ List growth(List x, DataFrame meteo, double latitude,
   DataFrame cohorts = Rcpp::as<Rcpp::DataFrame>(x["cohorts"]);
   IntegerVector SP = Rcpp::as<Rcpp::IntegerVector>(cohorts["SP"]);
   IntegerVector SPunique = uniqueSpp(SP);
-  int numSpecies = SPunique.size();
-  
+
   if(NumericVector::is_na(latitude)) stop("Value for 'latitude' should not be missing.");
   double latrad = latitude * (M_PI/180.0);
   if(NumericVector::is_na(aspect)) aspect = 0.0;
@@ -1706,7 +1834,6 @@ List growth(List x, DataFrame meteo, double latitude,
   if(verbose) Rcout << "Performing daily simulations\n";
   List s;
   std::string yearString;
-  int iyear = 0;
   for(int i=0;i<numDays;i++) {
     std::string c = as<std::string>(dateStrings[i]);
     yearString = c.substr(0, 4);

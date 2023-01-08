@@ -1,4 +1,12 @@
 #Draws the supply function (E vs PlantPsi) for the current soil state and plant hydraulic parameters
+#' @rdname hydraulics_supplyfunctions
+#' 
+#' @param x An object of class \code{\link{spwbInput}}.
+#' @param type Plot type for \code{hydraulics_supplyFunctionPlot}, either \code{"E"}, \code{"ERhizo"}, \code{"psiStem"}, \code{"psiRoot"}, \code{"psiRhizo"} or \code{"dEdP"}).
+#' @param draw A flag to indicate whether the supply function should be drawn or just returned.
+#' @param speciesNames A flag to indicate the use of species names instead of cohort names in plots.
+#' @param ylim Graphical parameter to override function defaults.
+#' 
 hydraulics_supplyFunctionPlot<-function(x, draw = TRUE, type="E", speciesNames = FALSE, ylim=NULL) {
   
   TYPES = c("E","dEdP","StemPsi","RootPsi","RhizoPsi", "ERhizo")
@@ -87,9 +95,9 @@ hydraulics_supplyFunctionPlot<-function(x, draw = TRUE, type="E", speciesNames =
     df$cohort = factor(df$cohort, levels = cohortnames)
     if(type=="E") {
       ylab = expression(paste("Flow rate    ",(mmol%.%s^{-1}%.%m^{-2})))
-      g<-ggplot(df, aes_string(x = "psi", y="E"))+
-        geom_path(aes_string(col="cohort", 
-                             linetype="cohort"))+
+      g<-ggplot(df, aes(x = .data$psi, y=.data$E))+
+        geom_path(aes(col=.data$cohort, 
+                      linetype=.data$cohort))+
         scale_color_discrete(name="")+
         scale_linetype_discrete(name="")
       g<-g+xlab(xlab)+ylab(ylab)+theme_bw()
@@ -98,8 +106,8 @@ hydraulics_supplyFunctionPlot<-function(x, draw = TRUE, type="E", speciesNames =
     } 
     else if(type=="dEdP") {
       ylab = expression(paste("dE/dP  ",(mmol%.%s^{-1}%.%m^{-2}%.%MPa^{-1})))
-      g<-ggplot(df, aes_string(x = "psi", y="dEdP"))+
-        geom_path(aes_string(col="cohort", linetype="cohort"))+
+      g<-ggplot(df, aes(x = .data$psi, y=.data$dEdP))+
+        geom_path(aes(col=.data$cohort, linetype=.data$cohort))+
         scale_color_discrete(name="")+
         scale_linetype_discrete(name="")
       g<-g+xlab(xlab)+ylab(ylab)+theme_bw()
@@ -108,8 +116,8 @@ hydraulics_supplyFunctionPlot<-function(x, draw = TRUE, type="E", speciesNames =
     }
     else if(type=="StemPsi") {
       ylab = "Stem pressure (-MPa)"
-      g<-ggplot(df, aes_string(x = "psi", y="StemPsi"))+
-        geom_path(aes_string(col="cohort", linetype="cohort"))+
+      g<-ggplot(df, aes(x = .data$psi, y=.data$StemPsi))+
+        geom_path(aes(col=.data$cohort, linetype=.data$cohort))+
         scale_color_discrete(name="")+
         scale_linetype_discrete(name="")
       g<-g+xlab(xlab)+ylab(ylab)+theme_bw()
@@ -118,8 +126,8 @@ hydraulics_supplyFunctionPlot<-function(x, draw = TRUE, type="E", speciesNames =
     }
     else if(type=="RootPsi") {
       ylab = "Root crown pressure (-MPa)"
-      g<-ggplot(df, aes_string(x = "psi", y="RootPsi"))+
-        geom_path(aes_string(col="cohort", linetype="cohort"))+
+      g<-ggplot(df, aes(x = .data$psi, y=.data$RootPsi))+
+        geom_path(aes(col=.data$cohort, linetype=.data$cohort))+
         scale_color_discrete(name="")+
         scale_linetype_discrete(name="")
       g<-g+xlab(xlab)+ylab(ylab)+theme_bw()
@@ -128,8 +136,8 @@ hydraulics_supplyFunctionPlot<-function(x, draw = TRUE, type="E", speciesNames =
     }
     else if(type=="ERhizo") {
       ylab = expression(paste("Flow rate from/to layers "(mmol%.%s^{-1}%.%m^{-2})))
-      g<-ggplot(dfRhizo, aes_string(x = "Psi", y="ERhizo"))+
-        geom_path(aes_string(col="cohort", linetype="layer"))+
+      g<-ggplot(dfRhizo, aes(x = .data$Psi, y=.data$ERhizo))+
+        geom_path(aes(col=.data$cohort, linetype=.data$layer))+
         scale_color_discrete(name="")+
         scale_linetype_discrete(name="")+
         geom_hline(yintercept=0, col="gray")
@@ -139,8 +147,8 @@ hydraulics_supplyFunctionPlot<-function(x, draw = TRUE, type="E", speciesNames =
     }
     else if(type=="PsiRhizo") {
       ylab = "Rhizosphere pressure (-MPa)"
-      g<-ggplot(dfRhizo, aes_string(x = "Psi", y="PsiRhizo"))+
-        geom_path(aes_string(col="cohort", linetype="layer"))+
+      g<-ggplot(dfRhizo, aes(x = .data$Psi, y=.data$PsiRhizo))+
+        geom_path(aes(col=.data$cohort, linetype=.data$layer))+
         scale_color_discrete(name="")+
         scale_linetype_discrete(name="")
       g<-g+xlab(xlab)+ylab(ylab)+theme_bw()

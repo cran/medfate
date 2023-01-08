@@ -1,3 +1,9 @@
+#' @rdname soil_texture
+#' 
+#' @param layer Soil layer to be plotted.
+#' @param relative Boolean flag to indicate that retention curve should be relative to field capacity or saturation.
+#' @param to Either 'SAT' (saturation) or 'FC' (field capacity).
+#'
 soil_retentionCurvePlot<-function(soil, model="SX", layer = 1, 
                                   psi = seq(0, -6.0, by=-0.01),
                                   relative = TRUE, to = "SAT") {
@@ -28,15 +34,15 @@ soil_retentionCurvePlot<-function(soil, model="SX", layer = 1,
   }
   df = data.frame(SX = y_sx, VG = y_vg, psi = -psi)
   xlab = "Soil water potential (-MPa)"
-  g<-ggplot(df, aes_string(x="psi"))  
+  g<-ggplot(df, aes(x=.data$psi))  
   if(model=="SX") {
-    g<-g+ geom_path(aes_string(y="SX"), col="black")+
+    g<-g+ geom_path(aes(y=.data$SX), col="black")+
        ylab(ylab)+ xlab(xlab)+
        theme_bw()
     return(g)
   }
   else if(model=="VG") {
-    g<-g+ geom_path(aes_string(y="VG"), col="black")+
+    g<-g+ geom_path(aes(y=.data$VG), col="black")+
       ylab(ylab)+ xlab(xlab)+
       theme_bw()
     return(g)  
