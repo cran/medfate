@@ -42,7 +42,7 @@ void checkSpeciesParameters(DataFrame SpParams, CharacterVector params) {
 }
 
 IntegerVector speciesIndex(CharacterVector species, DataFrame SpParams){
-  IntegerVector spIndex(species.size(), NA_REAL);
+  IntegerVector spIndex(species.size(), NA_INTEGER);
   IntegerVector spIndexSP = Rcpp::as<Rcpp::IntegerVector>(SpParams["SpIndex"]);
   for(int i=0;i<species.size();i++) {
     int iSP = findSpParamsRowByName(species[i], SpParams);
@@ -800,17 +800,25 @@ NumericVector psi50Imputation(NumericVector psi50, IntegerVector SP, DataFrame S
   }
   return(psi50);
 }
-NumericVector psiCriticWithImputation(IntegerVector SP, DataFrame SpParams) {
-  NumericVector Psi_Critic = speciesNumericParameterFromIndex(SP, SpParams, "Psi_Critic");
-  return(psi50Imputation(Psi_Critic, SP, SpParams));
+
+NumericVector expExtractWithImputation(IntegerVector SP, DataFrame SpParams) {
+  NumericVector Exp_Extract = speciesNumericParameterFromIndex(SP, SpParams, "Exp_Extract");
+  for(int c=0;c<Exp_Extract.size();c++) {
+    if(NumericVector::is_na(Exp_Extract[c])) {
+      Exp_Extract[c] = 1.3;
+    }
+  }
+  return(Exp_Extract);
 }
+
 NumericVector psiExtractWithImputation(IntegerVector SP, DataFrame SpParams) {
   NumericVector leafPI0 = leafPI0WithImputation(SP, SpParams);
   NumericVector leafEPS = leafEPSWithImputation(SP, SpParams);
+  NumericVector Exp_Extract = expExtractWithImputation(SP, SpParams);
   NumericVector Psi_Extract = speciesNumericParameterFromIndex(SP, SpParams, "Psi_Extract");
-  double corr = pow(log(0.5)/log(0.05), 1.0/3.0); //Weibull's shape = 3.0
   for(int c=0;c<Psi_Extract.size();c++) {
     if(NumericVector::is_na(Psi_Extract[c])) {
+      double corr = pow(log(0.5)/log(0.10), 1.0/Exp_Extract[c]); //Assumes TLP corresponds to 10% stomatal conductance (Martin-StPaul 2017 Ecol. Lett)
       Psi_Extract[c] = corr*turgorLossPoint(leafPI0[c], leafEPS[c]);
     }
   }
@@ -1121,17 +1129,16 @@ NumericVector SapwoodRespirationRateWithImputation(IntegerVector SP, DataFrame S
       // double RER_nmolCO2_g_s = pow(10.0, 1.024 + 1.344*log10(Nsapwood_mmol_g)); //nmol CO2·g-1·s-1
       // RERsapwood[c] = 24.0*3600.0*(RER_nmolCO2_g_s/6.0)*(1e-9)*180.156; // nmol CO2·g-1·s-1 to g gluc·g-1·d-1
       // ESTIMATES ARE TOO HIGH
-      RERsapwood[c] = 4.93e-05;
+      RERsapwood[c] = 5.15e-05;
     }
   }
   return(RERsapwood);
 }
 NumericVector SapwoodSenescenceRateWithImputation(IntegerVector SP, DataFrame SpParams) {
   NumericVector SRsapwood = speciesNumericParameterFromIndex(SP, SpParams, "SRsapwood");
-  NumericVector RGRcambiummax = speciesNumericParameterFromIndex(SP, SpParams, "RGRcambiummax");
   for(int c=0;c<SRsapwood.size();c++) {
     if(NumericVector::is_na(SRsapwood[c])) {
-      if(!NumericVector::is_na(RGRcambiummax[c])) SRsapwood[c] = 0.05544*RGRcambiummax[c];
+      SRsapwood[c] = 0.000135;
     }
   }
   return(SRsapwood);
@@ -1326,22 +1333,26 @@ NumericVector treeAllometricCoefficientWithImputation(IntegerVector SP, DataFram
   NumericVector coef = speciesNumericParameterFromIndex(SP,SpParams, parName);
   CharacterVector group = speciesCharacterParameterFromIndex(SP, SpParams, "Group");
   for(int i=0;i<coef.size();i++) { // From De Caceres et al. 2019
+    //Limit to group values for 'c' 
+    if(parName=="c_fbt") {
+      if(group[i]=="Gymnosperm") coef[i] = std::min(coef[i],-0.0066);
+      else coef[i] = std::min(coef[i],-0.0147);
+    }
+    if(parName=="d_fbt") {
+      coef[i] = 0.0;
+    }
     if(NumericVector::is_na(coef[i])) {
       if(parName=="a_fbt") {
-        if(group[i]=="Gymnosperm") coef[i] = 0.1989;
-        else coef[i] = 0.0709;
+        if(group[i]=="Gymnosperm") coef[i] = 0.0527;
+        else coef[i] = 0.1300;
       }
       else if(parName=="b_fbt") {
-        if(group[i]=="Gymnosperm") coef[i] = 1.3805;
-        else coef[i] = 1.5120;
+        if(group[i]=="Gymnosperm") coef[i] = 1.5782;
+        else coef[i] = 1.2285;
       }
       else if(parName=="c_fbt") {
-        if(group[i]=="Gymnosperm") coef[i] = -0.0363;
-        else coef[i] = -0.0183;
-      }
-      else if(parName=="d_fbt") {
-        if(group[i]=="Gymnosperm") coef[i] = 0.066;
-        else coef[i] = 0.0057;
+        if(group[i]=="Gymnosperm") coef[i] = -0.0066;
+        else coef[i] = -0.0147;
       }
       else if(parName=="a_cw") {
         if(group[i]=="Gymnosperm") coef[i] = 0.747;
@@ -1416,8 +1427,8 @@ NumericVector speciesNumericParameterWithImputation(IntegerVector SP, DataFrame 
     else if(parName == "WUE_par") return(WUEPARWithImputation(SP, SpParams));
     else if(parName == "WUE_co2") return(WUECO2WithImputation(SP, SpParams));
     else if(parName == "WUE_vpd") return(WUEVPDWithImputation(SP, SpParams));
-    else if(parName == "Psi_Critic") return(psiCriticWithImputation(SP, SpParams));
     else if(parName == "Psi_Extract") return(psiExtractWithImputation(SP, SpParams));
+    else if(parName == "Exp_Extract") return(expExtractWithImputation(SP, SpParams));
     else if(parName == "Kmax_stemxylem") return(KmaxStemXylemWithImputation(SP, SpParams));
     else if(parName == "Kmax_rootxylem") return(KmaxRootXylemWithImputation(SP, SpParams));
     else if(parName == "VCleaf_kmax") return(VCleafkmaxWithImputation(SP, SpParams));

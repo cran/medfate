@@ -352,6 +352,7 @@ fire_Rothermel <- function(modeltype, wSI, sSI, delta, mx_dead, hSI, mSI, u, win
 #' @param treeOffset,shrubOffset Integers to offset cohort IDs.
 #' @param fillMissing A boolean flag to try imputation on missing values.
 #' @param self_proportion Proportion of the target cohort included in the assessment
+#' @param bounded A boolean flag to indicate that extreme values should be prevented (maximum tree LAI = 7 and maximum shrub LAI = 3)
 #' 
 #' @author Miquel De \enc{Cáceres}{Caceres} Ainsa, CREAF
 #' 
@@ -490,8 +491,8 @@ plant_phytovolume <- function(x, SpParams) {
 }
 
 #' @rdname plant_values
-plant_LAI <- function(x, SpParams, gdd = NA_real_, mode = "MED") {
-    .Call(`_medfate_cohortLAI`, x, SpParams, gdd, mode)
+plant_LAI <- function(x, SpParams, gdd = NA_real_, mode = "MED", bounded = TRUE) {
+    .Call(`_medfate_cohortLAI`, x, SpParams, gdd, mode, bounded)
 }
 
 #' Species description functions
@@ -506,6 +507,7 @@ plant_LAI <- function(x, SpParams, gdd = NA_real_, mode = "MED") {
 #' @param species A character vector of species names.
 #' @param parName A string with a parameter name.
 #' @param fillMissing A boolean flag to try imputation on missing values.
+#' @param bounded A boolean flag to indicate that extreme values should be prevented (maximum tree LAI = 7 and maximum shrub LAI = 3)
 #' 
 #' @return
 #' A vector with values for each species in \code{SpParams}:
@@ -569,8 +571,8 @@ species_phytovolume <- function(x, SpParams) {
 }
 
 #' @rdname species_values
-species_LAI <- function(x, SpParams, gdd = NA_real_, mode = "MED") {
-    .Call(`_medfate_speciesLAI`, x, SpParams, gdd, mode)
+species_LAI <- function(x, SpParams, gdd = NA_real_, mode = "MED", bounded = TRUE) {
+    .Call(`_medfate_speciesLAI`, x, SpParams, gdd, mode, bounded)
 }
 
 #' @rdname stand_values
@@ -594,24 +596,24 @@ stand_fuel <- function(x, SpParams, gdd = NA_real_, includeDead = TRUE, mode = "
 }
 
 #' @rdname stand_values
-stand_LAI <- function(x, SpParams, gdd = NA_real_, mode = "MED") {
-    .Call(`_medfate_standLAI`, x, SpParams, gdd, mode)
+stand_LAI <- function(x, SpParams, gdd = NA_real_, mode = "MED", bounded = TRUE) {
+    .Call(`_medfate_standLAI`, x, SpParams, gdd, mode, bounded)
 }
 
 .LAIdistributionVectors <- function(z, LAI, H, CR) {
     .Call(`_medfate_LAIdistributionVectors`, z, LAI, H, CR)
 }
 
-.LAIdistribution <- function(z, x, SpParams, gdd = NA_real_, mode = "MED") {
-    .Call(`_medfate_LAIdistribution`, z, x, SpParams, gdd, mode)
+.LAIdistribution <- function(z, x, SpParams, gdd = NA_real_, mode = "MED", bounded = TRUE) {
+    .Call(`_medfate_LAIdistribution`, z, x, SpParams, gdd, mode, bounded)
 }
 
 .LAIprofileVectors <- function(z, LAI, H, CR) {
     .Call(`_medfate_LAIprofileVectors`, z, LAI, H, CR)
 }
 
-.LAIprofile <- function(z, x, SpParams, gdd = NA_real_, mode = "MED") {
-    .Call(`_medfate_LAIprofile`, z, x, SpParams, gdd, mode)
+.LAIprofile <- function(z, x, SpParams, gdd = NA_real_, mode = "MED", bounded = TRUE) {
+    .Call(`_medfate_LAIprofile`, z, x, SpParams, gdd, mode, bounded)
 }
 
 #' @rdname modelInput
@@ -910,7 +912,7 @@ growth_day <- function(x, date, tmin, tmax, rhmin, rhmax, rad, wind, latitude, e
 #' #Call simulation function
 #' G1<-growth(x1, examplemeteo, latitude = 41.82592, elevation = 100)
 #'  
-#' \dontrun{
+#' \donttest{
 #' #Switch to 'Sperry' transpiration mode
 #' control = defaultControl("Sperry")
 #' 
@@ -931,8 +933,8 @@ growth <- function(x, meteo, latitude, elevation = NA_real_, slope = NA_real_, a
 #'
 #' @param psi A scalar (or a vector, depending on the function) with water potential (in MPa).
 #' @param K Whole-plant relative conductance (0-1).
-#' @param Psi_extract Soil water potential (in MPa) corresponding to 50\% whole-plant relative conductance.
-#' @param ws Exponent of the whole-plant relative conductance Weibull function.
+#' @param psi_extract Soil water potential (in MPa) corresponding to 50\% whole-plant relative transpiration.
+#' @param exp_extract Exponent of the whole-plant relative transpiration Weibull function.
 #' @param v Proportion of fine roots within each soil layer.
 #' @param krhizomax Maximum rhizosphere hydraulic conductance (defined as flow per leaf surface unit and per pressure drop).
 #' @param kxylemmax Maximum xylem hydraulic conductance (defined as flow per leaf surface unit and per pressure drop).
@@ -1004,18 +1006,18 @@ growth <- function(x, meteo, latitude, elevation = NA_real_, slope = NA_real_, a
 #' hydraulics_vulnerabilityCurvePlot(x, type="stem")
 #'              
 #' @name hydraulics_conductancefunctions
-hydraulics_psi2K <- function(psi, Psi_extract, ws = 3.0) {
-    .Call(`_medfate_Psi2K`, psi, Psi_extract, ws)
+hydraulics_psi2K <- function(psi, psi_extract, exp_extract = 3.0) {
+    .Call(`_medfate_Psi2K`, psi, psi_extract, exp_extract)
 }
 
 #' @rdname hydraulics_conductancefunctions
-hydraulics_K2Psi <- function(K, Psi_extract, ws = 3.0) {
-    .Call(`_medfate_K2Psi`, K, Psi_extract, ws)
+hydraulics_K2Psi <- function(K, psi_extract, exp_extract = 3.0) {
+    .Call(`_medfate_K2Psi`, K, psi_extract, exp_extract)
 }
 
 #' @rdname hydraulics_conductancefunctions
-hydraulics_averagePsi <- function(psi, v, c, d) {
-    .Call(`_medfate_averagePsi`, psi, v, c, d)
+hydraulics_averagePsi <- function(psi, v, exp_extract, psi_extract) {
+    .Call(`_medfate_averagePsi`, psi, v, exp_extract, psi_extract)
 }
 
 #' @rdname hydraulics_conductancefunctions
@@ -1556,27 +1558,27 @@ hydrology_soilInfiltrationPercolation <- function(soil, soilFunctions, waterInpu
 #' @seealso  \code{\link{spwb}}
 #' 
 #' @examples
-#' LAI = 2
-#' nlayer = 10
-#' LAIlayerlive = matrix(rep(LAI/nlayer,nlayer),nlayer,1)
-#' LAIlayerdead = matrix(0,nlayer,1)
-#' kb = 0.8
-#' kd_PAR = 0.5
-#' kd_SWR = kd_PAR/1.35
-#' alpha_PAR = 0.9
-#' gamma_PAR = 0.04
-#' gamma_SWR = 0.05
-#' alpha_SWR = 0.7
+#' LAI <- 2
+#' nlayer <- 10
+#' LAIlayerlive <- matrix(rep(LAI/nlayer,nlayer),nlayer,1)
+#' LAIlayerdead <- matrix(0,nlayer,1)
+#' kb <- 0.8
+#' kd_PAR <- 0.5
+#' kd_SWR <- kd_PAR/1.35
+#' alpha_PAR <- 0.9
+#' gamma_PAR <- 0.04
+#' gamma_SWR <- 0.05
+#' alpha_SWR <- 0.7
 #' 
-#' Ibfpar = light_layerIrradianceFraction(LAIlayerlive,LAIlayerdead,LAIlayerlive,kb, alpha_PAR)
-#' Idfpar = light_layerIrradianceFraction(LAIlayerlive,LAIlayerdead,LAIlayerlive,kd_PAR, alpha_PAR)
-#' Ibfswr = light_layerIrradianceFraction(LAIlayerlive,LAIlayerdead,LAIlayerlive,kb, alpha_SWR)
-#' Idfswr = light_layerIrradianceFraction(LAIlayerlive,LAIlayerdead,LAIlayerlive,kd_SWR, alpha_SWR)
-#' fsunlit = light_layerSunlitFraction(LAIlayerlive, LAIlayerdead, kb)
-#' SHarea = (1-fsunlit)*LAIlayerlive[,1] 
-#' SLarea = fsunlit*LAIlayerlive[,1] 
+#' Ibfpar <- light_layerIrradianceFraction(LAIlayerlive,LAIlayerdead,LAIlayerlive,kb, alpha_PAR)
+#' Idfpar <- light_layerIrradianceFraction(LAIlayerlive,LAIlayerdead,LAIlayerlive,kd_PAR, alpha_PAR)
+#' Ibfswr <- light_layerIrradianceFraction(LAIlayerlive,LAIlayerdead,LAIlayerlive,kb, alpha_SWR)
+#' Idfswr <- light_layerIrradianceFraction(LAIlayerlive,LAIlayerdead,LAIlayerlive,kd_SWR, alpha_SWR)
+#' fsunlit <- light_layerSunlitFraction(LAIlayerlive, LAIlayerdead, kb)
+#' SHarea <- (1-fsunlit)*LAIlayerlive[,1] 
+#' SLarea <- fsunlit*LAIlayerlive[,1] 
 #' 
-#' par(mar=c(4,4,1,1), mfrow=c(1,2))
+#' oldpar <- par(mar=c(4,4,1,1), mfrow=c(1,2))
 #' plot(Ibfpar*100, 1:nlayer,type="l", ylab="Layer", 
 #'      xlab="Percentage of irradiance", xlim=c(0,100), ylim=c(1,nlayer), col="dark green")
 #' lines(Idfpar*100, 1:nlayer, col="dark green", lty=2)
@@ -1586,25 +1588,26 @@ hydrology_soilInfiltrationPercolation <- function(soil, soilFunctions, waterInpu
 #' plot(fsunlit*100, 1:nlayer,type="l", ylab="Layer", 
 #'      xlab="Percentage of leaves", xlim=c(0,100), ylim=c(1,nlayer))
 #' lines((1-fsunlit)*100, 1:nlayer, lty=2)
+#' par(oldpar)  
 #'   
-#' solarElevation = 0.67
-#' SWR_direct = 1100
-#' SWR_diffuse = 300
-#' PAR_direct = 550
-#' PAR_diffuse = 150
+#' solarElevation <- 0.67
+#' SWR_direct <- 1100
+#' SWR_diffuse <- 300
+#' PAR_direct <- 550
+#' PAR_diffuse <- 150
 #' 
-#' abs_PAR = light_cohortSunlitShadeAbsorbedRadiation(PAR_direct, PAR_diffuse,
+#' abs_PAR <- light_cohortSunlitShadeAbsorbedRadiation(PAR_direct, PAR_diffuse,
 #'                         Ibfpar, Idfpar, beta = solarElevation, 
 #'                         LAIlayerlive, LAIlayerdead, kb, kd_PAR, alpha_PAR, gamma_PAR)
-#' abs_SWR = light_cohortSunlitShadeAbsorbedRadiation(SWR_direct, SWR_diffuse,
+#' abs_SWR <- light_cohortSunlitShadeAbsorbedRadiation(SWR_direct, SWR_diffuse,
 #'                          Ibfswr, Idfswr, beta = solarElevation, 
 #'                          LAIlayerlive, LAIlayerdead, kb, kd_SWR, alpha_SWR, gamma_SWR)
-#' par(mar=c(4,4,1,1), mfrow=c(1,2))
-#' absRadSL = abs_SWR$I_sunlit[,1]
-#' absRadSH = abs_SWR$I_shade[,1]
-#' lambda = 546.6507
-#' QSL = abs_PAR$I_sunlit[,1]*lambda*0.836*0.01
-#' QSH = abs_PAR$I_shade[,1]*lambda*0.836*0.01
+#' oldpar <- par(mar=c(4,4,1,1), mfrow=c(1,2))
+#' absRadSL <- abs_SWR$I_sunlit[,1]
+#' absRadSH <- abs_SWR$I_shade[,1]
+#' lambda <- 546.6507
+#' QSL <- abs_PAR$I_sunlit[,1]*lambda*0.836*0.01
+#' QSH <- abs_PAR$I_shade[,1]*lambda*0.836*0.01
 #' plot(QSL, 1:nlayer,type="l", ylab="Layer", 
 #'    xlab="Absorbed PAR quantum flux per leaf area", ylim=c(1,nlayer), col="dark green", 
 #'    xlim=c(0,max(QSL)))
@@ -1613,6 +1616,7 @@ hydrology_soilInfiltrationPercolation <- function(soil, soilFunctions, waterInpu
 #'    xlab="Absorbed SWR per leaf area (W/m2)", ylim=c(1,nlayer), col="red", 
 #'    xlim=c(0,max(absRadSL)))
 #' lines(absRadSH, 1:nlayer, col="red", lty=2)
+#' par(oldpar)
 #'   
 #' @name light
 light_PARcohort <- function(x, SpParams, gdd = NA_real_, mode = "MED") {
@@ -1784,8 +1788,9 @@ light_longwaveRadiationSHAW <- function(LAIme, LAImd, LAImx, LWRatm, Tsoil, Tair
 #'         \item{\code{Gswmin}: Minimum stomatal conductance to water vapor (in mol H2O·m-2·s-1).}
 #'         \item{\code{Tmax_LAI}: Coefficient relating LAI with the ratio of maximum transpiration over potential evapotranspiration.}
 #'         \item{\code{Tmax_LAIsq}: Coefficient relating squared LAI with the ratio of maximum transpiration over potential evapotranspiration.}
-#'         \item{\code{Psi_Extract}: Water potential corresponding to 50\% relative conductance (in MPa).}
-#'         \item{\code{Psi_Critic}: Water potential corresponding to 50\% of stem cavitation (in MPa).}
+#'         \item{\code{Psi_Extract}: Water potential corresponding to 50\% relative transpiration (in MPa).}
+#'         \item{\code{Exp_Extract}: Parameter of the Weibull function regulating transpiration reduction.}
+#'         \item{\code{VCstem_c}, \code{VCstem_d}: Parameters of the stem xylem vulnerability curve.}
 #'         \item{\code{WUE}: Daily water use efficiency (gross photosynthesis over transpiration) under no light, water or CO2 limitations and VPD = 1kPa (g C/mm water).}
 #'         \item{\code{WUE_par}: Coefficient regulating the influence of \% PAR on gross photosynthesis.}
 #'         \item{\code{WUE_par}: Coefficient regulating the influence of atmospheric CO2 concentration on gross photosynthesis.}
@@ -2233,6 +2238,8 @@ photo_multilayerPhotosynthesisFunction <- function(E, psiLeaf, Catm, Patm, Tair,
 #'   \item{\code{root_individualRootedGroundArea()} calculates the area (m2) covered by roots of an individual, for each soil layer.}
 #'   \item{\code{root_horizontalProportions()} calculates the (horizontal) proportion of roots of each cohort in the water pool corresponding to itself and that of other cohorts, for each soil layer. Returns a list (with as many elements as cohorts) with each element being a matrix.}
 #'   }
+#' 
+#' @return See details.
 #' 
 #' @references
 #' Schenk, H., Jackson, R., 2002. The global biogeography of roots. Ecol. Monogr. 72, 311–328.
@@ -2947,7 +2954,7 @@ spwb_day <- function(x, date, tmin, tmax, rhmin, rhmax, rad, wind, latitude, ele
 #' #Monthly summary (averages) of soil water balance
 #' summary(S1, freq="months",FUN=mean, output="Soil")
 #'                   
-#' \dontrun{
+#' \donttest{
 #' #Switch to 'Sperry' transpiration mode
 #' control = defaultControl("Sperry")
 #' 

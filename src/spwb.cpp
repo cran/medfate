@@ -93,7 +93,7 @@ List spwbDay1(List x, NumericVector meteovec,
                                             rockyLayerDrainage, true);
     //Evaporation from bare soil (if there is no snow)
     EsoilVec = soilEvaporation(soil, soilFunctions, pet, LgroundSWR, true);
-    
+
     //Copy soil status to x
     for(int c=0;c<numCohorts;c++) for(int l=0;l<nlayers;l++) Wpool(c,l) = Wsoil[l];
   } else {
@@ -212,14 +212,8 @@ List spwbDay2(List x, NumericVector meteovec,
   //Meteo input
   double tmin = meteovec["tmin"];
   double tmax = meteovec["tmax"];
-  double tminPrev = meteovec["tminPrev"];
-  double tmaxPrev = meteovec["tmaxPrev"];
-  double tminNext = meteovec["tminNext"];
   double prec = meteovec["prec"];
-  double rhmin = meteovec["rhmin"];
-  double rhmax = meteovec["rhmax"];
   double rad = meteovec["rad"];
-  double wind = meteovec["wind"];
   double pet = meteovec["pet"];
   double er = meteovec["er"];
     
@@ -285,8 +279,7 @@ List spwbDay2(List x, NumericVector meteovec,
                                       _["DeepDrainage"] = 0.0);
     EsoilVec = NumericVector(nlayers,0.0);
     for(int c=0;c<numCohorts;c++) {
-      double f_soil_c = LAIlive[c]/LAIcelllive;
-      
+
       //Clone soil and copy moisture values from x
       List soil_c =  clone(soil);
       NumericVector W_c = soil_c["W"];
@@ -1354,7 +1347,7 @@ void printWaterBalanceResult(DataFrame DWB, List plantDWOL,
 //' #Monthly summary (averages) of soil water balance
 //' summary(S1, freq="months",FUN=mean, output="Soil")
 //'                   
-//' \dontrun{
+//' \donttest{
 //' #Switch to 'Sperry' transpiration mode
 //' control = defaultControl("Sperry")
 //' 
@@ -1433,12 +1426,20 @@ List spwb(List x, DataFrame meteo, double latitude, double elevation = NA_REAL, 
   if(!meteo.containsElementNamed("Radiation")) stop("Please include variable 'Radiation' in weather input.");
   Radiation = meteo["Radiation"];
   
+  if(any(is_na(Precipitation))) stop("Missing values in 'Precipitation'");
+  if(any(is_na(MinTemperature))) stop("Missing values in 'MinTemperature'");
+  if(any(is_na(MaxTemperature))) stop("Missing values in 'MaxTemperature'");
+  if(any(is_na(MinRelativeHumidity))) stop("Missing values in 'MinRelativeHumidity'");
+  if(any(is_na(MaxRelativeHumidity))) stop("Missing values in 'MaxRelativeHumidity'");
+  if(any(is_na(Radiation))) stop("Missing values in 'Radiation'");
+  
   NumericVector CO2(Precipitation.length(), NA_REAL);
   if(meteo.containsElementNamed("CO2")) {
     CO2 = meteo["CO2"];
     if(verbose) {
       Rcout<<"CO2 taken from input column 'CO2'\n";
     }
+    if(any(is_na(CO2))) stop("Missing values in 'CO2'");
   }
   
   IntegerVector DOY, JulianDay;
@@ -1600,7 +1601,7 @@ List spwb(List x, DataFrame meteo, double latitude, double elevation = NA_REAL, 
           error_occurence = true;
         }
       } else if(transpirationMode=="Sperry") {
-        int ntimesteps = control["ndailysteps"];
+        // int ntimesteps = control["ndailysteps"];
         double tmaxPrev = tmax;
         double tminPrev = tmin;
         double tminNext = tmin;
@@ -1768,6 +1769,13 @@ List pwb(List x, DataFrame meteo, NumericMatrix W,
   if(!meteo.containsElementNamed("Radiation")) stop("Please include variable 'Radiation' in weather input.");
   Radiation = meteo["Radiation"];
   
+  if(any(is_na(Precipitation))) stop("Missing values in 'Precipitation'");
+  if(any(is_na(MinTemperature))) stop("Missing values in 'MinTemperature'");
+  if(any(is_na(MaxTemperature))) stop("Missing values in 'MaxTemperature'");
+  if(any(is_na(MinRelativeHumidity))) stop("Missing values in 'MinRelativeHumidity'");
+  if(any(is_na(MaxRelativeHumidity))) stop("Missing values in 'MaxRelativeHumidity'");
+  if(any(is_na(Radiation))) stop("Missing values in 'Radiation'");
+  
   NumericVector WindSpeed(numDays, NA_REAL);
   if(meteo.containsElementNamed("WindSpeed")) WindSpeed = meteo["WindSpeed"];
   
@@ -1779,6 +1787,7 @@ List pwb(List x, DataFrame meteo, NumericMatrix W,
     if(verbose) {
       Rcout<<"CO2 taken from input column 'CO2'\n";
     }
+    if(any(is_na(CO2))) stop("Missing values in 'CO2'");
   }
   
   IntegerVector DOY, JulianDay;
@@ -1902,9 +1911,7 @@ List pwb(List x, DataFrame meteo, NumericMatrix W,
       std::string c = as<std::string>(dateStrings[i]);
       J = meteoland::radiation_julianDay(std::atoi(c.substr(0, 4).c_str()),std::atoi(c.substr(5,2).c_str()),std::atoi(c.substr(8,2).c_str())); 
     }
-    double delta = meteoland::radiation_solarDeclination(J);
-    double solarConstant = meteoland::radiation_solarConstant(J);
-    
+
     double tmin = MinTemperature[i];
     double tmax = MaxTemperature[i];
     double tday = meteoland::utils_averageDaylightTemperature(tmin, tmax);
