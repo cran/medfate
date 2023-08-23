@@ -15,14 +15,14 @@
 \alias{plant_crownBaseHeight}
 \alias{plant_crownLength}
 \alias{plant_foliarBiomass}
-\alias{plant_fuel}
+\alias{plant_fuelLoading}
 \alias{plant_equilibriumLeafLitter}
 \alias{plant_equilibriumSmallBranchLitter}
 \alias{plant_phytovolume}
 \alias{plant_LAI}
 \alias{plant_characterParameter}
 \alias{plant_parameter}
-\title{Plant description functions}
+\title{Woody plant cohort description functions}
 \usage{
 plant_ID(x, SpParams, treeOffset = 0L, shrubOffset = 0L)
 
@@ -30,40 +30,39 @@ plant_basalArea(x, SpParams)
 
 plant_largerTreeBasalArea(x, SpParams, self_proportion = 0.5)
 
-plant_cover(x, SpParams, mode = "MED")
+plant_cover(x, SpParams)
 
 plant_species(x, SpParams)
 
 plant_speciesName(x, SpParams)
 
-plant_density(x, SpParams, mode = "MED")
+plant_density(x, SpParams)
 
 plant_height(x, SpParams)
 
-plant_individualArea(x, SpParams, mode = "MED")
+plant_individualArea(x, SpParams)
 
-plant_crownRatio(x, SpParams, mode = "MED")
+plant_crownRatio(x, SpParams)
 
-plant_crownBaseHeight(x, SpParams, mode = "MED")
+plant_crownBaseHeight(x, SpParams)
 
-plant_crownLength(x, SpParams, mode = "MED")
+plant_crownLength(x, SpParams)
 
-plant_foliarBiomass(x, SpParams, gdd = NA_real_, mode = "MED")
+plant_foliarBiomass(x, SpParams, gdd = NA_real_)
 
-plant_fuel(x, SpParams, gdd = NA_real_, includeDead = TRUE, mode = "MED")
+plant_fuelLoading(x, SpParams, gdd = NA_real_, includeDead = TRUE)
 
-plant_equilibriumLeafLitter(x, SpParams, AET = 800, mode = "MED")
+plant_equilibriumLeafLitter(x, SpParams, AET = 800)
 
 plant_equilibriumSmallBranchLitter(
   x,
   SpParams,
-  smallBranchDecompositionRate = 0.81,
-  mode = "MED"
+  smallBranchDecompositionRate = 0.81
 )
 
 plant_phytovolume(x, SpParams)
 
-plant_LAI(x, SpParams, gdd = NA_real_, mode = "MED", bounded = TRUE)
+plant_LAI(x, SpParams, gdd = NA_real_, bounded = TRUE)
 
 plant_characterParameter(x, SpParams, parName)
 
@@ -77,8 +76,6 @@ plant_parameter(x, SpParams, parName, fillMissing = TRUE)
 \item{treeOffset, shrubOffset}{Integers to offset cohort IDs.}
 
 \item{self_proportion}{Proportion of the target cohort included in the assessment}
-
-\item{mode}{Calculation mode, either "MED" or "US".}
 
 \item{gdd}{Growth degree days (to account for leaf phenology effects).}
 
@@ -95,7 +92,7 @@ plant_parameter(x, SpParams, parName, fillMissing = TRUE)
 \item{fillMissing}{A boolean flag to try imputation on missing values.}
 }
 \value{
-A vector with values for each plant of the input \code{\link{forest}} object:
+A vector with values for each woody plant cohort of the input \code{\link{forest}} object:
 \itemize{
   \item{\code{plant_basalArea}: Tree basal area (m2/ha).}
   \item{\code{plant_largerTreeBasalArea}: Basal area (m2/ha) of trees larger (in diameter) than the tree. Half of the trees of the same record are included.}
@@ -108,7 +105,7 @@ A vector with values for each plant of the input \code{\link{forest}} object:
   \item{\code{plant_equilibriumLeafLitter}: Litter biomass of leaves at equilibrium (in kg/m2).}
   \item{\code{plant_equilibriumSmallBranchLitter}: Litter biomass of small branches (< 6.35 mm diameter) at equilibrium (in kg/m2).}
   \item{\code{plant_foliarBiomass}: Standing biomass of leaves (in kg/m2).}
-  \item{\code{plant_fuel}: Fine fuel load (in kg/m2).}
+  \item{\code{plant_fuelLoading}: Fine fuel load (in kg/m2).}
   \item{\code{plant_height}: Total height (in cm).}
   \item{\code{plant_ID}: Cohort coding for simulation functions (concatenation of 'T' (Trees) or 'S' (Shrub), cohort index and species index).}
   \item{\code{plant_LAI}: Leaf area index (m2/m2).}
@@ -120,7 +117,7 @@ A vector with values for each plant of the input \code{\link{forest}} object:
 }
 }
 \description{
-Functions to calculate attributes of plants in a \code{\link{forest}} object.
+Functions to calculate attributes of woody plants in a \code{\link{forest}} object.
 }
 \examples{
 #Default species parameterization
@@ -136,7 +133,7 @@ sum(plant_basalArea(exampleforestMED, SpParamsMED), na.rm=TRUE)
 sum(plant_LAI(exampleforestMED, SpParamsMED))
   
 #The analogous plant-level function for fuel loading
-sum(plant_fuel(exampleforestMED, SpParamsMED))
+sum(plant_fuelLoading(exampleforestMED, SpParamsMED))
       
 #Summary function for 'forest' objects can be also used
 summary(exampleforestMED, SpParamsMED)

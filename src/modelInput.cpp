@@ -8,6 +8,7 @@
 #include "forestutils.h"
 #include "paramutils.h"
 #include "tissuemoisture.h"
+#include "fuelstructure.h"
 #include "hydraulics.h"
 #include "stdlib.h"
 
@@ -98,7 +99,13 @@ DataFrame paramsAnatomy(DataFrame above, DataFrame SpParams, bool fillMissingSpP
 
   DataFrame paramsAnatomydf;
   if(model=="spwb") {
-    if(transpirationMode=="Sperry") {
+    if(transpirationMode=="Granier") {
+      paramsAnatomydf = DataFrame::create(
+        _["Al2As"] = Al2As, _["Ar2Al"] = Ar2Al, _["SLA"] = SLA,
+          _["LeafDensity"] = LeafDensity, _["WoodDensity"] = WoodDensity, _["FineRootDensity"] = LeafDensity, 
+            _["SRL"] = SRL, _["RLD"] = RLD,  
+            _["r635"] = r635);
+    } else {
       paramsAnatomydf = DataFrame::create(
         _["Hmed"] = Hmed,
         _["Al2As"] = Al2As, _["SLA"] = SLA, _["LeafWidth"] = leafwidth, 
@@ -106,23 +113,9 @@ DataFrame paramsAnatomy(DataFrame above, DataFrame SpParams, bool fillMissingSpP
           _["conduit2sapwood"] = conduit2sapwood,
           _["SRL"] = SRL, _["RLD"] = RLD,  
           _["r635"] = r635);
-    } else {
-      paramsAnatomydf = DataFrame::create(
-          _["Al2As"] = Al2As, _["Ar2Al"] = Ar2Al, _["SLA"] = SLA,
-          _["LeafDensity"] = LeafDensity, _["WoodDensity"] = WoodDensity, _["FineRootDensity"] = LeafDensity, 
-          _["SRL"] = SRL, _["RLD"] = RLD,  
-          _["r635"] = r635);
     }
   } else if(model=="growth") {
-    if(transpirationMode=="Sperry") {
-      paramsAnatomydf = DataFrame::create(
-        _["Hmax"] = Hmax,_["Hmed"] = Hmed,
-        _["Al2As"] = Al2As, _["SLA"] = SLA, _["LeafWidth"] = leafwidth, 
-        _["LeafDensity"] = LeafDensity, _["WoodDensity"] = WoodDensity, _["FineRootDensity"] = LeafDensity, 
-          _["conduit2sapwood"] = conduit2sapwood,
-          _["SRL"] = SRL, _["RLD"] = RLD,  
-          _["r635"] = r635);
-    } else {
+    if(transpirationMode=="Granier") {
       paramsAnatomydf = DataFrame::create(
         _["Hmax"] = Hmax,_["Hmed"] = Hmed,
         _["Al2As"] = Al2As, _["Ar2Al"] = Ar2Al, _["SLA"] = SLA, _["LeafWidth"] = leafwidth, 
@@ -130,6 +123,14 @@ DataFrame paramsAnatomy(DataFrame above, DataFrame SpParams, bool fillMissingSpP
             _["conduit2sapwood"] = conduit2sapwood,
             _["SRL"] = SRL, _["RLD"] = RLD,  
             _["r635"] = r635);
+    } else {
+      paramsAnatomydf = DataFrame::create(
+        _["Hmax"] = Hmax,_["Hmed"] = Hmed,
+        _["Al2As"] = Al2As, _["SLA"] = SLA, _["LeafWidth"] = leafwidth, 
+        _["LeafDensity"] = LeafDensity, _["WoodDensity"] = WoodDensity, _["FineRootDensity"] = LeafDensity, 
+          _["conduit2sapwood"] = conduit2sapwood,
+          _["SRL"] = SRL, _["RLD"] = RLD,  
+          _["r635"] = r635);
     }
   }
   paramsAnatomydf.attr("row.names") = above.attr("row.names");
@@ -276,7 +277,112 @@ DataFrame paramsTranspirationSperry(DataFrame above, List soil, DataFrame SpPara
   paramsTranspirationdf.attr("row.names") = above.attr("row.names");
   return(paramsTranspirationdf);
 }
+DataFrame paramsTranspirationCochard(DataFrame above, List soil, DataFrame SpParams, 
+                                    DataFrame paramsAnatomydf, List control) {
+  IntegerVector SP = above["SP"];
+  NumericVector H = above["H"];
+  int numCohorts = SP.size();
+  
+  double maximumStemConductance = control["maximumStemConductance"];
+  double fracRootResistance = control["fracRootResistance"];
+  double fracLeafResistance = control["fracLeafResistance"];
+  String transpirationMode = control["transpirationMode"];
+  
+  bool fillMissingSpParams = control["fillMissingSpParams"];
+  
+  NumericVector dVec = soil["dVec"];
+  
+  NumericVector Vmax298 = speciesNumericParameterWithImputation(SP, SpParams, "Vmax298", fillMissingSpParams);
+  NumericVector Jmax298 = speciesNumericParameterWithImputation(SP, SpParams, "Jmax298", fillMissingSpParams);
+  NumericVector VCleaf_kmax = speciesNumericParameterWithImputation(SP, SpParams, "VCleaf_kmax", fillMissingSpParams);
+  NumericVector Gswmax = speciesNumericParameterWithImputation(SP, SpParams, "Gswmax", fillMissingSpParams);
+  NumericVector Gswmin = speciesNumericParameterWithImputation(SP, SpParams, "Gswmin", fillMissingSpParams);
+  NumericVector Kmax_stemxylem = speciesNumericParameterWithImputation(SP, SpParams, "Kmax_stemxylem", fillMissingSpParams);
+  NumericVector Kmax_rootxylem = speciesNumericParameterWithImputation(SP, SpParams, "Kmax_rootxylem", fillMissingSpParams);
+  //TO BE FILLED FROM INPUT (P12 and P88)!!!!
+  NumericVector VCstem_c = speciesNumericParameterWithImputation(SP, SpParams, "VCstem_c", fillMissingSpParams);
+  NumericVector VCstem_d = speciesNumericParameterWithImputation(SP, SpParams, "VCstem_d", fillMissingSpParams);
+  NumericVector VCleaf_c = speciesNumericParameterWithImputation(SP, SpParams, "VCleaf_c", fillMissingSpParams);
+  NumericVector VCleaf_d = speciesNumericParameterWithImputation(SP, SpParams, "VCleaf_d", fillMissingSpParams);
+  NumericVector VCroot_c = speciesNumericParameterWithImputation(SP, SpParams, "VCroot_c", fillMissingSpParams);
+  NumericVector VCroot_d = speciesNumericParameterWithImputation(SP, SpParams, "VCroot_d", fillMissingSpParams);
+  NumericVector VCleaf_slope(numCohorts, 0.0); 
+  NumericVector VCstem_slope(numCohorts, 0.0);
+  NumericVector VCroot_slope(numCohorts, 0.0);
+  NumericVector VCleaf_P50(numCohorts, 0.0);
+  NumericVector VCstem_P50(numCohorts, 0.0);
+  NumericVector VCroot_P50(numCohorts, 0.0);
+  
+  NumericVector Al2As = paramsAnatomydf["Al2As"];
+  NumericVector SLA = paramsAnatomydf["SLA"];
+  NumericVector Hmed =  paramsAnatomydf["Hmed"];
+  
+  NumericVector VCstem_kmax(numCohorts, 0.0);
+  NumericVector VCroottot_kmax(numCohorts, 0.0);
+  NumericVector VGrhizotot_kmax(numCohorts, 0.0);
+  NumericVector Plant_kmax(numCohorts, 0.0);
 
+  // Scaled conductance parameters parameters
+  for(int c=0;c<numCohorts;c++){
+    //TO BE FILLED DIFFERENTLY!
+    VCleaf_P50[c] = xylemPsi(0.5, 1.0, VCleaf_c[c],VCleaf_d[c]);
+    VCstem_P50[c] = xylemPsi(0.5, 1.0, VCstem_c[c],VCstem_d[c]);
+    VCroot_P50[c] = xylemPsi(0.5, 1.0, VCroot_c[c],VCroot_d[c]);
+    VCleaf_slope[c] = 30.0;
+    VCstem_slope[c] = 30.0;
+    VCroot_slope[c] = 30.0;
+    // VCleaf_slope[c] =  0.5*pow(-1.0*VCleaf_d[c], -1.0*VCleaf_c[c])*VCleaf_c[c]*pow(1-0*VCleaf_P50[c], VCleaf_c[c] - 1.0);//derivavite of the Weibull curve
+    // VCstem_slope[c] =  0.5*pow(-1.0*VCstem_d[c], -1.0*VCstem_c[c])*VCstem_c[c]*pow(1-0*VCstem_P50[c], VCstem_c[c] - 1.0);//derivavite of the Weibull curve
+    // VCroot_slope[c] =  0.5*pow(-1.0*VCroot_d[c], -1.0*VCroot_c[c])*VCroot_c[c]*pow(1-0*VCroot_P50[c], VCroot_c[c] - 1.0);//derivavite of the Weibull curve
+    
+    //Stem maximum conductance (in mmol·m-2·s-1·MPa-1)
+    VCstem_kmax[c]=maximumStemHydraulicConductance(Kmax_stemxylem[c], Hmed[c], Al2As[c],H[c],control["taper"]);
+    VCstem_kmax[c]=std::min(VCstem_kmax[c], maximumStemConductance);
+
+    //Root maximum conductance
+    double rstem = (1.0/VCstem_kmax[c]);
+    double rleaf = (1.0/VCleaf_kmax[c]);
+    double rtot = (rstem+rleaf)/(1.0 - fracRootResistance);
+    double VCroot_kmaxc = 1.0/(rtot - rstem - rleaf);
+    VCroottot_kmax[c] = VCroot_kmaxc;
+
+    //Leaf maximum conductance
+    if(!NumericVector::is_na(fracLeafResistance)) {
+      double rstem = (1.0/VCstem_kmax[c]);
+      double rtot = rstem/(1.0-fracRootResistance - fracLeafResistance);
+      VCleaf_kmax[c] = 1.0/(rtot*fracLeafResistance);
+    }
+    //Plant kmax
+    Plant_kmax[c] = 1.0/((1.0/VCleaf_kmax[c])+(1.0/VCstem_kmax[c])+(1.0/VCroottot_kmax[c]));
+  }
+  
+  DataFrame paramsTranspirationdf = DataFrame::create();
+  paramsTranspirationdf.push_back(Gswmin, "Gswmin");
+  paramsTranspirationdf.push_back(Gswmax, "Gswmax");
+  paramsTranspirationdf.push_back(Vmax298, "Vmax298");
+  paramsTranspirationdf.push_back(Jmax298, "Jmax298");
+  paramsTranspirationdf.push_back(Kmax_stemxylem, "Kmax_stemxylem");
+  paramsTranspirationdf.push_back(Kmax_rootxylem, "Kmax_rootxylem");
+  paramsTranspirationdf.push_back(VCleaf_kmax, "VCleaf_kmax");
+  paramsTranspirationdf.push_back(VCleaf_slope, "VCleaf_slope");
+  paramsTranspirationdf.push_back(VCleaf_P50, "VCleaf_P50");
+  paramsTranspirationdf.push_back(VCleaf_c, "VCleaf_c");
+  paramsTranspirationdf.push_back(VCleaf_d, "VCleaf_d");
+  paramsTranspirationdf.push_back(VCstem_kmax, "VCstem_kmax");
+  paramsTranspirationdf.push_back(VCstem_slope, "VCstem_slope");
+  paramsTranspirationdf.push_back(VCstem_P50, "VCstem_P50");
+  paramsTranspirationdf.push_back(VCstem_c, "VCstem_c");
+  paramsTranspirationdf.push_back(VCstem_d, "VCstem_d");
+  paramsTranspirationdf.push_back(VCroottot_kmax, "VCroot_kmax");
+  paramsTranspirationdf.push_back(VCroot_slope, "VCroot_slope");
+  paramsTranspirationdf.push_back(VCroot_P50, "VCroot_P50");
+  paramsTranspirationdf.push_back(VCroot_c, "VCroot_c");
+  paramsTranspirationdf.push_back(VCroot_d, "VCroot_d");
+  paramsTranspirationdf.push_back(VGrhizotot_kmax, "VGrhizo_kmax");
+  paramsTranspirationdf.push_back(Plant_kmax, "Plant_kmax");
+  paramsTranspirationdf.attr("row.names") = above.attr("row.names");
+  return(paramsTranspirationdf);
+}
 // [[Rcpp::export(".paramsBelow")]]
 List paramsBelow(DataFrame above, NumericVector Z50, NumericVector Z95, List soil, 
                  DataFrame paramsAnatomydf, DataFrame paramsTranspirationdf, List control) {
@@ -289,8 +395,9 @@ List paramsBelow(DataFrame above, NumericVector Z50, NumericVector Z95, List soi
   int nlayers = dVec.size();
 
   NumericVector LAI_live = above["LAI_live"];
-  NumericVector N = above["N"];
-  int numCohorts = N.size();
+  int numCohorts = LAI_live.size();
+  NumericVector N(numCohorts, NA_REAL);
+  if(above.containsElementNamed("N")) N = above["N"];
   
   
   String rhizosphereOverlap = control["rhizosphereOverlap"];
@@ -469,9 +576,7 @@ DataFrame paramsGrowth(DataFrame above, DataFrame SpParams, List control) {
 
   double minimumRelativeStarchForGrowth_default = control["minimumRelativeStarchForGrowth"];
   NumericVector RSSG = speciesNumericParameterFromIndex(SP, SpParams, "RSSG");
-  
-  NumericVector MortalityBaselineRate = speciesNumericParameterFromIndex(SP, SpParams, "MortalityBaselineRate");
-  
+
   List maximumRelativeGrowthRates = control["maximumRelativeGrowthRates"];
   double RGRleafmax_default = maximumRelativeGrowthRates["leaf"];
   double RGRsapwoodmax_default = maximumRelativeGrowthRates["sapwood"];
@@ -487,9 +592,7 @@ DataFrame paramsGrowth(DataFrame above, DataFrame SpParams, List control) {
   List senescenceRates = control["senescenceRates"];
   double SRsapwood_default = senescenceRates["sapwood"];
   double SRfineroot_default = senescenceRates["fineroot"];
-  
-  double mortalityBaselineRate_default = control["mortalityBaselineRate"];
-  
+
   
   if(fillMissingSpParams) {
     for(int c=0;c<numCohorts;c++){
@@ -503,7 +606,6 @@ DataFrame paramsGrowth(DataFrame above, DataFrame SpParams, List control) {
       if(NumericVector::is_na(SRsapwood[c])) SRsapwood[c] = SRsapwood_default;
       if(NumericVector::is_na(SRfineroot[c])) SRfineroot[c] = SRfineroot_default;
       if(NumericVector::is_na(RSSG[c])) RSSG[c] = minimumRelativeStarchForGrowth_default;
-      if(NumericVector::is_na(MortalityBaselineRate[c])) MortalityBaselineRate[c] = mortalityBaselineRate_default;
     }
   }
   
@@ -522,20 +624,74 @@ DataFrame paramsGrowth(DataFrame above, DataFrame SpParams, List control) {
                                                _["RSSG"] = RSSG,
                                                _["fHDmin"] = fHDmin,
                                                _["fHDmax"] = fHDmax,
-                                               _["WoodC"] = WoodC,
-                                               _["MortalityBaselineRate"] = MortalityBaselineRate);
+                                               _["WoodC"] = WoodC);
   paramsGrowthdf.attr("row.names") = above.attr("row.names");
   return(paramsGrowthdf);
 }
 
+DataFrame paramsMortalityRegeneration(DataFrame above, DataFrame SpParams, List control) {
+  
+  bool fillMissingSpParams = control["fillMissingSpParams"];
+  
+  IntegerVector SP = above["SP"];
+  NumericVector DBH = above["DBH"];
+  int numCohorts = SP.size();
+  
+  NumericVector MortalityBaselineRate = speciesNumericParameterFromIndex(SP, SpParams, "MortalityBaselineRate");
+  NumericVector SurvivalModelStep(numCohorts, NA_REAL), SurvivalB0(numCohorts, NA_REAL), SurvivalB1(numCohorts, NA_REAL);
+  if(SpParams.containsElementNamed("SurvivalModelStep")) SurvivalModelStep = speciesNumericParameterFromIndex(SP, SpParams, "SurvivalModelStep");
+  if(SpParams.containsElementNamed("SurvivalB0")) SurvivalB0 = speciesNumericParameterFromIndex(SP, SpParams, "SurvivalB0");
+  if(SpParams.containsElementNamed("SurvivalB1")) SurvivalB1= speciesNumericParameterFromIndex(SP, SpParams, "SurvivalB1");
+  NumericVector RecrTreeDensity(numCohorts, NA_REAL);
+  NumericVector RecrTreeDBH(numCohorts, NA_REAL);
+  NumericVector IngrowthTreeDensity(numCohorts, NA_REAL);
+  NumericVector IngrowthTreeDBH(numCohorts, NA_REAL);
+  if(SpParams.containsElementNamed("RecrTreeDensity")) RecrTreeDensity = speciesNumericParameterFromIndex(SP, SpParams, "RecrTreeDensity");
+  if(SpParams.containsElementNamed("RecrTreeDBH")) RecrTreeDBH = speciesNumericParameterFromIndex(SP, SpParams, "RecrTreeDBH");
+  if(SpParams.containsElementNamed("IngrowthTreeDensity")) IngrowthTreeDensity = speciesNumericParameterFromIndex(SP, SpParams, "IngrowthTreeDensity");
+  if(SpParams.containsElementNamed("IngrowthTreeDBH")) IngrowthTreeDBH = speciesNumericParameterFromIndex(SP, SpParams, "IngrowthTreeDBH");
+  
+  double mortalityBaselineRate_default = control["mortalityBaselineRate"];
+  double recrTreeDensity_default = control["recrTreeDensity"];
+  double recrTreeDBH_default = control["recrTreeDBH"];
+  double ingrowthTreeDensity_default = control["ingrowthTreeDensity"];
+  double ingrowthTreeDBH_default = control["ingrowthTreeDBH"];
+  
+  
+  if(fillMissingSpParams) {
+    for(int c=0;c<numCohorts;c++){
+      if(NumericVector::is_na(MortalityBaselineRate[c])) MortalityBaselineRate[c] = mortalityBaselineRate_default;
+      if(!NumericVector::is_na(DBH[c])) {
+        if(NumericVector::is_na(RecrTreeDensity[c])) RecrTreeDensity[c] = recrTreeDensity_default;
+        if(NumericVector::is_na(RecrTreeDBH[c])) RecrTreeDBH[c] = recrTreeDBH_default;
+        if(NumericVector::is_na(IngrowthTreeDensity[c])) IngrowthTreeDensity[c] = ingrowthTreeDensity_default;
+        if(NumericVector::is_na(IngrowthTreeDBH[c])) IngrowthTreeDBH[c] = ingrowthTreeDBH_default;
+      }
+    }
+  }
+  DataFrame paramsMortalityRecruitmentdf = DataFrame::create(_["MortalityBaselineRate"] = MortalityBaselineRate,
+                                                             _["SurvivalModelStep"] = SurvivalModelStep,
+                                                             _["SurvivalB0"] = SurvivalB0,
+                                                             _["SurvivalB1"] = SurvivalB1,
+                                                             _["RecrTreeDensity"] = RecrTreeDensity,
+                                                             _["RecrTreeDBH"] = RecrTreeDBH,
+                                                             _["IngrowthTreeDensity"] = IngrowthTreeDensity,
+                                                             _["IngrowthTreeDBH"] = IngrowthTreeDBH);
+  paramsMortalityRecruitmentdf.attr("row.names") = above.attr("row.names");
+  return(paramsMortalityRecruitmentdf);
+}
 
 DataFrame paramsAllometries(DataFrame above, DataFrame SpParams, bool fillMissingSpParams) {
   IntegerVector SP = above["SP"];
   
+  NumericVector Afbt = speciesNumericParameterWithImputation(SP, SpParams, "a_fbt",fillMissingSpParams);
+  NumericVector Bfbt = speciesNumericParameterWithImputation(SP, SpParams, "b_fbt",fillMissingSpParams);
+  NumericVector Cfbt = speciesNumericParameterWithImputation(SP, SpParams, "c_fbt",fillMissingSpParams);
   NumericVector Aash = speciesNumericParameterWithImputation(SP, SpParams, "a_ash",fillMissingSpParams);
   NumericVector Bash = speciesNumericParameterWithImputation(SP, SpParams, "b_ash",fillMissingSpParams);
   NumericVector Absh = speciesNumericParameterWithImputation(SP, SpParams, "a_bsh",fillMissingSpParams);
   NumericVector Bbsh = speciesNumericParameterWithImputation(SP, SpParams, "b_bsh",fillMissingSpParams);
+  NumericVector BTsh = speciesNumericParameterWithImputation(SP, SpParams, "BTsh",fillMissingSpParams);
   NumericVector Acr = speciesNumericParameterWithImputation(SP, SpParams, "a_cr",fillMissingSpParams);
   NumericVector B1cr = speciesNumericParameterWithImputation(SP, SpParams, "b_1cr",fillMissingSpParams);
   NumericVector B2cr = speciesNumericParameterWithImputation(SP, SpParams, "b_2cr",fillMissingSpParams);
@@ -544,11 +700,15 @@ DataFrame paramsAllometries(DataFrame above, DataFrame SpParams, bool fillMissin
   NumericVector C2cr = speciesNumericParameterWithImputation(SP, SpParams, "c_2cr",fillMissingSpParams);
   NumericVector Acw = speciesNumericParameterWithImputation(SP, SpParams, "a_cw",fillMissingSpParams);
   NumericVector Bcw = speciesNumericParameterWithImputation(SP, SpParams, "b_cw",fillMissingSpParams);
-
-  DataFrame paramsAllometriesdf = DataFrame::create(_["Aash"] = Aash, _["Bash"] = Bash, _["Absh"] = Absh, _["Bbsh"] = Bbsh,
+  NumericVector Abt = speciesNumericParameterWithImputation(SP, SpParams, "a_bt",fillMissingSpParams);
+  NumericVector Bbt = speciesNumericParameterWithImputation(SP, SpParams, "b_bt",fillMissingSpParams);
+  
+  DataFrame paramsAllometriesdf = DataFrame::create(_["Afbt"] = Afbt, _["Bfbt"] = Bfbt, _["Cfbt"] = Cfbt,
+                                                    _["Aash"] = Aash, _["Bash"] = Bash, _["Absh"] = Absh, _["Bbsh"] = Bbsh,
+                                                    _["BTsh"] = BTsh,
                                                     _["Acr"] = Acr, _["B1cr"] = B1cr, _["B2cr"] = B2cr, _["B3cr"] = B3cr,
                                                     _["C1cr"] = C1cr, _["C2cr"] = C2cr, 
-                                                    _["Acw"] = Acw, _["Bcw"] = Bcw);
+                                                    _["Acw"] = Acw, _["Bcw"] = Bcw, _["Abt"] = Abt, _["Bbt"] = Bbt);
   paramsAllometriesdf.attr("row.names") = above.attr("row.names");
   return(paramsAllometriesdf);
 }
@@ -652,9 +812,21 @@ DataFrame internalCarbonDataFrame(DataFrame above,
 DataFrame internalMortalityDataFrame(DataFrame above) {
   int numCohorts = above.nrow();
   NumericVector N_dead(numCohorts, 0.0);
+  NumericVector N_starvation(numCohorts, 0.0);
+  NumericVector N_dessication(numCohorts, 0.0);
+  NumericVector N_burnt(numCohorts, 0.0);
   NumericVector Cover_dead(numCohorts, 0.0);
+  NumericVector Cover_starvation(numCohorts, 0.0);
+  NumericVector Cover_dessication(numCohorts, 0.0);
+  NumericVector Cover_burnt(numCohorts, 0.0);
   DataFrame df = DataFrame::create(Named("N_dead") = N_dead,
-                                   Named("Cover_dead") = Cover_dead);
+                                   Named("N_starvation") = N_starvation,
+                                   Named("N_dessication") = N_dessication,
+                                   Named("N_burnt") = N_burnt,
+                                   Named("Cover_dead") = Cover_dead,
+                                   Named("Cover_starvation") = Cover_starvation,
+                                   Named("Cover_dessication") = Cover_dessication,
+                                   Named("Cover_burnt") = Cover_burnt);
   df.attr("row.names") = above.attr("row.names");
   return(df);
 }
@@ -667,8 +839,9 @@ DataFrame internalAllocationDataFrame(DataFrame above,
 
   NumericVector allocationTarget(numCohorts,0.0);
   NumericVector leafAreaTarget(numCohorts,0.0);
+  NumericVector sapwoodAreaTarget(numCohorts,0.0);
   NumericVector fineRootBiomassTarget(numCohorts, 0.0);
-  
+  NumericVector crownBudPercent(numCohorts, 100.0);
   
   String transpirationMode = control["transpirationMode"];
   NumericVector SA = above["SA"];
@@ -678,6 +851,7 @@ DataFrame internalAllocationDataFrame(DataFrame above,
   if(transpirationMode=="Granier") {
     for(int c=0;c<numCohorts;c++){
       leafAreaTarget[c] = Al2As[c]*(SA[c]/10000.0);
+      sapwoodAreaTarget[c] = SA[c];
       allocationTarget[c] = Al2As[c];
       fineRootBiomassTarget[c] = fineRootBiomass[c];
     }
@@ -693,12 +867,15 @@ DataFrame internalAllocationDataFrame(DataFrame above,
       } else if(allocationStrategy=="Al2As") {
         allocationTarget[c] = Al2As[c];
       }
+      sapwoodAreaTarget[c] = SA[c];
       fineRootBiomassTarget[c] = fineRootBiomass[c];
     }
   }
   df = DataFrame::create(Named("allocationTarget") = allocationTarget,
                          Named("leafAreaTarget") = leafAreaTarget,
-                         Named("fineRootBiomassTarget") = fineRootBiomassTarget);
+                         Named("sapwoodAreaTarget") = sapwoodAreaTarget,
+                         Named("fineRootBiomassTarget") = fineRootBiomassTarget,
+                         Named("crownBudPercent") = crownBudPercent);
   df.attr("row.names") = above.attr("row.names");
   return(df);
 }  
@@ -710,7 +887,7 @@ DataFrame internalWaterDataFrame(DataFrame above, String transpirationMode) {
   if(transpirationMode=="Granier") {
     df = DataFrame::create(Named("PlantPsi") = NumericVector(numCohorts, -0.033),
                            Named("StemPLC") = NumericVector(numCohorts, 0.0));
-  } else {
+  } else if(transpirationMode =="Sperry") {
     df = DataFrame::create(Named("Einst") = NumericVector(numCohorts, 0.0),
                            Named("RootCrownPsi") = NumericVector(numCohorts, -0.033),
                            Named("Stem1Psi") = NumericVector(numCohorts, -0.033),
@@ -718,6 +895,17 @@ DataFrame internalWaterDataFrame(DataFrame above, String transpirationMode) {
                            Named("LeafPsi") = NumericVector(numCohorts, -0.033),
                            Named("StemSympPsi") = NumericVector(numCohorts, -0.033),
                            Named("LeafSympPsi") = NumericVector(numCohorts, -0.033),
+                           Named("StemPLC") = NumericVector(numCohorts, 0.0));
+  } else if(transpirationMode =="Cochard") {
+    df = DataFrame::create(Named("Einst") = NumericVector(numCohorts, 0.0),
+                           Named("Elim") = NumericVector(numCohorts, 0.0),
+                           Named("Emin_L") = NumericVector(numCohorts, 0.0),
+                           Named("Emin_S") = NumericVector(numCohorts, 0.0),
+                           Named("RootCrownPsi") = NumericVector(numCohorts, -0.033),
+                           Named("StemPsi") = NumericVector(numCohorts, -0.033),
+                           Named("LeafPsi") = NumericVector(numCohorts, -0.033),
+                           Named("StemSympPsi") = NumericVector(numCohorts, -0.033),
+                           Named("LeafPLC") = NumericVector(numCohorts, 0.0),
                            Named("StemPLC") = NumericVector(numCohorts, 0.0));
   }
   df.attr("row.names") = above.attr("row.names");
@@ -755,231 +943,9 @@ DataFrame paramsCanopy(DataFrame above, List control) {
   return(paramsCanopy);
 }
 
-//' Input for simulation models
-//'
-//' Functions \code{forest2spwbInput} and \code{forest2growthInput} take an object of class \code{\link{forest}} 
-//' and calculate input data for functions \code{\link{spwb}}, \code{\link{pwb}} and \code{\link{growth}}, respectively. 
-//' Functions \code{spwbInput} and \code{growthInput} do the same but starting from different input data. 
-//' Function \code{forest2aboveground} calculates aboveground variables that may be used in \code{spwbInput} and \code{growthInput} functions. 
-//' Function \code{forest2belowground} calculates belowground variables such as fine root distribution.
-//' 
-//' @param x An object of class \code{\link{forest}}.
-//' @param SpParams A data frame with species parameters (see \code{\link{SpParamsDefinition}} and \code{\link{SpParamsMED}}).
-//' @param gdd Growth degree days to account for leaf phenology effects (in Celsius). This should be left \code{NA} in most applications.
-//' @param mode Calculation mode, either "MED" or "US".
-//' @param soil An object of class \code{\link{soil}}.
-//' @param control A list with default control parameters (see \code{\link{defaultControl}}).
-//' @param above A data frame with aboveground plant information (see the return value of \code{forest2aboveground} below). In the case of \code{spwbInput} the variables should include \code{SP}, \code{N}, \code{LAI_live}, \code{LAI_dead}, \code{H} and \code{CR}. In the case of \code{growthInput} variables should include \code{DBH} and \code{Cover}.
-//' @param Z50,Z95 Numeric vectors with cohort depths (in mm) corresponding to 50\% and 95\% of fine roots.
-//' 
-//' @details
-//' Functions \code{forest2spwbInput} and \code{forest2abovegroundInput} extracts height and species identity from plant cohorts of \code{x}, 
-//' and calculate leaf area index and crown ratio. Function \code{forest2spwbInput} also calculates the distribution of fine roots 
-//' across soil. Both \code{forest2spwbInput} and \code{spwbInput} find parameter values for each plant cohort 
-//' according to the parameters of its species as specified in \code{SpParams}. If \code{control$transpirationMode = "Sperry"} 
-//' the functions also estimate the maximum conductance of rhizosphere, root xylem and stem xylem elements.
-//' 
-//' @return 
-//' Function \code{forest2aboveground()} returns a data frame with the following columns (rows are identified as specified by function \code{\link{plant_ID}}):
-//' \itemize{
-//'   \item{\code{SP}: Species identity (an integer) (first species is 0).}
-//'   \item{\code{N}: Cohort density (ind/ha) (see function \code{\link{plant_density}}).}
-//'   \item{\code{DBH}: Tree diameter at breast height (cm).}
-//'   \item{\code{H}: Plant total height (cm).}
-//'   \item{\code{CR}: Crown ratio (crown length to total height) (between 0 and 1).}
-//'   \item{\code{LAI_live}: Live leaf area index (m2/m2) (one-side leaf area relative to plot area), includes leaves in winter dormant buds.}
-//'   \item{\code{LAI_expanded}: Leaf area index of expanded leaves (m2/m2) (one-side leaf area relative to plot area).}
-//'   \item{\code{LAI_dead}: Dead leaf area index (m2/m2) (one-side leaf area relative to plot area).}
-//' }
-//' 
-//' Functions \code{forest2spwbInput()} and \code{spwbInput()} return a list of class \code{spwbInput} with the following elements (rows of data frames are identified as specified by function \code{\link{plant_ID}}):
-//'   \itemize{
-//'     \item{\code{control}: List with control parameters (see \code{\link{defaultControl}}).}
-//'     \item{\code{canopy}: A list of stand-level state variables.}
-//'     \item{\code{cohorts}: A data frame with cohort information, with columns \code{SP} and \code{Name}.}
-//'     \item{\code{above}: A data frame with columns  \code{H}, \code{CR} and \code{LAI} (see function \code{forest2aboveground}).}
-//'     \item{\code{below}: A data frame with columns \code{Z50}, \code{Z95}.  If \code{control$transpirationMode = "Sperry"} additional columns are \code{fineRootBiomass} and \code{coarseRootSoilVolume}.}
-//'     \item{\code{belowLayers}: A list. If \code{control$transpirationMode = "Granier"} it contains elements: 
-//'       \itemize{
-//'         \item{\code{V}: A matrix with the proportion of fine roots of each cohort (in rows) in each soil layer (in columns).}
-//'         \item{\code{L}: A matrix with the length of coarse roots of each cohort (in rows) in each soil layer (in columns).}
-//'         \item{\code{Wpool}: A matrix with the soil moisture relative to field capacity around the rhizosphere of each cohort (in rows) in each soil layer (in columns).}
-//'       }
-//'       If \code{control$transpirationMode = "Sperry"} there are the following additional elements:
-//'       \itemize{
-//'         \item{\code{VGrhizo_kmax}: A matrix with maximum rhizosphere conductance values of each cohort (in rows) in each soil layer (in columns).}
-//'         \item{\code{VGroot_kmax}: A matrix with maximum root xylem conductance values of each cohort (in rows) in each soil layer (in columns).}
-//'         \item{\code{RhizoPsi}: A matrix with the water potential around the rhizosphere of each cohort (in rows) in each soil layer (in columns).}
-//'       }
-//'     }
-//'     \item{\code{paramsPhenology}: A data frame with leaf phenology parameters:
-//'       \itemize{
-//'         \item{\code{PhenologyType}: Leaf phenology type.}
-//'         \item{\code{LeafDuration}: Leaf duration (in years).}
-//'         \item{\code{Sgdd}: Degree days needed for leaf budburst (for winter decideous species).}
-//'         \item{\code{Tbgdd}: Base temperature for the calculation of degree days to leaf budburst.}
-//'         \item{\code{Ssen}: Degree days corresponding to leaf senescence.}
-//'         \item{\code{Phsen}: Photoperiod corresponding to start counting senescence degree-days.}
-//'         \item{\code{Tbsen}: Base temperature for the calculation of degree days to leaf senescence.}
-//'       }
-//'     }
-//'     \item{\code{paramsAnatomy}: A data frame with plant anatomy parameters for each cohort:
-//'       \itemize{
-//'         \item{\code{Hmax}: Maximum plant height (cm).}
-//'         \item{\code{Hmed}: Median plant height (cm).}
-//'         \item{\code{Al2As}: Leaf area to sapwood area ratio (in m2·m-2).}
-//'         \item{\code{Ar2Al}: Fine root area to leaf area ratio (in m2·m-2).}
-//'         \item{\code{SLA}: Specific leaf area (mm2/mg = m2/kg).}
-//'         \item{\code{LeafWidth}: Leaf width (in cm).}
-//'         \item{\code{LeafDensity}: Density of leaf tissue (dry weight over volume).}
-//'         \item{\code{WoodDensity}: Density of wood tissue (dry weight over volume).}
-//'         \item{\code{FineRootDensity}: Density of fine root tissue (dry weight over volume).}
-//'         \item{\code{SRL}: Specific Root length (cm·g-1).}
-//'         \item{\code{RLD}: Root length density (cm·cm-3).}
-//'         \item{\code{r635}: Ratio between the weight of leaves plus branches and the weight of leaves alone for branches of 6.35 mm.}
-//'       }
-//'     }
-//'     \item{\code{paramsInterception}: A data frame with rain interception and light extinction parameters for each cohort:
-//'       \itemize{
-//'         \item{\code{kPAR}: PAR extinction coefficient.}
-//'         \item{\code{g}: Canopy water retention capacity per LAI unit (mm/LAI).}
-//'       }
-//'     If \code{control$transpirationMode = "Sperry"} additional columns are:
-//'       \itemize{
-//'         \item{\code{gammaSWR}: Reflectance (albedo) coefficient for SWR .}
-//'         \item{\code{alphaSWR}: Absorbance coefficient for SWR .}
-//'       }
-//'     }
-//'     \item{\code{paramsTranspiration}: A data frame with parameters for transpiration and photosynthesis. If \code{control$transpirationMode = "Granier"}, columns are:
-//'       \itemize{
-//'         \item{\code{Gswmin}: Minimum stomatal conductance to water vapor (in mol H2O·m-2·s-1).}
-//'         \item{\code{Tmax_LAI}: Coefficient relating LAI with the ratio of maximum transpiration over potential evapotranspiration.}
-//'         \item{\code{Tmax_LAIsq}: Coefficient relating squared LAI with the ratio of maximum transpiration over potential evapotranspiration.}
-//'         \item{\code{Psi_Extract}: Water potential corresponding to 50\% relative transpiration (in MPa).}
-//'         \item{\code{Exp_Extract}: Parameter of the Weibull function regulating transpiration reduction.}
-//'         \item{\code{VCstem_c}, \code{VCstem_d}: Parameters of the stem xylem vulnerability curve.}
-//'         \item{\code{WUE}: Daily water use efficiency (gross photosynthesis over transpiration) under no light, water or CO2 limitations and VPD = 1kPa (g C/mm water).}
-//'         \item{\code{WUE_par}: Coefficient regulating the influence of \% PAR on gross photosynthesis.}
-//'         \item{\code{WUE_par}: Coefficient regulating the influence of atmospheric CO2 concentration on gross photosynthesis.}
-//'         \item{\code{WUE_par}: Coefficient regulating the influence of vapor pressure deficit (VPD) on gross photosynthesis.}
-//'       }
-//'     If \code{control$transpirationMode = "Sperry"} columns are:
-//'       \itemize{
-//'         \item{\code{Gswmin}: Minimum stomatal conductance to water vapor (in mol H2O·m-2·s-1).}
-//'         \item{\code{Gswmax}: Maximum stomatal conductance to water vapor (in mol H2O·m-2·s-1).}
-//'         \item{\code{Vmax298}: Maximum Rubisco carboxilation rate at 25ºC (in micromol CO2·s-1·m-2).}
-//'         \item{\code{Jmax298}: Maximum rate of electron transport at 25ºC (in micromol photons·s-1·m-2).}
-//'         \item{\code{Kmax_stemxylem}: Sapwood-specific hydraulic conductivity of stem xylem (in kg H2O·s-1·m-2).}
-//'         \item{\code{Kmax_rootxylem}: Sapwood-specific hydraulic conductivity of root xylem (in kg H2O·s-1·m-2).}
-//'         \item{\code{VCleaf_kmax}: Maximum leaf hydraulic conductance.}
-//'         \item{\code{VCleaf_c}, \code{VCleaf_d}: Parameters of the leaf vulnerability curve.}
-//'         \item{\code{VCstem_kmax}: Maximum stem xylem conductance.}
-//'         \item{\code{VCstem_c}, \code{VCstem_d}: Parameters of the stem xylem vulnerability curve.}
-//'         \item{\code{VCroot_c}, \code{VCroot_d}: Parameters of the root xylem vulnerability curve.}
-//'         \item{\code{Plant_kmax}: Maximum whole-plant conductance.}
-//'       }
-//'     }
-//'     \item{\code{paramsWaterStorage}: A data frame with plant water storage parameters for each cohort:
-//'       \itemize{
-//'         \item{\code{LeafPI0}: Osmotic potential at full turgor of leaves (MPa).}
-//'         \item{\code{LeafEPS}: Modulus of elasticity (capacity of the cell wall to resist changes in volume in response to changes in turgor) of leaves (MPa).}
-//'         \item{\code{LeafAF}: Apoplastic fraction (proportion of water outside the living cells) in leaves.}
-//'         \item{\code{Vleaf}: Storage water capacity in leaves, per leaf area (L/m2).}
-//'         \item{\code{StemPI0}: Osmotic potential at full turgor of symplastic xylem tissue (MPa).}
-//'         \item{\code{StemEPS}: Modulus of elasticity (capacity of the cell wall to resist changes in volume in response to changes in turgor) of symplastic xylem tissue (Mpa).}
-//'         \item{\code{StemAF}: Apoplastic fraction (proportion of water outside the living cells) in stem xylem.}
-//'         \item{\code{Vstem}: Storage water capacity in sapwood, per leaf area (L/m2).}
-//'       }
-//'     }
-//'     \item{\code{internalPhenology} and \code{internalWater}: data frames to store internal state variables.}
-//'   }
-//' Functions \code{forest2growthInput} and \code{growthInput} return a list of class \code{growthInput} with the same elements as \code{spwbInput}, but with additional information. 
-//' \itemize{
-//' \item{Element \code{above} includes the following additional columns:
-//'     \itemize{
-//'       \item{\code{LA_live}: Live leaf area per individual (m2/ind).}
-//'       \item{\code{LA_dead}: Dead leaf area per individual (m2/ind).}
-//'       \item{\code{SA}: Live sapwood area per individual (cm2/ind).} 
-//'   }
-//'   }
-//'   \item{\code{paramsGrowth}: A data frame with growth parameters for each cohort:
-//'     \itemize{
-//'       \item{\code{RERleaf}: Maintenance respiration rates (at 20ºC) for leaves (in g gluc·g dry-1·day-1).}
-//'       \item{\code{RERsapwood}: Maintenance respiration rates (at 20ºC) for sapwood (in g gluc·g dry-1·day-1).}
-//'       \item{\code{RERfineroot}: Maintenance respiration rates (at 20ºC) for fine roots (in g gluc·g dry-1·day-1).}
-//'       \item{\code{CCleaf}: Leaf construction costs (in g gluc·g dry-1).}
-//'       \item{\code{CCsapwood}: Sapwood construction costs (in g gluc·g dry-1).}
-//'       \item{\code{CCfineroot}: Fine root construction costs (in g gluc·g dry-1).}
-//'       \item{\code{RGRleafmax}: Maximum leaf relative growth rate (in m2·cm-2·day-1).}
-//'       \item{\code{RGRsapwoodmax}: Maximum sapwood relative growth rate (in cm2·cm-2·day-1).}
-//'       \item{\code{RGRfinerootmax}: Maximum fine root relative growth rate (in g dry·g dry-1·day-1).}
-//'       \item{\code{SRsapwood}: Sapwood daily senescence rate (in day-1).}
-//'       \item{\code{SRfineroot}: Fine root daily senescence rate (in day-1).}
-//'       \item{\code{RSSG}: Minimum relative starch for sapwood growth (proportion).}
-//'       \item{\code{fHDmin}: Minimum value of the height-to-diameter ratio (dimensionless).}
-//'       \item{\code{fHDmax}: Maximum value of the height-to-diameter ratio (dimensionless).}
-//'       \item{\code{WoodC}: Wood carbon content per dry weight (g C /g dry).}
-//'       \item{\code{MortalityBaselineRate}: Deterministic proportion or probability specifying the baseline reduction of cohort's density occurring in a year.}
-//'     }
-//'   }
-//'   \item{\code{paramsAllometry}: A data frame with allometric parameters for each cohort:
-//'     \itemize{
-//'       \item{\code{Aash}: Regression coefficient relating the square of shrub height with shrub area.}
-//'       \item{\code{Absh}, \code{Bbsh}: Allometric coefficients relating phytovolume with dry weight of shrub individuals.}
-//'       \item{\code{Acr}, \code{B1cr}, \code{B2cr}, \code{B3cr}, \code{C1cr}, \code{C2cr}: Regression coefficients used to calculate crown ratio of trees.}
-//'       \item{\code{Acw}, \code{Bcw}: Regression coefficients used to calculated crown width of trees.}
-//'     }
-//'   }
-//'   \item {\code{internalAllocation}: A data frame with internal allocation variables for each cohort:
-//'     \itemize{
-//'       \item{\code{allocationTarget}: Value of the allocation target variable.}
-//'       \item{\code{leafAreaTarget}: Target leaf area (m2) per individual.}
-//'       \item{\code{fineRootBiomassTarget}: Target fine root biomass (g dry) per individual (only if \code{transpirationMode = "Sperry"}).}
-//'     }
-//'   }
-//'   \item{\code{internalCarbon} and \code{internalRings}: data structures to store other internal state variables.}
-//' }
-//' 
-//' @author Miquel De \enc{Cáceres}{Caceres} Ainsa, CREAF
-//' 
-//' @seealso \code{\link{resetInputs}}, \code{\link{spwb}}, \code{\link{soil}},  
-//' \code{\link{forest}}, \code{\link{SpParamsMED}}, \code{\link{defaultSoilParams}}, \code{\link{plant_ID}}
-//' 
-//' @examples
-//' #Load example plot plant data
-//' data(exampleforestMED)
-//' 
-//' #Default species parameterization
-//' data(SpParamsMED)
-//' 
-//' # Aboveground parameters
-//' above = forest2aboveground(exampleforestMED, SpParamsMED)
-//' above
-//' 
-//' # Initialize soil with default soil params
-//' examplesoil = soil(defaultSoilParams())
-//' 
-//' # Rooting depths
-//' Z50 = c(exampleforestMED$treeData$Z50, exampleforestMED$shrubData$Z50)
-//' Z95 = c(exampleforestMED$treeData$Z95, exampleforestMED$shrubData$Z95)
-//' 
-//' # Initialize control parameters
-//' control = defaultControl("Granier")
-//' 
-//' # Prepare spwb input
-//' spwbInput(above, Z50, Z95, examplesoil,SpParamsMED, control)
-//' 
-//' # When starting from an object of class 'forest' the whole process
-//' # can be simplified:
-//' forest2spwbInput(exampleforestMED, examplesoil, SpParamsMED, control)
-//'                 
-//' # Prepare input for Sperry transpiration mode
-//' control = defaultControl("Sperry")
-//' forest2spwbInput(exampleforestMED,examplesoil,SpParamsMED, control)
-//' 
-//' @name modelInput
-// [[Rcpp::export("spwbInput")]]
-List spwbInput(DataFrame above, NumericVector Z50, NumericVector Z95, List soil, DataFrame SpParams, List control) {
+// [[Rcpp::export(".spwbInput")]]
+List spwbInput(DataFrame above, NumericVector Z50, NumericVector Z95, List soil, DataFrame FCCSprops, 
+               DataFrame SpParams, List control) {
   
   
   IntegerVector SP = above["SP"];
@@ -988,11 +954,10 @@ List spwbInput(DataFrame above, NumericVector Z50, NumericVector Z95, List soil,
   NumericVector LAI_dead = above["LAI_dead"];
   NumericVector H = above["H"];
   NumericVector DBH = above["DBH"];
-  NumericVector N = above["N"];
   NumericVector CR = above["CR"];
   
   String transpirationMode = control["transpirationMode"];
-  if((transpirationMode!="Granier") && (transpirationMode!="Sperry")) stop("Wrong Transpiration mode ('transpirationMode' should be either 'Granier' or 'Sperry')");
+  if((transpirationMode!="Granier") && (transpirationMode!="Sperry") && (transpirationMode!="Cochard")) stop("Wrong Transpiration mode ('transpirationMode' should be 'Granier', 'Sperry' or 'Cochard')");
 
   bool fillMissingSpParams = control["fillMissingSpParams"];
   String soilFunctions = control["soilFunctions"]; 
@@ -1010,10 +975,11 @@ List spwbInput(DataFrame above, NumericVector Z50, NumericVector Z95, List soil,
   cohortDescdf.attr("row.names") = above.attr("row.names");
   
   //Above 
-  DataFrame plantsdf = DataFrame::create(_["H"]=H, _["CR"]=CR, _["N"] = N,
+  DataFrame plantsdf = DataFrame::create(_["H"]=H, _["CR"]=CR,
                                          _["LAI_live"]=LAI_live, 
                                          _["LAI_expanded"] = LAI_expanded, 
                                          _["LAI_dead"] = LAI_dead);
+  if(control["fireHazardResults"]) plantsdf.push_back(above["Loading"], "Loading");
   plantsdf.attr("row.names") = above.attr("row.names");
   
   DataFrame paramsAnatomydf = paramsAnatomy(above, SpParams, fillMissingSpParams, "spwb", transpirationMode);
@@ -1021,22 +987,29 @@ List spwbInput(DataFrame above, NumericVector Z50, NumericVector Z95, List soil,
   DataFrame paramsTranspirationdf;
   if(transpirationMode=="Granier") {
     paramsTranspirationdf = paramsTranspirationGranier(above,SpParams, fillMissingSpParams);
-  } else {
+  } else if(transpirationMode=="Sperry") {
     paramsTranspirationdf = paramsTranspirationSperry(above, soil, SpParams, paramsAnatomydf, control);
+  } else if(transpirationMode=="Cochard") {
+    paramsTranspirationdf = paramsTranspirationCochard(above, soil, SpParams, paramsAnatomydf, control);
   }
 
   List below = paramsBelow(above, Z50, Z95, soil, 
                            paramsAnatomydf, paramsTranspirationdf, control);
   List belowLayers = below["belowLayers"];
-  DataFrame belowdf = Rcpp::as<Rcpp::DataFrame>(below["below"]);
+  DataFrame belowdfComplete = Rcpp::as<Rcpp::DataFrame>(below["below"]);
+  DataFrame belowdf = DataFrame::create(_["Z50"] = Z50, _["Z95"] = Z95);
+  if(belowdfComplete.containsElementNamed("poolProportions")) {
+    belowdf.push_back(belowdfComplete["poolProportions"], "poolProportions");
+  }
+  belowdf.attr("row.names") = above.attr("row.names");
   
   DataFrame paramsWaterStoragedf = paramsWaterStorage(above, belowLayers, SpParams, paramsAnatomydf, fillMissingSpParams);
-  
+
   DataFrame paramsCanopydf;
   List ctl = clone(control);
   if(transpirationMode=="Granier") {
     paramsCanopydf = List::create();
-  } else if(transpirationMode =="Sperry"){
+  } else {
     paramsCanopydf = paramsCanopy(above, control);
     if(soilFunctions=="SX") {
       soilFunctions = "VG"; 
@@ -1047,6 +1020,8 @@ List spwbInput(DataFrame above, NumericVector Z50, NumericVector Z95, List soil,
   List input = List::create(_["control"] = ctl,
                             _["soil"] = clone(soil),
                             _["canopy"] = paramsCanopydf,
+                            _["herbLAI"] = NA_REAL, //To be filled outside
+                            _["herbLAImax"] = NA_REAL, //To be filled outside
                             _["cohorts"] = cohortDescdf,
                             _["above"] = plantsdf,
                             _["below"] = belowdf,
@@ -1057,7 +1032,8 @@ List spwbInput(DataFrame above, NumericVector Z50, NumericVector Z95, List soil,
                             _["paramsTranspiration"] = paramsTranspirationdf,
                             _["paramsWaterStorage"] = paramsWaterStoragedf,
                             _["internalPhenology"] = internalPhenologyDataFrame(above),
-                            _["internalWater"] = internalWaterDataFrame(above, transpirationMode));
+                            _["internalWater"] = internalWaterDataFrame(above, transpirationMode),
+                            _["internalFCCS"] = FCCSprops);
   
   input.attr("class") = CharacterVector::create("spwbInput","list");
   return(input);
@@ -1065,9 +1041,9 @@ List spwbInput(DataFrame above, NumericVector Z50, NumericVector Z95, List soil,
 
 
 
-//' @rdname modelInput
-// [[Rcpp::export("growthInput")]]
-List growthInput(DataFrame above, NumericVector Z50, NumericVector Z95, List soil, DataFrame SpParams, List control) {
+// [[Rcpp::export(".growthInput")]]
+List growthInput(DataFrame above, NumericVector Z50, NumericVector Z95, List soil, DataFrame FCCSprops,
+                 DataFrame SpParams, List control) {
 
   IntegerVector SP = above["SP"];
   NumericVector LAI_live = above["LAI_live"];
@@ -1078,12 +1054,13 @@ List growthInput(DataFrame above, NumericVector Z50, NumericVector Z95, List soi
   NumericVector Cover = above["Cover"];
   NumericVector H = above["H"];
   NumericVector CR = above["CR"];
+  NumericVector Loading = above["Loading"];
   
   control["cavitationRefill"] = "growth";
   
   String transpirationMode = control["transpirationMode"];
-  if((transpirationMode!="Granier") && (transpirationMode!="Sperry")) stop("Wrong Transpiration mode ('transpirationMode' should be either 'Granier' or 'Sperry')");
-
+  if((transpirationMode!="Granier") && (transpirationMode!="Sperry") && (transpirationMode!="Cochard")) stop("Wrong Transpiration mode ('transpirationMode' should be 'Granier', 'Sperry' or 'Cochard')");
+  
   bool fillMissingSpParams = control["fillMissingSpParams"];
   
   String soilFunctions = control["soilFunctions"]; 
@@ -1096,6 +1073,7 @@ List growthInput(DataFrame above, NumericVector Z50, NumericVector Z95, List soi
   NumericVector Al2As = paramsAnatomydf["Al2As"];
   
   DataFrame paramsGrowthdf = paramsGrowth(above, SpParams, control);
+  DataFrame paramsMortalityRegenerationdf = paramsMortalityRegeneration(above, SpParams, control);
   
   DataFrame paramsAllometriesdf = paramsAllometries(above, SpParams, fillMissingSpParams);
   
@@ -1103,8 +1081,10 @@ List growthInput(DataFrame above, NumericVector Z50, NumericVector Z95, List soi
   DataFrame paramsTranspirationdf;
   if(transpirationMode=="Granier") {
     paramsTranspirationdf = paramsTranspirationGranier(above,SpParams, fillMissingSpParams);
-  } else {
+  } else if(transpirationMode=="Sperry") {
     paramsTranspirationdf = paramsTranspirationSperry(above, soil, SpParams, paramsAnatomydf, control);
+  } else if(transpirationMode=="Cochard") {
+    paramsTranspirationdf = paramsTranspirationCochard(above, soil, SpParams, paramsAnatomydf, control);
   }
 
 
@@ -1119,7 +1099,7 @@ List growthInput(DataFrame above, NumericVector Z50, NumericVector Z95, List soi
     SA[c] = 10000.0*(LAI_live[c]/(N[c]/10000.0))/Al2As[c];//Individual SA in cm2
   }
   
-
+  
   
   //Cohort description
   CharacterVector nsp = speciesCharacterParameterFromIndex(SP, SpParams, "Name");
@@ -1135,7 +1115,8 @@ List growthInput(DataFrame above, NumericVector Z50, NumericVector Z95, List soi
                                          _["SA"] = SA, 
                                          _["LAI_live"]=LAI_live, 
                                          _["LAI_expanded"]=LAI_expanded, 
-                                         _["LAI_dead"] = LAI_dead);
+                                         _["LAI_dead"] = LAI_dead,
+                                         _["Loading"] = Loading);
   plantsdf.attr("row.names") = above.attr("row.names");
   
 
@@ -1155,7 +1136,7 @@ List growthInput(DataFrame above, NumericVector Z50, NumericVector Z95, List soi
   List ctl = clone(control);
   if(transpirationMode=="Granier") {
     paramsCanopydf = List::create();
-  } else if(transpirationMode =="Sperry"){
+  } else {
     paramsCanopydf = paramsCanopy(above, control);
     if(soilFunctions=="SX") {
       soilFunctions = "VG"; 
@@ -1166,6 +1147,8 @@ List growthInput(DataFrame above, NumericVector Z50, NumericVector Z95, List soi
   List input = List::create(_["control"] = ctl,
                        _["soil"] = clone(soil),
                        _["canopy"] = paramsCanopydf,
+                       _["herbLAI"] = NA_REAL, //To be filled outside
+                       _["herbLAImax"] = NA_REAL, //To be filled outside
                        _["cohorts"] = cohortDescdf,
                        _["above"] = plantsdf,
                        _["below"] = belowdf,
@@ -1176,17 +1159,20 @@ List growthInput(DataFrame above, NumericVector Z50, NumericVector Z95, List soi
                        _["paramsTranspiration"] = paramsTranspirationdf,
                        _["paramsWaterStorage"] = paramsWaterStoragedf,
                        _["paramsGrowth"]= paramsGrowthdf,
+                       _["paramsMortalityRegeneration"] =paramsMortalityRegenerationdf,
                        _["paramsAllometries"] = paramsAllometriesdf,
                        _["internalPhenology"] = internalPhenologyDataFrame(above),
                        _["internalWater"] = internalWaterDataFrame(above, transpirationMode),
                        _["internalCarbon"] = internalCarbonDataFrame(plantsdf, belowdf, belowLayers,
                                                        paramsAnatomydf, 
                                                        paramsWaterStoragedf,
-                                                       paramsGrowthdf, control),
-                       _["internalAllocation"] = internalAllocationDataFrame(plantsdf, belowdf,
-                                                      paramsAnatomydf,
-                                                      paramsTranspirationdf, control),
-                       _["internalMortality"] = internalMortalityDataFrame(plantsdf));
+                                                       paramsGrowthdf, control));
+  input.push_back(internalAllocationDataFrame(plantsdf, belowdf,
+                                              paramsAnatomydf,
+                                              paramsTranspirationdf, control), "internalAllocation");
+  
+  input.push_back(internalMortalityDataFrame(plantsdf), "internalMortality");
+  input.push_back(FCCSprops, "internalFCCS");
   
   input.attr("class") = CharacterVector::create("growthInput","list");
   return(input);
@@ -1249,12 +1235,281 @@ List rootDistributionComplete(List x, DataFrame SpParams, bool fillMissingRootPa
   return(List::create(_["Z50"] = Z50, _["Z95"] = Z95));  
 }
 
-//' @rdname modelInput
+//' Input for simulation models
+//'
+//' Functions \code{forest2spwbInput} and \code{forest2growthInput} take an object of class \code{\link{forest}} 
+//' and create input objects for simulation functions \code{\link{spwb}} (or \code{\link{pwb}}) and \code{\link{growth}}, respectively. 
+//' Function \code{forest2aboveground} calculates aboveground variables such as leaf area index. 
+//' Function \code{forest2belowground} calculates belowground variables such as fine root distribution.
+//' 
+//' @param x An object of class \code{\link{forest}}.
+//' @param SpParams A data frame with species parameters (see \code{\link{SpParamsDefinition}} and \code{\link{SpParamsMED}}).
+//' @param gdd Growth degree days to account for leaf phenology effects (in Celsius). This should be left \code{NA} in most applications.
+//' @param loading A logical flag to indicate that fuel loading should be included (for fire hazard calculations). 
+//' @param soil An object of class \code{\link{soil}}.
+//' @param control A list with default control parameters (see \code{\link{defaultControl}}).
+//' 
+//' @details
+//' Function \code{forest2aboveground} extract height and species identity from plant cohorts of \code{x}, 
+//' and calculate leaf area index and crown ratio. Functions \code{forest2spwbInput} and \code{forest2growthInput} also calculate the distribution of fine roots 
+//' across soil, and finds parameter values for each plant cohort according to the parameters of its species as specified in \code{SpParams}. 
+//' If \code{control$transpirationMode = "Sperry"} or \code{control$transpirationMode = "Cochard"},
+//' the \code{forest2spwbInput} and \code{forest2growthInput} also estimate the maximum conductance of rhizosphere, root xylem and stem xylem elements.
+//' 
+//' @return 
+//' Function \code{forest2aboveground()} returns a data frame with the following columns (rows are identified as specified by function \code{\link{plant_ID}}):
+//' \itemize{
+//'   \item{\code{SP}: Species identity (an integer) (first species is 0).}
+//'   \item{\code{N}: Cohort density (ind/ha) (see function \code{\link{plant_density}}).}
+//'   \item{\code{DBH}: Tree diameter at breast height (cm).}
+//'   \item{\code{H}: Plant total height (cm).}
+//'   \item{\code{CR}: Crown ratio (crown length to total height) (between 0 and 1).}
+//'   \item{\code{LAI_live}: Live leaf area index (m2/m2) (one-side leaf area relative to plot area), includes leaves in winter dormant buds.}
+//'   \item{\code{LAI_expanded}: Leaf area index of expanded leaves (m2/m2) (one-side leaf area relative to plot area).}
+//'   \item{\code{LAI_dead}: Dead leaf area index (m2/m2) (one-side leaf area relative to plot area).}
+//'   \item{\code{Loading}: Fine fuel loading (kg/m2), only if \code{loading = TRUE}.}
+//' }
+//' 
+//' Function \code{forest2spwbInput()} returns a list of class \code{spwbInput} with the following elements (rows of data frames are identified as specified by function \code{\link{plant_ID}}):
+//'   \itemize{
+//'     \item{\code{control}: List with control parameters (see \code{\link{defaultControl}}).}
+//'     \item{\code{canopy}: A list of stand-level state variables.}
+//'     \item{\code{cohorts}: A data frame with cohort information, with columns \code{SP} and \code{Name}.}
+//'     \item{\code{above}: A data frame with columns  \code{H}, \code{CR} and \code{LAI} (see function \code{forest2aboveground}).}
+//'     \item{\code{below}: A data frame with columns \code{Z50}, \code{Z95}.  If \code{control$transpirationMode = "Sperry"} additional columns are \code{fineRootBiomass} and \code{coarseRootSoilVolume}.}
+//'     \item{\code{belowLayers}: A list. If \code{control$transpirationMode = "Granier"} it contains elements: 
+//'       \itemize{
+//'         \item{\code{V}: A matrix with the proportion of fine roots of each cohort (in rows) in each soil layer (in columns).}
+//'         \item{\code{L}: A matrix with the length of coarse roots of each cohort (in rows) in each soil layer (in columns).}
+//'         \item{\code{Wpool}: A matrix with the soil moisture relative to field capacity around the rhizosphere of each cohort (in rows) in each soil layer (in columns).}
+//'       }
+//'       If \code{control$transpirationMode = "Sperry"} or \code{control$transpirationMode = "Cochard"} there are the following additional elements:
+//'       \itemize{
+//'         \item{\code{VGrhizo_kmax}: A matrix with maximum rhizosphere conductance values of each cohort (in rows) in each soil layer (in columns).}
+//'         \item{\code{VGroot_kmax}: A matrix with maximum root xylem conductance values of each cohort (in rows) in each soil layer (in columns).}
+//'         \item{\code{RhizoPsi}: A matrix with the water potential around the rhizosphere of each cohort (in rows) in each soil layer (in columns).}
+//'       }
+//'     }
+//'     \item{\code{paramsPhenology}: A data frame with leaf phenology parameters:
+//'       \itemize{
+//'         \item{\code{PhenologyType}: Leaf phenology type.}
+//'         \item{\code{LeafDuration}: Leaf duration (in years).}
+//'         \item{\code{Sgdd}: Degree days needed for leaf budburst (for winter decideous species).}
+//'         \item{\code{Tbgdd}: Base temperature for the calculation of degree days to leaf budburst.}
+//'         \item{\code{Ssen}: Degree days corresponding to leaf senescence.}
+//'         \item{\code{Phsen}: Photoperiod corresponding to start counting senescence degree-days.}
+//'         \item{\code{Tbsen}: Base temperature for the calculation of degree days to leaf senescence.}
+//'       }
+//'     }
+//'     \item{\code{paramsAnatomy}: A data frame with plant anatomy parameters for each cohort:
+//'       \itemize{
+//'         \item{\code{Hmax}: Maximum plant height (cm).}
+//'         \item{\code{Hmed}: Median plant height (cm).}
+//'         \item{\code{Al2As}: Leaf area to sapwood area ratio (in m2·m-2).}
+//'         \item{\code{Ar2Al}: Fine root area to leaf area ratio (in m2·m-2).}
+//'         \item{\code{SLA}: Specific leaf area (mm2/mg = m2/kg).}
+//'         \item{\code{LeafWidth}: Leaf width (in cm).}
+//'         \item{\code{LeafDensity}: Density of leaf tissue (dry weight over volume).}
+//'         \item{\code{WoodDensity}: Density of wood tissue (dry weight over volume).}
+//'         \item{\code{FineRootDensity}: Density of fine root tissue (dry weight over volume).}
+//'         \item{\code{SRL}: Specific Root length (cm·g-1).}
+//'         \item{\code{RLD}: Root length density (cm·cm-3).}
+//'         \item{\code{r635}: Ratio between the weight of leaves plus branches and the weight of leaves alone for branches of 6.35 mm.}
+//'       }
+//'     }
+//'     \item{\code{paramsInterception}: A data frame with rain interception and light extinction parameters for each cohort:
+//'       \itemize{
+//'         \item{\code{kPAR}: PAR extinction coefficient.}
+//'         \item{\code{g}: Canopy water retention capacity per LAI unit (mm/LAI).}
+//'       }
+//'     If \code{control$transpirationMode = "Sperry"} or \code{control$transpirationMode = "Cochard"} additional columns are:
+//'       \itemize{
+//'         \item{\code{gammaSWR}: Reflectance (albedo) coefficient for SWR .}
+//'         \item{\code{alphaSWR}: Absorbance coefficient for SWR .}
+//'       }
+//'     }
+//'     \item{\code{paramsTranspiration}: A data frame with parameters for transpiration and photosynthesis. If \code{control$transpirationMode = "Granier"}, columns are:
+//'       \itemize{
+//'         \item{\code{Gswmin}: Minimum stomatal conductance to water vapor (in mol H2O·m-2·s-1).}
+//'         \item{\code{Tmax_LAI}: Coefficient relating LAI with the ratio of maximum transpiration over potential evapotranspiration.}
+//'         \item{\code{Tmax_LAIsq}: Coefficient relating squared LAI with the ratio of maximum transpiration over potential evapotranspiration.}
+//'         \item{\code{Psi_Extract}: Water potential corresponding to 50\% relative transpiration (in MPa).}
+//'         \item{\code{Exp_Extract}: Parameter of the Weibull function regulating transpiration reduction.}
+//'         \item{\code{VCstem_c}, \code{VCstem_d}: Parameters of the stem xylem vulnerability curve.}
+//'         \item{\code{WUE}: Daily water use efficiency (gross photosynthesis over transpiration) under no light, water or CO2 limitations and VPD = 1kPa (g C/mm water).}
+//'         \item{\code{WUE_par}: Coefficient regulating the influence of \% PAR on gross photosynthesis.}
+//'         \item{\code{WUE_par}: Coefficient regulating the influence of atmospheric CO2 concentration on gross photosynthesis.}
+//'         \item{\code{WUE_par}: Coefficient regulating the influence of vapor pressure deficit (VPD) on gross photosynthesis.}
+//'       }
+//'      If \code{control$transpirationMode = "Sperry"} columns are:
+//'       \itemize{
+//'         \item{\code{Gswmin}: Minimum stomatal conductance to water vapor (in mol H2O·m-2·s-1).}
+//'         \item{\code{Gswmax}: Maximum stomatal conductance to water vapor (in mol H2O·m-2·s-1).}
+//'         \item{\code{Vmax298}: Maximum Rubisco carboxilation rate at 25ºC (in micromol CO2·s-1·m-2).}
+//'         \item{\code{Jmax298}: Maximum rate of electron transport at 25ºC (in micromol photons·s-1·m-2).}
+//'         \item{\code{Kmax_stemxylem}: Sapwood-specific hydraulic conductivity of stem xylem (in kg H2O·s-1·m-2).}
+//'         \item{\code{Kmax_rootxylem}: Sapwood-specific hydraulic conductivity of root xylem (in kg H2O·s-1·m-2).}
+//'         \item{\code{VCleaf_kmax}: Maximum leaf hydraulic conductance.}
+//'         \item{\code{VCleaf_c}, \code{VCleaf_d}: Parameters of the leaf vulnerability curve.}
+//'         \item{\code{VCstem_kmax}: Maximum stem xylem conductance.}
+//'         \item{\code{VCstem_c}, \code{VCstem_d}: Parameters of the stem xylem vulnerability curve.}
+//'         \item{\code{VCroot_c}, \code{VCroot_d}: Parameters of the root xylem vulnerability curve.}
+//'         \item{\code{Plant_kmax}: Maximum whole-plant conductance.}
+//'       }
+//'       If \code{control$transpirationMode = "Cochard"} columns are:
+//'       \itemize{
+//'         \item{\code{Gswmin}: Minimum stomatal conductance to water vapor (in mol H2O·m-2·s-1).}
+//'         \item{\code{Gswmax}: Maximum stomatal conductance to water vapor (in mol H2O·m-2·s-1).}
+//'         \item{\code{Vmax298}: Maximum Rubisco carboxilation rate at 25ºC (in micromol CO2·s-1·m-2).}
+//'         \item{\code{Jmax298}: Maximum rate of electron transport at 25ºC (in micromol photons·s-1·m-2).}
+//'         \item{\code{Kmax_stemxylem}: Sapwood-specific hydraulic conductivity of stem xylem (in kg H2O·s-1·m-2).}
+//'         \item{\code{Kmax_rootxylem}: Sapwood-specific hydraulic conductivity of root xylem (in kg H2O·s-1·m-2).}
+//'         \item{\code{VCleaf_kmax}: Maximum leaf hydraulic conductance.}
+//'         \item{\code{VCleaf_c}, \code{VCleaf_d}: Parameters of the leaf vulnerability curve.}
+//'         \item{\code{VCstem_kmax}: Maximum stem xylem conductance.}
+//'         \item{\code{VCstem_c}, \code{VCstem_d}: Parameters of the stem xylem vulnerability curve.}
+//'         \item{\code{VCroot_c}, \code{VCroot_d}: Parameters of the root xylem vulnerability curve.}
+//'         \item{\code{Plant_kmax}: Maximum whole-plant conductance.}
+//'       }
+//'     }
+//'     \item{\code{paramsWaterStorage}: A data frame with plant water storage parameters for each cohort:
+//'       \itemize{
+//'         \item{\code{LeafPI0}: Osmotic potential at full turgor of leaves (MPa).}
+//'         \item{\code{LeafEPS}: Modulus of elasticity (capacity of the cell wall to resist changes in volume in response to changes in turgor) of leaves (MPa).}
+//'         \item{\code{LeafAF}: Apoplastic fraction (proportion of water outside the living cells) in leaves.}
+//'         \item{\code{Vleaf}: Storage water capacity in leaves, per leaf area (L/m2).}
+//'         \item{\code{StemPI0}: Osmotic potential at full turgor of symplastic xylem tissue (MPa).}
+//'         \item{\code{StemEPS}: Modulus of elasticity (capacity of the cell wall to resist changes in volume in response to changes in turgor) of symplastic xylem tissue (Mpa).}
+//'         \item{\code{StemAF}: Apoplastic fraction (proportion of water outside the living cells) in stem xylem.}
+//'         \item{\code{Vstem}: Storage water capacity in sapwood, per leaf area (L/m2).}
+//'       }
+//'     }
+//'     \item{\code{internalPhenology} and \code{internalWater}: data frames to store internal state variables.}
+//'     \item{\code{internalFCCS}: A data frame with fuel characteristics, according to \code{\link{fuel_FCCS}} (only if \code{fireHazardResults = TRUE}, in the control list).}
+//'   }
+//'   
+//' Function \code{forest2growthInput} returns a list of class \code{growthInput} with the same elements as \code{spwbInput}, but with additional information. 
+//' \itemize{
+//' \item{Element \code{above} includes the following additional columns:
+//'     \itemize{
+//'       \item{\code{LA_live}: Live leaf area per individual (m2/ind).}
+//'       \item{\code{LA_dead}: Dead leaf area per individual (m2/ind).}
+//'       \item{\code{SA}: Live sapwood area per individual (cm2/ind).} 
+//'   }
+//'   }
+//'   \item{\code{paramsGrowth}: A data frame with growth parameters for each cohort:
+//'     \itemize{
+//'       \item{\code{RERleaf}: Maintenance respiration rates (at 20ºC) for leaves (in g gluc·g dry-1·day-1).}
+//'       \item{\code{RERsapwood}: Maintenance respiration rates (at 20ºC) for sapwood (in g gluc·g dry-1·day-1).}
+//'       \item{\code{RERfineroot}: Maintenance respiration rates (at 20ºC) for fine roots (in g gluc·g dry-1·day-1).}
+//'       \item{\code{CCleaf}: Leaf construction costs (in g gluc·g dry-1).}
+//'       \item{\code{CCsapwood}: Sapwood construction costs (in g gluc·g dry-1).}
+//'       \item{\code{CCfineroot}: Fine root construction costs (in g gluc·g dry-1).}
+//'       \item{\code{RGRleafmax}: Maximum leaf relative growth rate (in m2·cm-2·day-1).}
+//'       \item{\code{RGRsapwoodmax}: Maximum sapwood relative growth rate (in cm2·cm-2·day-1).}
+//'       \item{\code{RGRfinerootmax}: Maximum fine root relative growth rate (in g dry·g dry-1·day-1).}
+//'       \item{\code{SRsapwood}: Sapwood daily senescence rate (in day-1).}
+//'       \item{\code{SRfineroot}: Fine root daily senescence rate (in day-1).}
+//'       \item{\code{RSSG}: Minimum relative starch for sapwood growth (proportion).}
+//'       \item{\code{fHDmin}: Minimum value of the height-to-diameter ratio (dimensionless).}
+//'       \item{\code{fHDmax}: Maximum value of the height-to-diameter ratio (dimensionless).}
+//'       \item{\code{WoodC}: Wood carbon content per dry weight (g C /g dry).}
+//'     }
+//'   }
+//'   \item{\code{paramsMortalityRegeneration}: A data frame with mortality/regeneration parameters for each cohort:
+//'     \itemize{
+//'       \item{\code{MortalityBaselineRate}: Deterministic proportion or probability specifying the baseline reduction of cohort's density occurring in a year.}
+//'       \item{\code{SurvivalModelStep}: Time step in years of the empirical survival model depending on stand basal area (e.g. 10).}
+//'       \item{\code{SurvivalB0}: Intercept of the logistic baseline survival model depending on stand basal area.}
+//'       \item{\code{SurvivalB1}: Slope of the logistic baseline survival model depending on stand basal area.}
+//'       \item{\code{RecrTreeDensity}: Density of tree recruits from seeds.}
+//'       \item{\code{IngrowthTreeDensity}: Density of trees reaching ingrowth DBH.}
+//'       \item{\code{RecrTreeDBH}: DBH for tree recruits from seeds or resprouting (e.g. 1 cm).}
+//'       \item{\code{IngrowthTreeDBH}: Ingrowth DBH for trees (e.g. 7.5 cm).}
+//'     }
+//'   }
+//'   \item{\code{paramsAllometry}: A data frame with allometric parameters for each cohort:
+//'     \itemize{
+//'       \item{\code{Aash}: Regression coefficient relating the square of shrub height with shrub area.}
+//'       \item{\code{Absh}, \code{Bbsh}: Allometric coefficients relating phytovolume with dry weight of shrub individuals.}
+//'       \item{\code{Acr}, \code{B1cr}, \code{B2cr}, \code{B3cr}, \code{C1cr}, \code{C2cr}: Regression coefficients used to calculate crown ratio of trees.}
+//'       \item{\code{Acw}, \code{Bcw}: Regression coefficients used to calculated crown width of trees.}
+//'     }
+//'   }
+//'   \item {\code{internalAllocation}: A data frame with internal allocation variables for each cohort:
+//'     \itemize{
+//'       \item{\code{allocationTarget}: Value of the allocation target variable.}
+//'       \item{\code{leafAreaTarget}: Target leaf area (m2) per individual.}
+//'       \item{\code{sapwoodAreaTarget}: Target sapwood area (cm2) per individual.}
+//'       \item{\code{fineRootBiomassTarget}: Target fine root biomass (g dry) per individual.}
+//'       \item{\code{crownBudPercent}: Percentage of the crown with buds.}
+//'     }
+//'   }
+//'   \item{\code{internalCarbon}: A data frame with the concentration (mol·gluc·l-1) of metabolic and storage carbon compartments for leaves and sapwood.}
+//'   \item{\code{internalMortality}: A data frame to store the cumulative mortality (density for trees and cover for shrubs) predicted during the simulation,
+//'   also distinguishing mortality due to starvation or dessication.}
+//' }
+//' 
+//' @author Miquel De \enc{Cáceres}{Caceres} Ainsa, CREAF
+//' 
+//' @seealso \code{\link{resetInputs}}, \code{\link{spwb}}, \code{\link{soil}},  
+//' \code{\link{forest}}, \code{\link{SpParamsMED}}, \code{\link{defaultSoilParams}}, \code{\link{plant_ID}}
+//' 
+//' @examples
+//' #Load example plot plant data
+//' data(exampleforestMED)
+//' 
+//' #Default species parameterization
+//' data(SpParamsMED)
+//' 
+//' # Aboveground parameters
+//' forest2aboveground(exampleforestMED, SpParamsMED)
+//' 
+//' # Example of aboveground parameters taken from a forest
+//' # described using LAI and crown ratio
+//' data(exampleforestMED2)
+//' forest2aboveground(exampleforestMED2, SpParamsMED)
+//' 
+//' # Initialize soil with default soil params
+//' examplesoil <- soil(defaultSoilParams())
+//' 
+//' # Bewowground parameters (distribution of fine roots)
+//' forest2belowground(exampleforestMED, examplesoil, SpParamsMED)
+//' 
+//' # Initialize control parameters using 'Granier' transpiration mode
+//' control <- defaultControl("Granier")
+//' 
+//' # Prepare spwb input
+//' forest2spwbInput(exampleforestMED, examplesoil, SpParamsMED, control)
+//'                 
+//' # Prepare input for 'Sperry' transpiration mode
+//' control <- defaultControl("Sperry")
+//' forest2spwbInput(exampleforestMED,examplesoil,SpParamsMED, control)
+//' 
+//' # Prepare input for 'Cochard' transpiration mode
+//' control <- defaultControl("Cochard")
+//' forest2spwbInput(exampleforestMED,examplesoil,SpParamsMED, control)
+//' 
+//' # Example of initialization from a forest 
+//' # described using LAI and crown ratio
+//' control <- defaultControl("Granier")
+//' forest2spwbInput(exampleforestMED2, examplesoil, SpParamsMED, control)
+//' 
+//' @name modelInput
+//' @aliases spwbInput growthInput
 // [[Rcpp::export("forest2spwbInput")]]
-List forest2spwbInput(List x, List soil, DataFrame SpParams, List control, String mode = "MED") {
+List forest2spwbInput(List x, List soil, DataFrame SpParams, List control) {
   List rdc = rootDistributionComplete(x, SpParams, control["fillMissingRootParams"]);
-  DataFrame above = forest2aboveground(x, SpParams, NA_REAL, mode);
-  return(spwbInput(above, rdc["Z50"], rdc["Z95"], soil, SpParams, control));
+  bool fireHazardResults = control["fireHazardResults"];
+  DataFrame above = forest2aboveground(x, SpParams, NA_REAL, fireHazardResults);
+  NumericVector LAIlive = above["LAI_live"];
+  double woodyLAI = sum(LAIlive);
+  DataFrame FCCSprops = R_NilValue;
+  if(fireHazardResults) FCCSprops = FCCSproperties(x, SpParams);
+  List s = spwbInput(above, rdc["Z50"], rdc["Z95"], soil, FCCSprops, SpParams, control);
+  s["herbLAImax"] = herbLAIAllometric(x["herbCover"], x["herbHeight"], 0.0);
+  s["herbLAI"] = herbLAIAllometric(x["herbCover"], x["herbHeight"], woodyLAI);
+  return(s);
 }
 
 
@@ -1262,8 +1517,15 @@ List forest2spwbInput(List x, List soil, DataFrame SpParams, List control, Strin
 // [[Rcpp::export("forest2growthInput")]]
 List forest2growthInput(List x, List soil, DataFrame SpParams, List control) {
   List rdc = rootDistributionComplete(x, SpParams, control["fillMissingRootParams"]);
-  DataFrame above = forest2aboveground(x, SpParams, NA_REAL);
-  return(growthInput(above,  rdc["Z50"], rdc["Z95"], soil, SpParams, control));
+  // Loading and FCCS properties are needed if fire hazard results are true or fires are simulated 
+  DataFrame above = forest2aboveground(x, SpParams, NA_REAL, true);
+  NumericVector LAIlive = above["LAI_live"];
+  double woodyLAI = sum(LAIlive);
+  DataFrame FCCSprops = FCCSproperties(x, SpParams);
+  List g = growthInput(above,  rdc["Z50"], rdc["Z95"], soil, FCCSprops, SpParams, control);
+  g["herbLAImax"] = herbLAIAllometric(x["herbCover"], x["herbHeight"], 0.0);
+  g["herbLAI"] = herbLAIAllometric(x["herbCover"], x["herbHeight"], woodyLAI);
+  return(g);
 }
 
 //' Reset simulation inputs
@@ -1284,7 +1546,7 @@ void resetInputs(List x) {
   List soil = x["soil"];
   String transpirationMode = control["transpirationMode"];
   //Reset of canopy layer state variables 
-  if(transpirationMode=="Sperry") {
+  if(transpirationMode != "Granier") {
     DataFrame can = Rcpp::as<Rcpp::DataFrame>(x["canopy"]);
     NumericVector Tair = can["Tair"];
     NumericVector Cair = can["Cair"];
@@ -1316,7 +1578,7 @@ void resetInputs(List x) {
   DataFrame internalWater = Rcpp::as<Rcpp::DataFrame>(x["internalWater"]);
   NumericVector StemPLC = Rcpp::as<Rcpp::NumericVector>(internalWater["StemPLC"]);
   
-  if(transpirationMode=="Sperry") {
+  if(transpirationMode!="Granier") {
     NumericMatrix RhizoPsi = Rcpp::as<Rcpp::NumericMatrix>(belowLayers["RhizoPsi"]);
     NumericVector RootCrownPsi = Rcpp::as<Rcpp::NumericVector>(internalWater["RootCrownPsi"]);
     NumericVector Stem1Psi = Rcpp::as<Rcpp::NumericVector>(internalWater["Stem1Psi"]);
@@ -1349,7 +1611,7 @@ void updatePlantKmax(List x) {
   List control = x["control"];
   String transpirationMode = control["transpirationMode"];
   
-  if(transpirationMode=="Sperry") {
+  if(transpirationMode!="Granier") {
     DataFrame paramsTranspirationdf =  Rcpp::as<Rcpp::DataFrame>(x["paramsTranspiration"]);
     NumericVector Plant_kmax = paramsTranspirationdf["Plant_kmax"];
     NumericVector VCleaf_kmax = paramsTranspirationdf["VCleaf_kmax"];
@@ -1372,7 +1634,7 @@ void updateBelowgroundConductances(List x) {
   int nlayers = V.ncol();
   List control = x["control"];
   String transpirationMode = control["transpirationMode"];
-  if(transpirationMode=="Sperry") {
+  if(transpirationMode!="Granier") {
     DataFrame paramsTranspirationdf = Rcpp::as<Rcpp::DataFrame>(x["paramsTranspiration"]);
     NumericVector VCroot_kmax = belowLayers["VCroot_kmax"];
     NumericVector VGrhizo_kmax = belowLayers["VGrhizo_kmax"];
@@ -1487,7 +1749,7 @@ void multiplyInputParam(List x, String paramType, String paramName,
     multiplyInputParamSingle(x, "paramsAnatomy", "Al2As", cohort, f);
     if(message) multiplyMessage("Vsapwood", cohNames[cohort], f);
     multiplyInputParamSingle(x, "paramsWaterStorage", "Vsapwood", cohort, 1.0/f);
-    if(transpirationMode=="Sperry") {
+    if(transpirationMode!="Granier") {
       if(message) multiplyMessage("VCstem_kmax", cohNames[cohort], f);
       multiplyInputParamSingle(x, "paramsTranspiration", "VCstem_kmax", cohort, 1.0/f);
       if(message) multiplyMessage("VCroot_kmax", cohNames[cohort], f);
@@ -1511,7 +1773,7 @@ void multiplyInputParam(List x, String paramType, String paramName,
   } else {
     multiplyInputParamSingle(x, paramType, paramName, cohort, f);
   }
-  if(transpirationMode=="Sperry") {
+  if(transpirationMode!="Granier") {
     if(message) Rcerr<< "[Message] Recalculating plant maximum conductances.\n";
     updatePlantKmax(x);
   }
@@ -1571,7 +1833,7 @@ void modifyInputParam(List x, String paramType, String paramName,
       if(message) multiplyMessage("SA", cohNames[cohort], 1.0/f);
       multiplyInputParamSingle(x, "above", "SA", cohort, 1.0/f);
     }
-    if(transpirationMode=="Sperry") {
+    if(transpirationMode!="Granier") {
       if(message) multiplyMessage("VCstem_kmax", cohNames[cohort], 1.0/f);
       multiplyInputParamSingle(x, "paramsTranspiration", "VCstem_kmax", cohort, 1.0/f);
       if(message) multiplyMessage("VCroot_kmax", cohNames[cohort], 1.0/f);
@@ -1581,7 +1843,7 @@ void modifyInputParam(List x, String paramType, String paramName,
     if(message) modifyMessage(paramName, cohNames[cohort], newValue);
     modifyInputParamSingle(x, paramType, paramName, cohort, newValue);
   }
-  if(transpirationMode=="Sperry") {
+  if(transpirationMode!="Granier") {
     if(message) Rcerr<< "[Message] Recalculating plant maximum conductances.\n";
     updatePlantKmax(x);
   }

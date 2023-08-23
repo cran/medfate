@@ -26,13 +26,13 @@ fordyn(
 
 \item{SpParams}{A data frame with species parameters (see \code{\link{SpParamsMED}} and \code{\link{SpParamsDefinition}}).}
 
-\item{meteo}{A data frame with daily meteorological data series. Row names of the data frame should correspond to date strings with format "yyyy-mm-dd" (see \code{\link{Date}}).}
+\item{meteo}{A data frame with daily weather data series (see \code{\link{spwb}}).}
 
 \item{control}{A list with default control parameters (see \code{\link{defaultControl}}).}
 
-\item{latitude}{Latitude (in degrees). Required when \code{x$TranspirationMode = "Sperry"}.}
+\item{latitude}{Latitude (in degrees).}
 
-\item{elevation, slope, aspect}{Elevation above sea level (in m), slope (in degrees) and aspect (in degrees from North). Required when \code{x$TranspirationMode = "Sperry"}. Elevation is also required for 'Granier' if snowpack dynamics are simulated.}
+\item{elevation, slope, aspect}{Elevation above sea level (in m), slope (in degrees) and aspect (in degrees from North).}
 
 \item{CO2ByYear}{A named numeric vector with years as names and atmospheric CO2 concentration (in ppm) as values. Used to specify annual changes in CO2 concentration along the simulation (as an alternative to specifying daily values in \code{meteo}).}
 
@@ -132,8 +132,14 @@ fd$DeadTreeTable
 }
 
 }
+\references{
+De Cáceres M, Molowny-Horas R, Cabon A, Martínez-Vilalta J, Mencuccini M, García-Valdés R, Nadal-Sala D, Sabaté S, 
+Martin-StPaul N, Morin X, D'Adamo F, Batllori E, Améztegui A (2023) MEDFATE 2.9.3: A trait-enabled model to simulate 
+Mediterranean forest function and dynamics at regional scales. 
+Geoscientific Model Development 16: 3165-3201 (https://doi.org/10.5194/gmd-16-3165-2023).
+}
 \seealso{
-\code{\link{growth}}, \code{\link{recruitment}}, \code{\link{plot.growth}}, \code{\link{defaultManagementFunction}}
+\code{\link{growth}}, \code{\link{regeneration}}, \code{\link{plot.growth}}, \code{\link{defaultManagementFunction}}
 }
 \author{
 Miquel De \enc{Cáceres}{Caceres} Ainsa, CREAF

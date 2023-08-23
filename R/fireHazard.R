@@ -9,7 +9,7 @@
   
   #Calculate FCCS without FMC
   fccs = fuel_FCCS(forest, SpParams)
-  cohLoading = plant_fuel(forest, SpParams)
+  cohLoading = plant_fuelLoading(forest, SpParams)
   cohHeight = plant_height(forest, SpParams)
   cohHeight[is.na(cohHeight)] = 0
   cohCR = plant_crownRatio(forest,SpParams)
@@ -32,7 +32,7 @@
     canopyFMC = (LFMC*(1.0 - PLC) + fm_dead*PLC)
     
     #Average canopy moisture in the crown and surface layers
-    if(fccs$w[1]>0) fccs$ActFMC[1] = .layerFuelAverageParameter(200.0, 10000.0, canopyFMC, cohLoading, cohHeight, cohCR)
+    if(fccs$w[1]>0.0) fccs$ActFMC[1] = .layerFuelAverageParameter(200.0, 10000.0, canopyFMC, cohLoading, cohHeight, cohCR)
     else fccs$ActFMC[1] = NA
     if(fccs$w[2]>0.0) fccs$ActFMC[2] = .layerFuelAverageParameter(0.0, 200.0, canopyFMC, cohLoading, cohHeight, cohCR)
     else fccs$ActFMC[1] = NA

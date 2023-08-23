@@ -306,6 +306,92 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// plumeTemperature
+double plumeTemperature(double Ib_surf, double z, double T_air, double rho_air);
+RcppExport SEXP _medfate_plumeTemperature(SEXP Ib_surfSEXP, SEXP zSEXP, SEXP T_airSEXP, SEXP rho_airSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type Ib_surf(Ib_surfSEXP);
+    Rcpp::traits::input_parameter< double >::type z(zSEXP);
+    Rcpp::traits::input_parameter< double >::type T_air(T_airSEXP);
+    Rcpp::traits::input_parameter< double >::type rho_air(rho_airSEXP);
+    rcpp_result_gen = Rcpp::wrap(plumeTemperature(Ib_surf, z, T_air, rho_air));
+    return rcpp_result_gen;
+END_RCPP
+}
+// barkThermalDiffusivity
+double barkThermalDiffusivity(double fmc_bark, double rho_bark, double T_air);
+RcppExport SEXP _medfate_barkThermalDiffusivity(SEXP fmc_barkSEXP, SEXP rho_barkSEXP, SEXP T_airSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type fmc_bark(fmc_barkSEXP);
+    Rcpp::traits::input_parameter< double >::type rho_bark(rho_barkSEXP);
+    Rcpp::traits::input_parameter< double >::type T_air(T_airSEXP);
+    rcpp_result_gen = Rcpp::wrap(barkThermalDiffusivity(fmc_bark, rho_bark, T_air));
+    return rcpp_result_gen;
+END_RCPP
+}
+// radialBoleNecrosis
+double radialBoleNecrosis(double Ib_surf, double t_res, double bark_diffusivity, double T_air, double rho_air, double T_necrosis);
+RcppExport SEXP _medfate_radialBoleNecrosis(SEXP Ib_surfSEXP, SEXP t_resSEXP, SEXP bark_diffusivitySEXP, SEXP T_airSEXP, SEXP rho_airSEXP, SEXP T_necrosisSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type Ib_surf(Ib_surfSEXP);
+    Rcpp::traits::input_parameter< double >::type t_res(t_resSEXP);
+    Rcpp::traits::input_parameter< double >::type bark_diffusivity(bark_diffusivitySEXP);
+    Rcpp::traits::input_parameter< double >::type T_air(T_airSEXP);
+    Rcpp::traits::input_parameter< double >::type rho_air(rho_airSEXP);
+    Rcpp::traits::input_parameter< double >::type T_necrosis(T_necrosisSEXP);
+    rcpp_result_gen = Rcpp::wrap(radialBoleNecrosis(Ib_surf, t_res, bark_diffusivity, T_air, rho_air, T_necrosis));
+    return rcpp_result_gen;
+END_RCPP
+}
+// leafThermalFactor
+double leafThermalFactor(double SLA, double h, double c);
+RcppExport SEXP _medfate_leafThermalFactor(SEXP SLASEXP, SEXP hSEXP, SEXP cSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type SLA(SLASEXP);
+    Rcpp::traits::input_parameter< double >::type h(hSEXP);
+    Rcpp::traits::input_parameter< double >::type c(cSEXP);
+    rcpp_result_gen = Rcpp::wrap(leafThermalFactor(SLA, h, c));
+    return rcpp_result_gen;
+END_RCPP
+}
+// necrosisCriticalTemperature
+double necrosisCriticalTemperature(double t_res, double thermal_factor, double T_air, double T_necrosis);
+RcppExport SEXP _medfate_necrosisCriticalTemperature(SEXP t_resSEXP, SEXP thermal_factorSEXP, SEXP T_airSEXP, SEXP T_necrosisSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type t_res(t_resSEXP);
+    Rcpp::traits::input_parameter< double >::type thermal_factor(thermal_factorSEXP);
+    Rcpp::traits::input_parameter< double >::type T_air(T_airSEXP);
+    Rcpp::traits::input_parameter< double >::type T_necrosis(T_necrosisSEXP);
+    rcpp_result_gen = Rcpp::wrap(necrosisCriticalTemperature(t_res, thermal_factor, T_air, T_necrosis));
+    return rcpp_result_gen;
+END_RCPP
+}
+// necrosisHeight
+double necrosisHeight(double Ib_surf, double t_res, double thermal_factor, double T_air, double rho_air, double T_necrosis);
+RcppExport SEXP _medfate_necrosisHeight(SEXP Ib_surfSEXP, SEXP t_resSEXP, SEXP thermal_factorSEXP, SEXP T_airSEXP, SEXP rho_airSEXP, SEXP T_necrosisSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type Ib_surf(Ib_surfSEXP);
+    Rcpp::traits::input_parameter< double >::type t_res(t_resSEXP);
+    Rcpp::traits::input_parameter< double >::type thermal_factor(thermal_factorSEXP);
+    Rcpp::traits::input_parameter< double >::type T_air(T_airSEXP);
+    Rcpp::traits::input_parameter< double >::type rho_air(rho_airSEXP);
+    Rcpp::traits::input_parameter< double >::type T_necrosis(T_necrosisSEXP);
+    rcpp_result_gen = Rcpp::wrap(necrosisHeight(Ib_surf, t_res, thermal_factor, T_air, rho_air, T_necrosis));
+    return rcpp_result_gen;
+END_RCPP
+}
 // treeBasalArea
 NumericVector treeBasalArea(NumericVector N, NumericVector dbh);
 RcppExport SEXP _medfate_treeBasalArea(SEXP NSEXP, SEXP dbhSEXP) {
@@ -318,15 +404,15 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// shrubCrownRatio
-NumericVector shrubCrownRatio(IntegerVector SP, DataFrame SpParams);
-RcppExport SEXP _medfate_shrubCrownRatio(SEXP SPSEXP, SEXP SpParamsSEXP) {
+// shrubCrownRatioAllometric
+NumericVector shrubCrownRatioAllometric(IntegerVector SP, DataFrame SpParams);
+RcppExport SEXP _medfate_shrubCrownRatioAllometric(SEXP SPSEXP, SEXP SpParamsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< IntegerVector >::type SP(SPSEXP);
     Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
-    rcpp_result_gen = Rcpp::wrap(shrubCrownRatio(SP, SpParams));
+    rcpp_result_gen = Rcpp::wrap(shrubCrownRatioAllometric(SP, SpParams));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -342,18 +428,17 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// shrubPhytovolume
-NumericVector shrubPhytovolume(IntegerVector SP, NumericVector Cover, NumericVector H, NumericVector CR, DataFrame SpParams);
-RcppExport SEXP _medfate_shrubPhytovolume(SEXP SPSEXP, SEXP CoverSEXP, SEXP HSEXP, SEXP CRSEXP, SEXP SpParamsSEXP) {
+// shrubPhytovolumeAllometric
+NumericVector shrubPhytovolumeAllometric(IntegerVector SP, NumericVector Cover, NumericVector H, DataFrame SpParams);
+RcppExport SEXP _medfate_shrubPhytovolumeAllometric(SEXP SPSEXP, SEXP CoverSEXP, SEXP HSEXP, SEXP SpParamsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< IntegerVector >::type SP(SPSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type Cover(CoverSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type H(HSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type CR(CRSEXP);
     Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
-    rcpp_result_gen = Rcpp::wrap(shrubPhytovolume(SP, Cover, H, CR, SpParams));
+    rcpp_result_gen = Rcpp::wrap(shrubPhytovolumeAllometric(SP, Cover, H, SpParams));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -397,15 +482,14 @@ BEGIN_RCPP
 END_RCPP
 }
 // cohortCover
-NumericVector cohortCover(List x, DataFrame SpParams, String mode);
-RcppExport SEXP _medfate_cohortCover(SEXP xSEXP, SEXP SpParamsSEXP, SEXP modeSEXP) {
+NumericVector cohortCover(List x, DataFrame SpParams);
+RcppExport SEXP _medfate_cohortCover(SEXP xSEXP, SEXP SpParamsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< List >::type x(xSEXP);
     Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
-    Rcpp::traits::input_parameter< String >::type mode(modeSEXP);
-    rcpp_result_gen = Rcpp::wrap(cohortCover(x, SpParams, mode));
+    rcpp_result_gen = Rcpp::wrap(cohortCover(x, SpParams));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -434,15 +518,14 @@ BEGIN_RCPP
 END_RCPP
 }
 // cohortDensity
-NumericVector cohortDensity(List x, DataFrame SpParams, String mode);
-RcppExport SEXP _medfate_cohortDensity(SEXP xSEXP, SEXP SpParamsSEXP, SEXP modeSEXP) {
+NumericVector cohortDensity(List x, DataFrame SpParams);
+RcppExport SEXP _medfate_cohortDensity(SEXP xSEXP, SEXP SpParamsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< List >::type x(xSEXP);
     Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
-    Rcpp::traits::input_parameter< String >::type mode(modeSEXP);
-    rcpp_result_gen = Rcpp::wrap(cohortDensity(x, SpParams, mode));
+    rcpp_result_gen = Rcpp::wrap(cohortDensity(x, SpParams));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -459,74 +542,69 @@ BEGIN_RCPP
 END_RCPP
 }
 // cohortIndividualArea
-NumericVector cohortIndividualArea(List x, DataFrame SpParams, String mode);
-RcppExport SEXP _medfate_cohortIndividualArea(SEXP xSEXP, SEXP SpParamsSEXP, SEXP modeSEXP) {
+NumericVector cohortIndividualArea(List x, DataFrame SpParams);
+RcppExport SEXP _medfate_cohortIndividualArea(SEXP xSEXP, SEXP SpParamsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< List >::type x(xSEXP);
     Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
-    Rcpp::traits::input_parameter< String >::type mode(modeSEXP);
-    rcpp_result_gen = Rcpp::wrap(cohortIndividualArea(x, SpParams, mode));
+    rcpp_result_gen = Rcpp::wrap(cohortIndividualArea(x, SpParams));
     return rcpp_result_gen;
 END_RCPP
 }
 // cohortCrownRatio
-NumericVector cohortCrownRatio(List x, DataFrame SpParams, String mode);
-RcppExport SEXP _medfate_cohortCrownRatio(SEXP xSEXP, SEXP SpParamsSEXP, SEXP modeSEXP) {
+NumericVector cohortCrownRatio(List x, DataFrame SpParams);
+RcppExport SEXP _medfate_cohortCrownRatio(SEXP xSEXP, SEXP SpParamsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< List >::type x(xSEXP);
     Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
-    Rcpp::traits::input_parameter< String >::type mode(modeSEXP);
-    rcpp_result_gen = Rcpp::wrap(cohortCrownRatio(x, SpParams, mode));
+    rcpp_result_gen = Rcpp::wrap(cohortCrownRatio(x, SpParams));
     return rcpp_result_gen;
 END_RCPP
 }
 // cohortCrownBaseHeight
-NumericVector cohortCrownBaseHeight(List x, DataFrame SpParams, String mode);
-RcppExport SEXP _medfate_cohortCrownBaseHeight(SEXP xSEXP, SEXP SpParamsSEXP, SEXP modeSEXP) {
+NumericVector cohortCrownBaseHeight(List x, DataFrame SpParams);
+RcppExport SEXP _medfate_cohortCrownBaseHeight(SEXP xSEXP, SEXP SpParamsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< List >::type x(xSEXP);
     Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
-    Rcpp::traits::input_parameter< String >::type mode(modeSEXP);
-    rcpp_result_gen = Rcpp::wrap(cohortCrownBaseHeight(x, SpParams, mode));
+    rcpp_result_gen = Rcpp::wrap(cohortCrownBaseHeight(x, SpParams));
     return rcpp_result_gen;
 END_RCPP
 }
 // cohortCrownLength
-NumericVector cohortCrownLength(List x, DataFrame SpParams, String mode);
-RcppExport SEXP _medfate_cohortCrownLength(SEXP xSEXP, SEXP SpParamsSEXP, SEXP modeSEXP) {
+NumericVector cohortCrownLength(List x, DataFrame SpParams);
+RcppExport SEXP _medfate_cohortCrownLength(SEXP xSEXP, SEXP SpParamsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< List >::type x(xSEXP);
     Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
-    Rcpp::traits::input_parameter< String >::type mode(modeSEXP);
-    rcpp_result_gen = Rcpp::wrap(cohortCrownLength(x, SpParams, mode));
+    rcpp_result_gen = Rcpp::wrap(cohortCrownLength(x, SpParams));
     return rcpp_result_gen;
 END_RCPP
 }
 // cohortFoliarBiomass
-NumericVector cohortFoliarBiomass(List x, DataFrame SpParams, double gdd, String mode);
-RcppExport SEXP _medfate_cohortFoliarBiomass(SEXP xSEXP, SEXP SpParamsSEXP, SEXP gddSEXP, SEXP modeSEXP) {
+NumericVector cohortFoliarBiomass(List x, DataFrame SpParams, double gdd);
+RcppExport SEXP _medfate_cohortFoliarBiomass(SEXP xSEXP, SEXP SpParamsSEXP, SEXP gddSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< List >::type x(xSEXP);
     Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
     Rcpp::traits::input_parameter< double >::type gdd(gddSEXP);
-    Rcpp::traits::input_parameter< String >::type mode(modeSEXP);
-    rcpp_result_gen = Rcpp::wrap(cohortFoliarBiomass(x, SpParams, gdd, mode));
+    rcpp_result_gen = Rcpp::wrap(cohortFoliarBiomass(x, SpParams, gdd));
     return rcpp_result_gen;
 END_RCPP
 }
-// cohortFuel
-NumericVector cohortFuel(List x, DataFrame SpParams, double gdd, bool includeDead, String mode);
-RcppExport SEXP _medfate_cohortFuel(SEXP xSEXP, SEXP SpParamsSEXP, SEXP gddSEXP, SEXP includeDeadSEXP, SEXP modeSEXP) {
+// cohortFuelLoading
+NumericVector cohortFuelLoading(List x, DataFrame SpParams, double gdd, bool includeDead);
+RcppExport SEXP _medfate_cohortFuelLoading(SEXP xSEXP, SEXP SpParamsSEXP, SEXP gddSEXP, SEXP includeDeadSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -534,36 +612,33 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
     Rcpp::traits::input_parameter< double >::type gdd(gddSEXP);
     Rcpp::traits::input_parameter< bool >::type includeDead(includeDeadSEXP);
-    Rcpp::traits::input_parameter< String >::type mode(modeSEXP);
-    rcpp_result_gen = Rcpp::wrap(cohortFuel(x, SpParams, gdd, includeDead, mode));
+    rcpp_result_gen = Rcpp::wrap(cohortFuelLoading(x, SpParams, gdd, includeDead));
     return rcpp_result_gen;
 END_RCPP
 }
 // cohortEquilibriumLeafLitter
-NumericVector cohortEquilibriumLeafLitter(List x, DataFrame SpParams, double AET, String mode);
-RcppExport SEXP _medfate_cohortEquilibriumLeafLitter(SEXP xSEXP, SEXP SpParamsSEXP, SEXP AETSEXP, SEXP modeSEXP) {
+NumericVector cohortEquilibriumLeafLitter(List x, DataFrame SpParams, double AET);
+RcppExport SEXP _medfate_cohortEquilibriumLeafLitter(SEXP xSEXP, SEXP SpParamsSEXP, SEXP AETSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< List >::type x(xSEXP);
     Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
     Rcpp::traits::input_parameter< double >::type AET(AETSEXP);
-    Rcpp::traits::input_parameter< String >::type mode(modeSEXP);
-    rcpp_result_gen = Rcpp::wrap(cohortEquilibriumLeafLitter(x, SpParams, AET, mode));
+    rcpp_result_gen = Rcpp::wrap(cohortEquilibriumLeafLitter(x, SpParams, AET));
     return rcpp_result_gen;
 END_RCPP
 }
 // cohortEquilibriumSmallBranchLitter
-NumericVector cohortEquilibriumSmallBranchLitter(List x, DataFrame SpParams, double smallBranchDecompositionRate, String mode);
-RcppExport SEXP _medfate_cohortEquilibriumSmallBranchLitter(SEXP xSEXP, SEXP SpParamsSEXP, SEXP smallBranchDecompositionRateSEXP, SEXP modeSEXP) {
+NumericVector cohortEquilibriumSmallBranchLitter(List x, DataFrame SpParams, double smallBranchDecompositionRate);
+RcppExport SEXP _medfate_cohortEquilibriumSmallBranchLitter(SEXP xSEXP, SEXP SpParamsSEXP, SEXP smallBranchDecompositionRateSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< List >::type x(xSEXP);
     Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
     Rcpp::traits::input_parameter< double >::type smallBranchDecompositionRate(smallBranchDecompositionRateSEXP);
-    Rcpp::traits::input_parameter< String >::type mode(modeSEXP);
-    rcpp_result_gen = Rcpp::wrap(cohortEquilibriumSmallBranchLitter(x, SpParams, smallBranchDecompositionRate, mode));
+    rcpp_result_gen = Rcpp::wrap(cohortEquilibriumSmallBranchLitter(x, SpParams, smallBranchDecompositionRate));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -580,17 +655,52 @@ BEGIN_RCPP
 END_RCPP
 }
 // cohortLAI
-NumericVector cohortLAI(List x, DataFrame SpParams, double gdd, String mode, bool bounded);
-RcppExport SEXP _medfate_cohortLAI(SEXP xSEXP, SEXP SpParamsSEXP, SEXP gddSEXP, SEXP modeSEXP, SEXP boundedSEXP) {
+NumericVector cohortLAI(List x, DataFrame SpParams, double gdd, bool bounded);
+RcppExport SEXP _medfate_cohortLAI(SEXP xSEXP, SEXP SpParamsSEXP, SEXP gddSEXP, SEXP boundedSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< List >::type x(xSEXP);
     Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
     Rcpp::traits::input_parameter< double >::type gdd(gddSEXP);
-    Rcpp::traits::input_parameter< String >::type mode(modeSEXP);
     Rcpp::traits::input_parameter< bool >::type bounded(boundedSEXP);
-    rcpp_result_gen = Rcpp::wrap(cohortLAI(x, SpParams, gdd, mode, bounded));
+    rcpp_result_gen = Rcpp::wrap(cohortLAI(x, SpParams, gdd, bounded));
+    return rcpp_result_gen;
+END_RCPP
+}
+// herbFoliarBiomass
+double herbFoliarBiomass(List x, DataFrame SpParams);
+RcppExport SEXP _medfate_herbFoliarBiomass(SEXP xSEXP, SEXP SpParamsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< List >::type x(xSEXP);
+    Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
+    rcpp_result_gen = Rcpp::wrap(herbFoliarBiomass(x, SpParams));
+    return rcpp_result_gen;
+END_RCPP
+}
+// herbFuelLoading
+double herbFuelLoading(List x, DataFrame SpParams);
+RcppExport SEXP _medfate_herbFuelLoading(SEXP xSEXP, SEXP SpParamsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< List >::type x(xSEXP);
+    Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
+    rcpp_result_gen = Rcpp::wrap(herbFuelLoading(x, SpParams));
+    return rcpp_result_gen;
+END_RCPP
+}
+// herbLAI
+double herbLAI(List x, DataFrame SpParams);
+RcppExport SEXP _medfate_herbLAI(SEXP xSEXP, SEXP SpParamsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< List >::type x(xSEXP);
+    Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
+    rcpp_result_gen = Rcpp::wrap(herbLAI(x, SpParams));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -607,48 +717,45 @@ BEGIN_RCPP
 END_RCPP
 }
 // speciesCover
-NumericVector speciesCover(List x, DataFrame SpParams, String mode);
-RcppExport SEXP _medfate_speciesCover(SEXP xSEXP, SEXP SpParamsSEXP, SEXP modeSEXP) {
+NumericVector speciesCover(List x, DataFrame SpParams);
+RcppExport SEXP _medfate_speciesCover(SEXP xSEXP, SEXP SpParamsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< List >::type x(xSEXP);
     Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
-    Rcpp::traits::input_parameter< String >::type mode(modeSEXP);
-    rcpp_result_gen = Rcpp::wrap(speciesCover(x, SpParams, mode));
+    rcpp_result_gen = Rcpp::wrap(speciesCover(x, SpParams));
     return rcpp_result_gen;
 END_RCPP
 }
 // speciesDensity
-NumericVector speciesDensity(List x, DataFrame SpParams, String mode);
-RcppExport SEXP _medfate_speciesDensity(SEXP xSEXP, SEXP SpParamsSEXP, SEXP modeSEXP) {
+NumericVector speciesDensity(List x, DataFrame SpParams);
+RcppExport SEXP _medfate_speciesDensity(SEXP xSEXP, SEXP SpParamsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< List >::type x(xSEXP);
     Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
-    Rcpp::traits::input_parameter< String >::type mode(modeSEXP);
-    rcpp_result_gen = Rcpp::wrap(speciesDensity(x, SpParams, mode));
+    rcpp_result_gen = Rcpp::wrap(speciesDensity(x, SpParams));
     return rcpp_result_gen;
 END_RCPP
 }
 // speciesFoliarBiomass
-NumericVector speciesFoliarBiomass(List x, DataFrame SpParams, double gdd, String mode);
-RcppExport SEXP _medfate_speciesFoliarBiomass(SEXP xSEXP, SEXP SpParamsSEXP, SEXP gddSEXP, SEXP modeSEXP) {
+NumericVector speciesFoliarBiomass(List x, DataFrame SpParams, double gdd);
+RcppExport SEXP _medfate_speciesFoliarBiomass(SEXP xSEXP, SEXP SpParamsSEXP, SEXP gddSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< List >::type x(xSEXP);
     Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
     Rcpp::traits::input_parameter< double >::type gdd(gddSEXP);
-    Rcpp::traits::input_parameter< String >::type mode(modeSEXP);
-    rcpp_result_gen = Rcpp::wrap(speciesFoliarBiomass(x, SpParams, gdd, mode));
+    rcpp_result_gen = Rcpp::wrap(speciesFoliarBiomass(x, SpParams, gdd));
     return rcpp_result_gen;
 END_RCPP
 }
-// speciesFuel
-NumericVector speciesFuel(List x, DataFrame SpParams, double gdd, bool includeDead, String mode);
-RcppExport SEXP _medfate_speciesFuel(SEXP xSEXP, SEXP SpParamsSEXP, SEXP gddSEXP, SEXP includeDeadSEXP, SEXP modeSEXP) {
+// speciesFuelLoading
+NumericVector speciesFuelLoading(List x, DataFrame SpParams, double gdd, bool includeDead);
+RcppExport SEXP _medfate_speciesFuelLoading(SEXP xSEXP, SEXP SpParamsSEXP, SEXP gddSEXP, SEXP includeDeadSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -656,35 +763,21 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
     Rcpp::traits::input_parameter< double >::type gdd(gddSEXP);
     Rcpp::traits::input_parameter< bool >::type includeDead(includeDeadSEXP);
-    Rcpp::traits::input_parameter< String >::type mode(modeSEXP);
-    rcpp_result_gen = Rcpp::wrap(speciesFuel(x, SpParams, gdd, includeDead, mode));
-    return rcpp_result_gen;
-END_RCPP
-}
-// speciesPhytovolume
-NumericVector speciesPhytovolume(List x, DataFrame SpParams);
-RcppExport SEXP _medfate_speciesPhytovolume(SEXP xSEXP, SEXP SpParamsSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< List >::type x(xSEXP);
-    Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
-    rcpp_result_gen = Rcpp::wrap(speciesPhytovolume(x, SpParams));
+    rcpp_result_gen = Rcpp::wrap(speciesFuelLoading(x, SpParams, gdd, includeDead));
     return rcpp_result_gen;
 END_RCPP
 }
 // speciesLAI
-NumericVector speciesLAI(List x, DataFrame SpParams, double gdd, String mode, bool bounded);
-RcppExport SEXP _medfate_speciesLAI(SEXP xSEXP, SEXP SpParamsSEXP, SEXP gddSEXP, SEXP modeSEXP, SEXP boundedSEXP) {
+NumericVector speciesLAI(List x, DataFrame SpParams, double gdd, bool bounded);
+RcppExport SEXP _medfate_speciesLAI(SEXP xSEXP, SEXP SpParamsSEXP, SEXP gddSEXP, SEXP boundedSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< List >::type x(xSEXP);
     Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
     Rcpp::traits::input_parameter< double >::type gdd(gddSEXP);
-    Rcpp::traits::input_parameter< String >::type mode(modeSEXP);
     Rcpp::traits::input_parameter< bool >::type bounded(boundedSEXP);
-    rcpp_result_gen = Rcpp::wrap(speciesLAI(x, SpParams, gdd, mode, bounded));
+    rcpp_result_gen = Rcpp::wrap(speciesLAI(x, SpParams, gdd, bounded));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -701,34 +794,21 @@ BEGIN_RCPP
 END_RCPP
 }
 // standFoliarBiomass
-double standFoliarBiomass(List x, DataFrame SpParams, double gdd, String mode);
-RcppExport SEXP _medfate_standFoliarBiomass(SEXP xSEXP, SEXP SpParamsSEXP, SEXP gddSEXP, SEXP modeSEXP) {
+double standFoliarBiomass(List x, DataFrame SpParams, double gdd);
+RcppExport SEXP _medfate_standFoliarBiomass(SEXP xSEXP, SEXP SpParamsSEXP, SEXP gddSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< List >::type x(xSEXP);
     Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
     Rcpp::traits::input_parameter< double >::type gdd(gddSEXP);
-    Rcpp::traits::input_parameter< String >::type mode(modeSEXP);
-    rcpp_result_gen = Rcpp::wrap(standFoliarBiomass(x, SpParams, gdd, mode));
+    rcpp_result_gen = Rcpp::wrap(standFoliarBiomass(x, SpParams, gdd));
     return rcpp_result_gen;
 END_RCPP
 }
-// standPhytovolume
-double standPhytovolume(List x, DataFrame SpParams);
-RcppExport SEXP _medfate_standPhytovolume(SEXP xSEXP, SEXP SpParamsSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< List >::type x(xSEXP);
-    Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
-    rcpp_result_gen = Rcpp::wrap(standPhytovolume(x, SpParams));
-    return rcpp_result_gen;
-END_RCPP
-}
-// standFuel
-double standFuel(List x, DataFrame SpParams, double gdd, bool includeDead, String mode);
-RcppExport SEXP _medfate_standFuel(SEXP xSEXP, SEXP SpParamsSEXP, SEXP gddSEXP, SEXP includeDeadSEXP, SEXP modeSEXP) {
+// standFuelLoading
+double standFuelLoading(List x, DataFrame SpParams, double gdd, bool includeDead);
+RcppExport SEXP _medfate_standFuelLoading(SEXP xSEXP, SEXP SpParamsSEXP, SEXP gddSEXP, SEXP includeDeadSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -736,23 +816,21 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
     Rcpp::traits::input_parameter< double >::type gdd(gddSEXP);
     Rcpp::traits::input_parameter< bool >::type includeDead(includeDeadSEXP);
-    Rcpp::traits::input_parameter< String >::type mode(modeSEXP);
-    rcpp_result_gen = Rcpp::wrap(standFuel(x, SpParams, gdd, includeDead, mode));
+    rcpp_result_gen = Rcpp::wrap(standFuelLoading(x, SpParams, gdd, includeDead));
     return rcpp_result_gen;
 END_RCPP
 }
 // standLAI
-double standLAI(List x, DataFrame SpParams, double gdd, String mode, bool bounded);
-RcppExport SEXP _medfate_standLAI(SEXP xSEXP, SEXP SpParamsSEXP, SEXP gddSEXP, SEXP modeSEXP, SEXP boundedSEXP) {
+double standLAI(List x, DataFrame SpParams, double gdd, bool bounded);
+RcppExport SEXP _medfate_standLAI(SEXP xSEXP, SEXP SpParamsSEXP, SEXP gddSEXP, SEXP boundedSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< List >::type x(xSEXP);
     Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
     Rcpp::traits::input_parameter< double >::type gdd(gddSEXP);
-    Rcpp::traits::input_parameter< String >::type mode(modeSEXP);
     Rcpp::traits::input_parameter< bool >::type bounded(boundedSEXP);
-    rcpp_result_gen = Rcpp::wrap(standLAI(x, SpParams, gdd, mode, bounded));
+    rcpp_result_gen = Rcpp::wrap(standLAI(x, SpParams, gdd, bounded));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -771,8 +849,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // LAIdistribution
-NumericMatrix LAIdistribution(NumericVector z, List x, DataFrame SpParams, double gdd, String mode, bool bounded);
-RcppExport SEXP _medfate_LAIdistribution(SEXP zSEXP, SEXP xSEXP, SEXP SpParamsSEXP, SEXP gddSEXP, SEXP modeSEXP, SEXP boundedSEXP) {
+NumericMatrix LAIdistribution(NumericVector z, List x, DataFrame SpParams, double gdd, bool bounded);
+RcppExport SEXP _medfate_LAIdistribution(SEXP zSEXP, SEXP xSEXP, SEXP SpParamsSEXP, SEXP gddSEXP, SEXP boundedSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -780,9 +858,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< List >::type x(xSEXP);
     Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
     Rcpp::traits::input_parameter< double >::type gdd(gddSEXP);
-    Rcpp::traits::input_parameter< String >::type mode(modeSEXP);
     Rcpp::traits::input_parameter< bool >::type bounded(boundedSEXP);
-    rcpp_result_gen = Rcpp::wrap(LAIdistribution(z, x, SpParams, gdd, mode, bounded));
+    rcpp_result_gen = Rcpp::wrap(LAIdistribution(z, x, SpParams, gdd, bounded));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -801,8 +878,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // LAIprofile
-NumericVector LAIprofile(NumericVector z, List x, DataFrame SpParams, double gdd, String mode, bool bounded);
-RcppExport SEXP _medfate_LAIprofile(SEXP zSEXP, SEXP xSEXP, SEXP SpParamsSEXP, SEXP gddSEXP, SEXP modeSEXP, SEXP boundedSEXP) {
+NumericVector LAIprofile(NumericVector z, List x, DataFrame SpParams, double gdd, bool bounded);
+RcppExport SEXP _medfate_LAIprofile(SEXP zSEXP, SEXP xSEXP, SEXP SpParamsSEXP, SEXP gddSEXP, SEXP boundedSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -810,23 +887,22 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< List >::type x(xSEXP);
     Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
     Rcpp::traits::input_parameter< double >::type gdd(gddSEXP);
-    Rcpp::traits::input_parameter< String >::type mode(modeSEXP);
     Rcpp::traits::input_parameter< bool >::type bounded(boundedSEXP);
-    rcpp_result_gen = Rcpp::wrap(LAIprofile(z, x, SpParams, gdd, mode, bounded));
+    rcpp_result_gen = Rcpp::wrap(LAIprofile(z, x, SpParams, gdd, bounded));
     return rcpp_result_gen;
 END_RCPP
 }
 // forest2aboveground
-DataFrame forest2aboveground(List x, DataFrame SpParams, double gdd, String mode);
-RcppExport SEXP _medfate_forest2aboveground(SEXP xSEXP, SEXP SpParamsSEXP, SEXP gddSEXP, SEXP modeSEXP) {
+DataFrame forest2aboveground(List x, DataFrame SpParams, double gdd, bool loading);
+RcppExport SEXP _medfate_forest2aboveground(SEXP xSEXP, SEXP SpParamsSEXP, SEXP gddSEXP, SEXP loadingSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< List >::type x(xSEXP);
     Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
     Rcpp::traits::input_parameter< double >::type gdd(gddSEXP);
-    Rcpp::traits::input_parameter< String >::type mode(modeSEXP);
-    rcpp_result_gen = Rcpp::wrap(forest2aboveground(x, SpParams, gdd, mode));
+    Rcpp::traits::input_parameter< bool >::type loading(loadingSEXP);
+    rcpp_result_gen = Rcpp::wrap(forest2aboveground(x, SpParams, gdd, loading));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -894,8 +970,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // woodyFuelProfile
-NumericVector woodyFuelProfile(NumericVector z, List x, DataFrame SpParams, double gdd, String mode);
-RcppExport SEXP _medfate_woodyFuelProfile(SEXP zSEXP, SEXP xSEXP, SEXP SpParamsSEXP, SEXP gddSEXP, SEXP modeSEXP) {
+NumericVector woodyFuelProfile(NumericVector z, List x, DataFrame SpParams, double gdd);
+RcppExport SEXP _medfate_woodyFuelProfile(SEXP zSEXP, SEXP xSEXP, SEXP SpParamsSEXP, SEXP gddSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -903,8 +979,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< List >::type x(xSEXP);
     Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
     Rcpp::traits::input_parameter< double >::type gdd(gddSEXP);
-    Rcpp::traits::input_parameter< String >::type mode(modeSEXP);
-    rcpp_result_gen = Rcpp::wrap(woodyFuelProfile(z, x, SpParams, gdd, mode));
+    rcpp_result_gen = Rcpp::wrap(woodyFuelProfile(z, x, SpParams, gdd));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -1002,25 +1077,24 @@ BEGIN_RCPP
 END_RCPP
 }
 // fuelLiveStratification
-List fuelLiveStratification(List object, DataFrame SpParams, double gdd, String mode, double heightProfileStep, double maxHeightProfile, double bulkDensityThreshold);
-RcppExport SEXP _medfate_fuelLiveStratification(SEXP objectSEXP, SEXP SpParamsSEXP, SEXP gddSEXP, SEXP modeSEXP, SEXP heightProfileStepSEXP, SEXP maxHeightProfileSEXP, SEXP bulkDensityThresholdSEXP) {
+List fuelLiveStratification(List object, DataFrame SpParams, double gdd, double heightProfileStep, double maxHeightProfile, double bulkDensityThreshold);
+RcppExport SEXP _medfate_fuelLiveStratification(SEXP objectSEXP, SEXP SpParamsSEXP, SEXP gddSEXP, SEXP heightProfileStepSEXP, SEXP maxHeightProfileSEXP, SEXP bulkDensityThresholdSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< List >::type object(objectSEXP);
     Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
     Rcpp::traits::input_parameter< double >::type gdd(gddSEXP);
-    Rcpp::traits::input_parameter< String >::type mode(modeSEXP);
     Rcpp::traits::input_parameter< double >::type heightProfileStep(heightProfileStepSEXP);
     Rcpp::traits::input_parameter< double >::type maxHeightProfile(maxHeightProfileSEXP);
     Rcpp::traits::input_parameter< double >::type bulkDensityThreshold(bulkDensityThresholdSEXP);
-    rcpp_result_gen = Rcpp::wrap(fuelLiveStratification(object, SpParams, gdd, mode, heightProfileStep, maxHeightProfile, bulkDensityThreshold));
+    rcpp_result_gen = Rcpp::wrap(fuelLiveStratification(object, SpParams, gdd, heightProfileStep, maxHeightProfile, bulkDensityThreshold));
     return rcpp_result_gen;
 END_RCPP
 }
 // FCCSproperties
-DataFrame FCCSproperties(List object, DataFrame SpParams, NumericVector cohortFMC, double gdd, String mode, double heightProfileStep, double maxHeightProfile, double bulkDensityThreshold, String depthMode);
-RcppExport SEXP _medfate_FCCSproperties(SEXP objectSEXP, SEXP SpParamsSEXP, SEXP cohortFMCSEXP, SEXP gddSEXP, SEXP modeSEXP, SEXP heightProfileStepSEXP, SEXP maxHeightProfileSEXP, SEXP bulkDensityThresholdSEXP, SEXP depthModeSEXP) {
+DataFrame FCCSproperties(List object, DataFrame SpParams, NumericVector cohortFMC, double gdd, double heightProfileStep, double maxHeightProfile, double bulkDensityThreshold, String depthMode);
+RcppExport SEXP _medfate_FCCSproperties(SEXP objectSEXP, SEXP SpParamsSEXP, SEXP cohortFMCSEXP, SEXP gddSEXP, SEXP heightProfileStepSEXP, SEXP maxHeightProfileSEXP, SEXP bulkDensityThresholdSEXP, SEXP depthModeSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -1028,34 +1102,30 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type cohortFMC(cohortFMCSEXP);
     Rcpp::traits::input_parameter< double >::type gdd(gddSEXP);
-    Rcpp::traits::input_parameter< String >::type mode(modeSEXP);
     Rcpp::traits::input_parameter< double >::type heightProfileStep(heightProfileStepSEXP);
     Rcpp::traits::input_parameter< double >::type maxHeightProfile(maxHeightProfileSEXP);
     Rcpp::traits::input_parameter< double >::type bulkDensityThreshold(bulkDensityThresholdSEXP);
     Rcpp::traits::input_parameter< String >::type depthMode(depthModeSEXP);
-    rcpp_result_gen = Rcpp::wrap(FCCSproperties(object, SpParams, cohortFMC, gdd, mode, heightProfileStep, maxHeightProfile, bulkDensityThreshold, depthMode));
+    rcpp_result_gen = Rcpp::wrap(FCCSproperties(object, SpParams, cohortFMC, gdd, heightProfileStep, maxHeightProfile, bulkDensityThreshold, depthMode));
     return rcpp_result_gen;
 END_RCPP
 }
 // dailyMortalityProbability
-double dailyMortalityProbability(double basalMortalityRate, double stressValue, double stressThreshold, double minValue, double exponent);
-static SEXP _medfate_dailyMortalityProbability_try(SEXP basalMortalityRateSEXP, SEXP stressValueSEXP, SEXP stressThresholdSEXP, SEXP minValueSEXP, SEXP exponentSEXP) {
+double dailyMortalityProbability(double stressValue, double stressThreshold);
+static SEXP _medfate_dailyMortalityProbability_try(SEXP stressValueSEXP, SEXP stressThresholdSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< double >::type basalMortalityRate(basalMortalityRateSEXP);
     Rcpp::traits::input_parameter< double >::type stressValue(stressValueSEXP);
     Rcpp::traits::input_parameter< double >::type stressThreshold(stressThresholdSEXP);
-    Rcpp::traits::input_parameter< double >::type minValue(minValueSEXP);
-    Rcpp::traits::input_parameter< double >::type exponent(exponentSEXP);
-    rcpp_result_gen = Rcpp::wrap(dailyMortalityProbability(basalMortalityRate, stressValue, stressThreshold, minValue, exponent));
+    rcpp_result_gen = Rcpp::wrap(dailyMortalityProbability(stressValue, stressThreshold));
     return rcpp_result_gen;
 END_RCPP_RETURN_ERROR
 }
-RcppExport SEXP _medfate_dailyMortalityProbability(SEXP basalMortalityRateSEXP, SEXP stressValueSEXP, SEXP stressThresholdSEXP, SEXP minValueSEXP, SEXP exponentSEXP) {
+RcppExport SEXP _medfate_dailyMortalityProbability(SEXP stressValueSEXP, SEXP stressThresholdSEXP) {
     SEXP rcpp_result_gen;
     {
         Rcpp::RNGScope rcpp_rngScope_gen;
-        rcpp_result_gen = PROTECT(_medfate_dailyMortalityProbability_try(basalMortalityRateSEXP, stressValueSEXP, stressThresholdSEXP, minValueSEXP, exponentSEXP));
+        rcpp_result_gen = PROTECT(_medfate_dailyMortalityProbability_try(stressValueSEXP, stressThresholdSEXP));
     }
     Rboolean rcpp_isInterrupt_gen = Rf_inherits(rcpp_result_gen, "interrupted-error");
     if (rcpp_isInterrupt_gen) {
@@ -1076,35 +1146,28 @@ RcppExport SEXP _medfate_dailyMortalityProbability(SEXP basalMortalityRateSEXP, 
     return rcpp_result_gen;
 }
 // growthDay
-List growthDay(List x, CharacterVector date, double tmin, double tmax, double rhmin, double rhmax, double rad, double wind, double latitude, double elevation, double slope, double aspect, double prec, double CO2, double runon, bool modifyInput);
-static SEXP _medfate_growthDay_try(SEXP xSEXP, SEXP dateSEXP, SEXP tminSEXP, SEXP tmaxSEXP, SEXP rhminSEXP, SEXP rhmaxSEXP, SEXP radSEXP, SEXP windSEXP, SEXP latitudeSEXP, SEXP elevationSEXP, SEXP slopeSEXP, SEXP aspectSEXP, SEXP precSEXP, SEXP CO2SEXP, SEXP runonSEXP, SEXP modifyInputSEXP) {
+List growthDay(List x, CharacterVector date, NumericVector meteovec, double latitude, double elevation, double slope, double aspect, double runon, bool modifyInput);
+static SEXP _medfate_growthDay_try(SEXP xSEXP, SEXP dateSEXP, SEXP meteovecSEXP, SEXP latitudeSEXP, SEXP elevationSEXP, SEXP slopeSEXP, SEXP aspectSEXP, SEXP runonSEXP, SEXP modifyInputSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< List >::type x(xSEXP);
     Rcpp::traits::input_parameter< CharacterVector >::type date(dateSEXP);
-    Rcpp::traits::input_parameter< double >::type tmin(tminSEXP);
-    Rcpp::traits::input_parameter< double >::type tmax(tmaxSEXP);
-    Rcpp::traits::input_parameter< double >::type rhmin(rhminSEXP);
-    Rcpp::traits::input_parameter< double >::type rhmax(rhmaxSEXP);
-    Rcpp::traits::input_parameter< double >::type rad(radSEXP);
-    Rcpp::traits::input_parameter< double >::type wind(windSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type meteovec(meteovecSEXP);
     Rcpp::traits::input_parameter< double >::type latitude(latitudeSEXP);
     Rcpp::traits::input_parameter< double >::type elevation(elevationSEXP);
     Rcpp::traits::input_parameter< double >::type slope(slopeSEXP);
     Rcpp::traits::input_parameter< double >::type aspect(aspectSEXP);
-    Rcpp::traits::input_parameter< double >::type prec(precSEXP);
-    Rcpp::traits::input_parameter< double >::type CO2(CO2SEXP);
     Rcpp::traits::input_parameter< double >::type runon(runonSEXP);
     Rcpp::traits::input_parameter< bool >::type modifyInput(modifyInputSEXP);
-    rcpp_result_gen = Rcpp::wrap(growthDay(x, date, tmin, tmax, rhmin, rhmax, rad, wind, latitude, elevation, slope, aspect, prec, CO2, runon, modifyInput));
+    rcpp_result_gen = Rcpp::wrap(growthDay(x, date, meteovec, latitude, elevation, slope, aspect, runon, modifyInput));
     return rcpp_result_gen;
 END_RCPP_RETURN_ERROR
 }
-RcppExport SEXP _medfate_growthDay(SEXP xSEXP, SEXP dateSEXP, SEXP tminSEXP, SEXP tmaxSEXP, SEXP rhminSEXP, SEXP rhmaxSEXP, SEXP radSEXP, SEXP windSEXP, SEXP latitudeSEXP, SEXP elevationSEXP, SEXP slopeSEXP, SEXP aspectSEXP, SEXP precSEXP, SEXP CO2SEXP, SEXP runonSEXP, SEXP modifyInputSEXP) {
+RcppExport SEXP _medfate_growthDay(SEXP xSEXP, SEXP dateSEXP, SEXP meteovecSEXP, SEXP latitudeSEXP, SEXP elevationSEXP, SEXP slopeSEXP, SEXP aspectSEXP, SEXP runonSEXP, SEXP modifyInputSEXP) {
     SEXP rcpp_result_gen;
     {
         Rcpp::RNGScope rcpp_rngScope_gen;
-        rcpp_result_gen = PROTECT(_medfate_growthDay_try(xSEXP, dateSEXP, tminSEXP, tmaxSEXP, rhminSEXP, rhmaxSEXP, radSEXP, windSEXP, latitudeSEXP, elevationSEXP, slopeSEXP, aspectSEXP, precSEXP, CO2SEXP, runonSEXP, modifyInputSEXP));
+        rcpp_result_gen = PROTECT(_medfate_growthDay_try(xSEXP, dateSEXP, meteovecSEXP, latitudeSEXP, elevationSEXP, slopeSEXP, aspectSEXP, runonSEXP, modifyInputSEXP));
     }
     Rboolean rcpp_isInterrupt_gen = Rf_inherits(rcpp_result_gen, "interrupted-error");
     if (rcpp_isInterrupt_gen) {
@@ -2002,6 +2065,45 @@ RcppExport SEXP _medfate_soilEvaporation(SEXP soilSEXP, SEXP soilFunctionsSEXP, 
     UNPROTECT(1);
     return rcpp_result_gen;
 }
+// herbaceousTranspiration
+double herbaceousTranspiration(double pet, double LherbSWR, double herbLAI, List soil, String soilFunctions, bool modifySoil);
+static SEXP _medfate_herbaceousTranspiration_try(SEXP petSEXP, SEXP LherbSWRSEXP, SEXP herbLAISEXP, SEXP soilSEXP, SEXP soilFunctionsSEXP, SEXP modifySoilSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< double >::type pet(petSEXP);
+    Rcpp::traits::input_parameter< double >::type LherbSWR(LherbSWRSEXP);
+    Rcpp::traits::input_parameter< double >::type herbLAI(herbLAISEXP);
+    Rcpp::traits::input_parameter< List >::type soil(soilSEXP);
+    Rcpp::traits::input_parameter< String >::type soilFunctions(soilFunctionsSEXP);
+    Rcpp::traits::input_parameter< bool >::type modifySoil(modifySoilSEXP);
+    rcpp_result_gen = Rcpp::wrap(herbaceousTranspiration(pet, LherbSWR, herbLAI, soil, soilFunctions, modifySoil));
+    return rcpp_result_gen;
+END_RCPP_RETURN_ERROR
+}
+RcppExport SEXP _medfate_herbaceousTranspiration(SEXP petSEXP, SEXP LherbSWRSEXP, SEXP herbLAISEXP, SEXP soilSEXP, SEXP soilFunctionsSEXP, SEXP modifySoilSEXP) {
+    SEXP rcpp_result_gen;
+    {
+        Rcpp::RNGScope rcpp_rngScope_gen;
+        rcpp_result_gen = PROTECT(_medfate_herbaceousTranspiration_try(petSEXP, LherbSWRSEXP, herbLAISEXP, soilSEXP, soilFunctionsSEXP, modifySoilSEXP));
+    }
+    Rboolean rcpp_isInterrupt_gen = Rf_inherits(rcpp_result_gen, "interrupted-error");
+    if (rcpp_isInterrupt_gen) {
+        UNPROTECT(1);
+        Rf_onintr();
+    }
+    bool rcpp_isLongjump_gen = Rcpp::internal::isLongjumpSentinel(rcpp_result_gen);
+    if (rcpp_isLongjump_gen) {
+        Rcpp::internal::resumeJump(rcpp_result_gen);
+    }
+    Rboolean rcpp_isError_gen = Rf_inherits(rcpp_result_gen, "try-error");
+    if (rcpp_isError_gen) {
+        SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
+        UNPROTECT(1);
+        Rf_error(CHAR(rcpp_msgSEXP_gen));
+    }
+    UNPROTECT(1);
+    return rcpp_result_gen;
+}
 // infiltrationAmount
 double infiltrationAmount(double input, double Ssoil);
 static SEXP _medfate_infiltrationAmount_try(SEXP inputSEXP, SEXP SsoilSEXP) {
@@ -2233,6 +2335,43 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// initCochardNetworks
+List initCochardNetworks(List x);
+RcppExport SEXP _medfate_initCochardNetworks(SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< List >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(initCochardNetworks(x));
+    return rcpp_result_gen;
+END_RCPP
+}
+// semi_implicit_integration
+void semi_implicit_integration(List network, double dt, NumericVector opt);
+RcppExport SEXP _medfate_semi_implicit_integration(SEXP networkSEXP, SEXP dtSEXP, SEXP optSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< List >::type network(networkSEXP);
+    Rcpp::traits::input_parameter< double >::type dt(dtSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type opt(optSEXP);
+    semi_implicit_integration(network, dt, opt);
+    return R_NilValue;
+END_RCPP
+}
+// profitMaximization
+List profitMaximization(List supplyFunction, DataFrame photosynthesisFunction, double Gswmin, double Gswmax);
+RcppExport SEXP _medfate_profitMaximization(SEXP supplyFunctionSEXP, SEXP photosynthesisFunctionSEXP, SEXP GswminSEXP, SEXP GswmaxSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< List >::type supplyFunction(supplyFunctionSEXP);
+    Rcpp::traits::input_parameter< DataFrame >::type photosynthesisFunction(photosynthesisFunctionSEXP);
+    Rcpp::traits::input_parameter< double >::type Gswmin(GswminSEXP);
+    Rcpp::traits::input_parameter< double >::type Gswmax(GswmaxSEXP);
+    rcpp_result_gen = Rcpp::wrap(profitMaximization(supplyFunction, photosynthesisFunction, Gswmin, Gswmax));
+    return rcpp_result_gen;
+END_RCPP
+}
 // parcohort
 NumericVector parcohort(IntegerVector SP, NumericVector H, NumericVector CR, NumericVector LAI, DataFrame SpParams);
 RcppExport SEXP _medfate_parcohort(SEXP SPSEXP, SEXP HSEXP, SEXP CRSEXP, SEXP LAISEXP, SEXP SpParamsSEXP) {
@@ -2249,22 +2388,21 @@ BEGIN_RCPP
 END_RCPP
 }
 // PARcohort
-NumericVector PARcohort(List x, DataFrame SpParams, double gdd, String mode);
-RcppExport SEXP _medfate_PARcohort(SEXP xSEXP, SEXP SpParamsSEXP, SEXP gddSEXP, SEXP modeSEXP) {
+NumericVector PARcohort(List x, DataFrame SpParams, double gdd);
+RcppExport SEXP _medfate_PARcohort(SEXP xSEXP, SEXP SpParamsSEXP, SEXP gddSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< List >::type x(xSEXP);
     Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
     Rcpp::traits::input_parameter< double >::type gdd(gddSEXP);
-    Rcpp::traits::input_parameter< String >::type mode(modeSEXP);
-    rcpp_result_gen = Rcpp::wrap(PARcohort(x, SpParams, gdd, mode));
+    rcpp_result_gen = Rcpp::wrap(PARcohort(x, SpParams, gdd));
     return rcpp_result_gen;
 END_RCPP
 }
 // parheight
-NumericVector parheight(NumericVector z, List x, DataFrame SpParams, double gdd, String mode);
-RcppExport SEXP _medfate_parheight(SEXP zSEXP, SEXP xSEXP, SEXP SpParamsSEXP, SEXP gddSEXP, SEXP modeSEXP) {
+NumericVector parheight(NumericVector z, List x, DataFrame SpParams, double gdd);
+RcppExport SEXP _medfate_parheight(SEXP zSEXP, SEXP xSEXP, SEXP SpParamsSEXP, SEXP gddSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -2272,28 +2410,26 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< List >::type x(xSEXP);
     Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
     Rcpp::traits::input_parameter< double >::type gdd(gddSEXP);
-    Rcpp::traits::input_parameter< String >::type mode(modeSEXP);
-    rcpp_result_gen = Rcpp::wrap(parheight(z, x, SpParams, gdd, mode));
+    rcpp_result_gen = Rcpp::wrap(parheight(z, x, SpParams, gdd));
     return rcpp_result_gen;
 END_RCPP
 }
 // PARground
-NumericVector PARground(List x, DataFrame SpParams, double gdd, String mode);
-RcppExport SEXP _medfate_PARground(SEXP xSEXP, SEXP SpParamsSEXP, SEXP gddSEXP, SEXP modeSEXP) {
+double PARground(List x, DataFrame SpParams, double gdd);
+RcppExport SEXP _medfate_PARground(SEXP xSEXP, SEXP SpParamsSEXP, SEXP gddSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< List >::type x(xSEXP);
     Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
     Rcpp::traits::input_parameter< double >::type gdd(gddSEXP);
-    Rcpp::traits::input_parameter< String >::type mode(modeSEXP);
-    rcpp_result_gen = Rcpp::wrap(PARground(x, SpParams, gdd, mode));
+    rcpp_result_gen = Rcpp::wrap(PARground(x, SpParams, gdd));
     return rcpp_result_gen;
 END_RCPP
 }
 // swrheight
-NumericVector swrheight(NumericVector z, List x, DataFrame SpParams, double gdd, String mode);
-RcppExport SEXP _medfate_swrheight(SEXP zSEXP, SEXP xSEXP, SEXP SpParamsSEXP, SEXP gddSEXP, SEXP modeSEXP) {
+NumericVector swrheight(NumericVector z, List x, DataFrame SpParams, double gdd);
+RcppExport SEXP _medfate_swrheight(SEXP zSEXP, SEXP xSEXP, SEXP SpParamsSEXP, SEXP gddSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -2301,28 +2437,26 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< List >::type x(xSEXP);
     Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
     Rcpp::traits::input_parameter< double >::type gdd(gddSEXP);
-    Rcpp::traits::input_parameter< String >::type mode(modeSEXP);
-    rcpp_result_gen = Rcpp::wrap(swrheight(z, x, SpParams, gdd, mode));
+    rcpp_result_gen = Rcpp::wrap(swrheight(z, x, SpParams, gdd));
     return rcpp_result_gen;
 END_RCPP
 }
 // SWRground
-NumericVector SWRground(List x, DataFrame SpParams, double gdd, String mode);
-RcppExport SEXP _medfate_SWRground(SEXP xSEXP, SEXP SpParamsSEXP, SEXP gddSEXP, SEXP modeSEXP) {
+double SWRground(List x, DataFrame SpParams, double gdd);
+RcppExport SEXP _medfate_SWRground(SEXP xSEXP, SEXP SpParamsSEXP, SEXP gddSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< List >::type x(xSEXP);
     Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
     Rcpp::traits::input_parameter< double >::type gdd(gddSEXP);
-    Rcpp::traits::input_parameter< String >::type mode(modeSEXP);
-    rcpp_result_gen = Rcpp::wrap(SWRground(x, SpParams, gdd, mode));
+    rcpp_result_gen = Rcpp::wrap(SWRground(x, SpParams, gdd));
     return rcpp_result_gen;
 END_RCPP
 }
 // parExtinctionProfile
-NumericVector parExtinctionProfile(NumericVector z, List x, DataFrame SpParams, double gdd, String mode);
-RcppExport SEXP _medfate_parExtinctionProfile(SEXP zSEXP, SEXP xSEXP, SEXP SpParamsSEXP, SEXP gddSEXP, SEXP modeSEXP) {
+NumericVector parExtinctionProfile(NumericVector z, List x, DataFrame SpParams, double gdd, bool includeHerbs);
+RcppExport SEXP _medfate_parExtinctionProfile(SEXP zSEXP, SEXP xSEXP, SEXP SpParamsSEXP, SEXP gddSEXP, SEXP includeHerbsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -2330,14 +2464,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< List >::type x(xSEXP);
     Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
     Rcpp::traits::input_parameter< double >::type gdd(gddSEXP);
-    Rcpp::traits::input_parameter< String >::type mode(modeSEXP);
-    rcpp_result_gen = Rcpp::wrap(parExtinctionProfile(z, x, SpParams, gdd, mode));
+    Rcpp::traits::input_parameter< bool >::type includeHerbs(includeHerbsSEXP);
+    rcpp_result_gen = Rcpp::wrap(parExtinctionProfile(z, x, SpParams, gdd, includeHerbs));
     return rcpp_result_gen;
 END_RCPP
 }
 // swrExtinctionProfile
-NumericVector swrExtinctionProfile(NumericVector z, List x, DataFrame SpParams, double gdd, String mode);
-RcppExport SEXP _medfate_swrExtinctionProfile(SEXP zSEXP, SEXP xSEXP, SEXP SpParamsSEXP, SEXP gddSEXP, SEXP modeSEXP) {
+NumericVector swrExtinctionProfile(NumericVector z, List x, DataFrame SpParams, double gdd, bool includeHerbs);
+RcppExport SEXP _medfate_swrExtinctionProfile(SEXP zSEXP, SEXP xSEXP, SEXP SpParamsSEXP, SEXP gddSEXP, SEXP includeHerbsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -2345,8 +2479,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< List >::type x(xSEXP);
     Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
     Rcpp::traits::input_parameter< double >::type gdd(gddSEXP);
-    Rcpp::traits::input_parameter< String >::type mode(modeSEXP);
-    rcpp_result_gen = Rcpp::wrap(swrExtinctionProfile(z, x, SpParams, gdd, mode));
+    Rcpp::traits::input_parameter< bool >::type includeHerbs(includeHerbsSEXP);
+    rcpp_result_gen = Rcpp::wrap(swrExtinctionProfile(z, x, SpParams, gdd, includeHerbs));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -2484,8 +2618,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // spwbInput
-List spwbInput(DataFrame above, NumericVector Z50, NumericVector Z95, List soil, DataFrame SpParams, List control);
-RcppExport SEXP _medfate_spwbInput(SEXP aboveSEXP, SEXP Z50SEXP, SEXP Z95SEXP, SEXP soilSEXP, SEXP SpParamsSEXP, SEXP controlSEXP) {
+List spwbInput(DataFrame above, NumericVector Z50, NumericVector Z95, List soil, DataFrame FCCSprops, DataFrame SpParams, List control);
+RcppExport SEXP _medfate_spwbInput(SEXP aboveSEXP, SEXP Z50SEXP, SEXP Z95SEXP, SEXP soilSEXP, SEXP FCCSpropsSEXP, SEXP SpParamsSEXP, SEXP controlSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -2493,15 +2627,16 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< NumericVector >::type Z50(Z50SEXP);
     Rcpp::traits::input_parameter< NumericVector >::type Z95(Z95SEXP);
     Rcpp::traits::input_parameter< List >::type soil(soilSEXP);
+    Rcpp::traits::input_parameter< DataFrame >::type FCCSprops(FCCSpropsSEXP);
     Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
     Rcpp::traits::input_parameter< List >::type control(controlSEXP);
-    rcpp_result_gen = Rcpp::wrap(spwbInput(above, Z50, Z95, soil, SpParams, control));
+    rcpp_result_gen = Rcpp::wrap(spwbInput(above, Z50, Z95, soil, FCCSprops, SpParams, control));
     return rcpp_result_gen;
 END_RCPP
 }
 // growthInput
-List growthInput(DataFrame above, NumericVector Z50, NumericVector Z95, List soil, DataFrame SpParams, List control);
-RcppExport SEXP _medfate_growthInput(SEXP aboveSEXP, SEXP Z50SEXP, SEXP Z95SEXP, SEXP soilSEXP, SEXP SpParamsSEXP, SEXP controlSEXP) {
+List growthInput(DataFrame above, NumericVector Z50, NumericVector Z95, List soil, DataFrame FCCSprops, DataFrame SpParams, List control);
+RcppExport SEXP _medfate_growthInput(SEXP aboveSEXP, SEXP Z50SEXP, SEXP Z95SEXP, SEXP soilSEXP, SEXP FCCSpropsSEXP, SEXP SpParamsSEXP, SEXP controlSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -2509,9 +2644,10 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< NumericVector >::type Z50(Z50SEXP);
     Rcpp::traits::input_parameter< NumericVector >::type Z95(Z95SEXP);
     Rcpp::traits::input_parameter< List >::type soil(soilSEXP);
+    Rcpp::traits::input_parameter< DataFrame >::type FCCSprops(FCCSpropsSEXP);
     Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
     Rcpp::traits::input_parameter< List >::type control(controlSEXP);
-    rcpp_result_gen = Rcpp::wrap(growthInput(above, Z50, Z95, soil, SpParams, control));
+    rcpp_result_gen = Rcpp::wrap(growthInput(above, Z50, Z95, soil, FCCSprops, SpParams, control));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -2527,8 +2663,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // forest2spwbInput
-List forest2spwbInput(List x, List soil, DataFrame SpParams, List control, String mode);
-RcppExport SEXP _medfate_forest2spwbInput(SEXP xSEXP, SEXP soilSEXP, SEXP SpParamsSEXP, SEXP controlSEXP, SEXP modeSEXP) {
+List forest2spwbInput(List x, List soil, DataFrame SpParams, List control);
+RcppExport SEXP _medfate_forest2spwbInput(SEXP xSEXP, SEXP soilSEXP, SEXP SpParamsSEXP, SEXP controlSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -2536,8 +2672,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< List >::type soil(soilSEXP);
     Rcpp::traits::input_parameter< DataFrame >::type SpParams(SpParamsSEXP);
     Rcpp::traits::input_parameter< List >::type control(controlSEXP);
-    Rcpp::traits::input_parameter< String >::type mode(modeSEXP);
-    rcpp_result_gen = Rcpp::wrap(forest2spwbInput(x, soil, SpParams, control, mode));
+    rcpp_result_gen = Rcpp::wrap(forest2spwbInput(x, soil, SpParams, control));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -4222,35 +4357,28 @@ RcppExport SEXP _medfate_temperatureChange(SEXP dVecSEXP, SEXP TempSEXP, SEXP sa
     return rcpp_result_gen;
 }
 // spwbDay
-List spwbDay(List x, CharacterVector date, double tmin, double tmax, double rhmin, double rhmax, double rad, double wind, double latitude, double elevation, double slope, double aspect, double prec, double CO2, double runon, bool modifyInput);
-static SEXP _medfate_spwbDay_try(SEXP xSEXP, SEXP dateSEXP, SEXP tminSEXP, SEXP tmaxSEXP, SEXP rhminSEXP, SEXP rhmaxSEXP, SEXP radSEXP, SEXP windSEXP, SEXP latitudeSEXP, SEXP elevationSEXP, SEXP slopeSEXP, SEXP aspectSEXP, SEXP precSEXP, SEXP CO2SEXP, SEXP runonSEXP, SEXP modifyInputSEXP) {
+List spwbDay(List x, CharacterVector date, NumericVector meteovec, double latitude, double elevation, double slope, double aspect, double runon, bool modifyInput);
+static SEXP _medfate_spwbDay_try(SEXP xSEXP, SEXP dateSEXP, SEXP meteovecSEXP, SEXP latitudeSEXP, SEXP elevationSEXP, SEXP slopeSEXP, SEXP aspectSEXP, SEXP runonSEXP, SEXP modifyInputSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< List >::type x(xSEXP);
     Rcpp::traits::input_parameter< CharacterVector >::type date(dateSEXP);
-    Rcpp::traits::input_parameter< double >::type tmin(tminSEXP);
-    Rcpp::traits::input_parameter< double >::type tmax(tmaxSEXP);
-    Rcpp::traits::input_parameter< double >::type rhmin(rhminSEXP);
-    Rcpp::traits::input_parameter< double >::type rhmax(rhmaxSEXP);
-    Rcpp::traits::input_parameter< double >::type rad(radSEXP);
-    Rcpp::traits::input_parameter< double >::type wind(windSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type meteovec(meteovecSEXP);
     Rcpp::traits::input_parameter< double >::type latitude(latitudeSEXP);
     Rcpp::traits::input_parameter< double >::type elevation(elevationSEXP);
     Rcpp::traits::input_parameter< double >::type slope(slopeSEXP);
     Rcpp::traits::input_parameter< double >::type aspect(aspectSEXP);
-    Rcpp::traits::input_parameter< double >::type prec(precSEXP);
-    Rcpp::traits::input_parameter< double >::type CO2(CO2SEXP);
     Rcpp::traits::input_parameter< double >::type runon(runonSEXP);
     Rcpp::traits::input_parameter< bool >::type modifyInput(modifyInputSEXP);
-    rcpp_result_gen = Rcpp::wrap(spwbDay(x, date, tmin, tmax, rhmin, rhmax, rad, wind, latitude, elevation, slope, aspect, prec, CO2, runon, modifyInput));
+    rcpp_result_gen = Rcpp::wrap(spwbDay(x, date, meteovec, latitude, elevation, slope, aspect, runon, modifyInput));
     return rcpp_result_gen;
 END_RCPP_RETURN_ERROR
 }
-RcppExport SEXP _medfate_spwbDay(SEXP xSEXP, SEXP dateSEXP, SEXP tminSEXP, SEXP tmaxSEXP, SEXP rhminSEXP, SEXP rhmaxSEXP, SEXP radSEXP, SEXP windSEXP, SEXP latitudeSEXP, SEXP elevationSEXP, SEXP slopeSEXP, SEXP aspectSEXP, SEXP precSEXP, SEXP CO2SEXP, SEXP runonSEXP, SEXP modifyInputSEXP) {
+RcppExport SEXP _medfate_spwbDay(SEXP xSEXP, SEXP dateSEXP, SEXP meteovecSEXP, SEXP latitudeSEXP, SEXP elevationSEXP, SEXP slopeSEXP, SEXP aspectSEXP, SEXP runonSEXP, SEXP modifyInputSEXP) {
     SEXP rcpp_result_gen;
     {
         Rcpp::RNGScope rcpp_rngScope_gen;
-        rcpp_result_gen = PROTECT(_medfate_spwbDay_try(xSEXP, dateSEXP, tminSEXP, tmaxSEXP, rhminSEXP, rhmaxSEXP, radSEXP, windSEXP, latitudeSEXP, elevationSEXP, slopeSEXP, aspectSEXP, precSEXP, CO2SEXP, runonSEXP, modifyInputSEXP));
+        rcpp_result_gen = PROTECT(_medfate_spwbDay_try(xSEXP, dateSEXP, meteovecSEXP, latitudeSEXP, elevationSEXP, slopeSEXP, aspectSEXP, runonSEXP, modifyInputSEXP));
     }
     Rboolean rcpp_isInterrupt_gen = Rf_inherits(rcpp_result_gen, "interrupted-error");
     if (rcpp_isInterrupt_gen) {
@@ -4311,8 +4439,8 @@ RcppExport SEXP _medfate_spwb(SEXP xSEXP, SEXP meteoSEXP, SEXP latitudeSEXP, SEX
     return rcpp_result_gen;
 }
 // pwb
-List pwb(List x, DataFrame meteo, NumericMatrix W, double latitude, double elevation, double slope, double aspect, NumericVector canopyEvaporation, NumericVector snowMelt, NumericVector soilEvaporation, NumericVector CO2ByYear);
-static SEXP _medfate_pwb_try(SEXP xSEXP, SEXP meteoSEXP, SEXP WSEXP, SEXP latitudeSEXP, SEXP elevationSEXP, SEXP slopeSEXP, SEXP aspectSEXP, SEXP canopyEvaporationSEXP, SEXP snowMeltSEXP, SEXP soilEvaporationSEXP, SEXP CO2ByYearSEXP) {
+List pwb(List x, DataFrame meteo, NumericMatrix W, double latitude, double elevation, double slope, double aspect, NumericVector canopyEvaporation, NumericVector snowMelt, NumericVector soilEvaporation, NumericVector herbTranspiration, NumericVector CO2ByYear);
+static SEXP _medfate_pwb_try(SEXP xSEXP, SEXP meteoSEXP, SEXP WSEXP, SEXP latitudeSEXP, SEXP elevationSEXP, SEXP slopeSEXP, SEXP aspectSEXP, SEXP canopyEvaporationSEXP, SEXP snowMeltSEXP, SEXP soilEvaporationSEXP, SEXP herbTranspirationSEXP, SEXP CO2ByYearSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< List >::type x(xSEXP);
@@ -4325,16 +4453,17 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< NumericVector >::type canopyEvaporation(canopyEvaporationSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type snowMelt(snowMeltSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type soilEvaporation(soilEvaporationSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type herbTranspiration(herbTranspirationSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type CO2ByYear(CO2ByYearSEXP);
-    rcpp_result_gen = Rcpp::wrap(pwb(x, meteo, W, latitude, elevation, slope, aspect, canopyEvaporation, snowMelt, soilEvaporation, CO2ByYear));
+    rcpp_result_gen = Rcpp::wrap(pwb(x, meteo, W, latitude, elevation, slope, aspect, canopyEvaporation, snowMelt, soilEvaporation, herbTranspiration, CO2ByYear));
     return rcpp_result_gen;
 END_RCPP_RETURN_ERROR
 }
-RcppExport SEXP _medfate_pwb(SEXP xSEXP, SEXP meteoSEXP, SEXP WSEXP, SEXP latitudeSEXP, SEXP elevationSEXP, SEXP slopeSEXP, SEXP aspectSEXP, SEXP canopyEvaporationSEXP, SEXP snowMeltSEXP, SEXP soilEvaporationSEXP, SEXP CO2ByYearSEXP) {
+RcppExport SEXP _medfate_pwb(SEXP xSEXP, SEXP meteoSEXP, SEXP WSEXP, SEXP latitudeSEXP, SEXP elevationSEXP, SEXP slopeSEXP, SEXP aspectSEXP, SEXP canopyEvaporationSEXP, SEXP snowMeltSEXP, SEXP soilEvaporationSEXP, SEXP herbTranspirationSEXP, SEXP CO2ByYearSEXP) {
     SEXP rcpp_result_gen;
     {
         Rcpp::RNGScope rcpp_rngScope_gen;
-        rcpp_result_gen = PROTECT(_medfate_pwb_try(xSEXP, meteoSEXP, WSEXP, latitudeSEXP, elevationSEXP, slopeSEXP, aspectSEXP, canopyEvaporationSEXP, snowMeltSEXP, soilEvaporationSEXP, CO2ByYearSEXP));
+        rcpp_result_gen = PROTECT(_medfate_pwb_try(xSEXP, meteoSEXP, WSEXP, latitudeSEXP, elevationSEXP, slopeSEXP, aspectSEXP, canopyEvaporationSEXP, snowMeltSEXP, soilEvaporationSEXP, herbTranspirationSEXP, CO2ByYearSEXP));
     }
     Rboolean rcpp_isInterrupt_gen = Rf_inherits(rcpp_result_gen, "interrupted-error");
     if (rcpp_isInterrupt_gen) {
@@ -4446,8 +4575,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // tissueRelativeWaterContent
-double tissueRelativeWaterContent(double psiSym, double pi0, double epsilon, double psiApo, double c, double d, double af, double femb);
-RcppExport SEXP _medfate_tissueRelativeWaterContent(SEXP psiSymSEXP, SEXP pi0SEXP, SEXP epsilonSEXP, SEXP psiApoSEXP, SEXP cSEXP, SEXP dSEXP, SEXP afSEXP, SEXP fembSEXP) {
+double tissueRelativeWaterContent(double psiSym, double pi0, double epsilon, double psiApo, double c, double d, double af);
+RcppExport SEXP _medfate_tissueRelativeWaterContent(SEXP psiSymSEXP, SEXP pi0SEXP, SEXP epsilonSEXP, SEXP psiApoSEXP, SEXP cSEXP, SEXP dSEXP, SEXP afSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -4458,28 +4587,24 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type c(cSEXP);
     Rcpp::traits::input_parameter< double >::type d(dSEXP);
     Rcpp::traits::input_parameter< double >::type af(afSEXP);
-    Rcpp::traits::input_parameter< double >::type femb(fembSEXP);
-    rcpp_result_gen = Rcpp::wrap(tissueRelativeWaterContent(psiSym, pi0, epsilon, psiApo, c, d, af, femb));
+    rcpp_result_gen = Rcpp::wrap(tissueRelativeWaterContent(psiSym, pi0, epsilon, psiApo, c, d, af));
     return rcpp_result_gen;
 END_RCPP
 }
-// profitMaximization
-List profitMaximization(List supplyFunction, DataFrame photosynthesisFunction, double Gswmin, double Gswmax);
-RcppExport SEXP _medfate_profitMaximization(SEXP supplyFunctionSEXP, SEXP photosynthesisFunctionSEXP, SEXP GswminSEXP, SEXP GswmaxSEXP) {
+// plantWaterContent
+NumericVector plantWaterContent(List x);
+RcppExport SEXP _medfate_plantWaterContent(SEXP xSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< List >::type supplyFunction(supplyFunctionSEXP);
-    Rcpp::traits::input_parameter< DataFrame >::type photosynthesisFunction(photosynthesisFunctionSEXP);
-    Rcpp::traits::input_parameter< double >::type Gswmin(GswminSEXP);
-    Rcpp::traits::input_parameter< double >::type Gswmax(GswmaxSEXP);
-    rcpp_result_gen = Rcpp::wrap(profitMaximization(supplyFunction, photosynthesisFunction, Gswmin, Gswmax));
+    Rcpp::traits::input_parameter< List >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(plantWaterContent(x));
     return rcpp_result_gen;
 END_RCPP
 }
 // transpirationSperry
-List transpirationSperry(List x, DataFrame meteo, int day, double latitude, double elevation, double slope, double aspect, double canopyEvaporation, double snowMelt, double soilEvaporation, int stepFunctions, bool modifyInput);
-RcppExport SEXP _medfate_transpirationSperry(SEXP xSEXP, SEXP meteoSEXP, SEXP daySEXP, SEXP latitudeSEXP, SEXP elevationSEXP, SEXP slopeSEXP, SEXP aspectSEXP, SEXP canopyEvaporationSEXP, SEXP snowMeltSEXP, SEXP soilEvaporationSEXP, SEXP stepFunctionsSEXP, SEXP modifyInputSEXP) {
+List transpirationSperry(List x, DataFrame meteo, int day, double latitude, double elevation, double slope, double aspect, double canopyEvaporation, double snowMelt, double soilEvaporation, double herbTranspiration, int stepFunctions, bool modifyInput);
+RcppExport SEXP _medfate_transpirationSperry(SEXP xSEXP, SEXP meteoSEXP, SEXP daySEXP, SEXP latitudeSEXP, SEXP elevationSEXP, SEXP slopeSEXP, SEXP aspectSEXP, SEXP canopyEvaporationSEXP, SEXP snowMeltSEXP, SEXP soilEvaporationSEXP, SEXP herbTranspirationSEXP, SEXP stepFunctionsSEXP, SEXP modifyInputSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -4493,9 +4618,32 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type canopyEvaporation(canopyEvaporationSEXP);
     Rcpp::traits::input_parameter< double >::type snowMelt(snowMeltSEXP);
     Rcpp::traits::input_parameter< double >::type soilEvaporation(soilEvaporationSEXP);
+    Rcpp::traits::input_parameter< double >::type herbTranspiration(herbTranspirationSEXP);
     Rcpp::traits::input_parameter< int >::type stepFunctions(stepFunctionsSEXP);
     Rcpp::traits::input_parameter< bool >::type modifyInput(modifyInputSEXP);
-    rcpp_result_gen = Rcpp::wrap(transpirationSperry(x, meteo, day, latitude, elevation, slope, aspect, canopyEvaporation, snowMelt, soilEvaporation, stepFunctions, modifyInput));
+    rcpp_result_gen = Rcpp::wrap(transpirationSperry(x, meteo, day, latitude, elevation, slope, aspect, canopyEvaporation, snowMelt, soilEvaporation, herbTranspiration, stepFunctions, modifyInput));
+    return rcpp_result_gen;
+END_RCPP
+}
+// transpirationCochard
+List transpirationCochard(List x, DataFrame meteo, int day, double latitude, double elevation, double slope, double aspect, double canopyEvaporation, double snowMelt, double soilEvaporation, double herbTranspiration, bool modifyInput);
+RcppExport SEXP _medfate_transpirationCochard(SEXP xSEXP, SEXP meteoSEXP, SEXP daySEXP, SEXP latitudeSEXP, SEXP elevationSEXP, SEXP slopeSEXP, SEXP aspectSEXP, SEXP canopyEvaporationSEXP, SEXP snowMeltSEXP, SEXP soilEvaporationSEXP, SEXP herbTranspirationSEXP, SEXP modifyInputSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< List >::type x(xSEXP);
+    Rcpp::traits::input_parameter< DataFrame >::type meteo(meteoSEXP);
+    Rcpp::traits::input_parameter< int >::type day(daySEXP);
+    Rcpp::traits::input_parameter< double >::type latitude(latitudeSEXP);
+    Rcpp::traits::input_parameter< double >::type elevation(elevationSEXP);
+    Rcpp::traits::input_parameter< double >::type slope(slopeSEXP);
+    Rcpp::traits::input_parameter< double >::type aspect(aspectSEXP);
+    Rcpp::traits::input_parameter< double >::type canopyEvaporation(canopyEvaporationSEXP);
+    Rcpp::traits::input_parameter< double >::type snowMelt(snowMeltSEXP);
+    Rcpp::traits::input_parameter< double >::type soilEvaporation(soilEvaporationSEXP);
+    Rcpp::traits::input_parameter< double >::type herbTranspiration(herbTranspirationSEXP);
+    Rcpp::traits::input_parameter< bool >::type modifyInput(modifyInputSEXP);
+    rcpp_result_gen = Rcpp::wrap(transpirationCochard(x, meteo, day, latitude, elevation, slope, aspect, canopyEvaporation, snowMelt, soilEvaporation, herbTranspiration, modifyInput));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -4693,13 +4841,14 @@ END_RCPP
 static int _medfate_RcppExport_validate(const char* sig) { 
     static std::set<std::string> signatures;
     if (signatures.empty()) {
-        signatures.insert("double(*mortality_dailyProbability)(double,double,double,double,double)");
-        signatures.insert("List(*growth_day)(List,CharacterVector,double,double,double,double,double,double,double,double,double,double,double,double,double,bool)");
+        signatures.insert("double(*mortality_dailyProbability)(double,double)");
+        signatures.insert("List(*growth_day)(List,CharacterVector,NumericVector,double,double,double,double,double,bool)");
         signatures.insert("List(*growth)(List,DataFrame,double,double,double,double,NumericVector)");
         signatures.insert("double(*hydrology_erFactor)(int,double,double,double,double)");
         signatures.insert("double(*.hydrology_interceptionGashDay)(double,double,double,double)");
         signatures.insert("double(*hydrology_soilEvaporationAmount)(double,double,double)");
         signatures.insert("NumericVector(*hydrology_soilEvaporation)(List,String,double,double,bool)");
+        signatures.insert("double(*hydrology_herbaceousTranspiration)(double,double,double,List,String,bool)");
         signatures.insert("double(*.hydrology_infiltrationAmount)(double,double)");
         signatures.insert("NumericVector(*hydrology_infiltrationRepartition)(double,NumericVector,NumericVector,double,double)");
         signatures.insert("double(*hydrology_snowMelt)(double,double,double,double)");
@@ -4734,9 +4883,9 @@ static int _medfate_RcppExport_validate(const char* sig) {
         signatures.insert("NumericVector(*soil_thermalConductivity)(List,String)");
         signatures.insert("NumericVector(*soil_temperatureGradient)(NumericVector,NumericVector)");
         signatures.insert("NumericVector(*soil_temperatureChange)(NumericVector,NumericVector,NumericVector,NumericVector,NumericVector,NumericVector,double)");
-        signatures.insert("List(*spwb_day)(List,CharacterVector,double,double,double,double,double,double,double,double,double,double,double,double,double,bool)");
+        signatures.insert("List(*spwb_day)(List,CharacterVector,NumericVector,double,double,double,double,double,bool)");
         signatures.insert("List(*spwb)(List,DataFrame,double,double,double,double,NumericVector)");
-        signatures.insert("List(*pwb)(List,DataFrame,NumericMatrix,double,double,double,double,NumericVector,NumericVector,NumericVector,NumericVector)");
+        signatures.insert("List(*pwb)(List,DataFrame,NumericMatrix,double,double,double,double,NumericVector,NumericVector,NumericVector,NumericVector,NumericVector)");
     }
     return signatures.find(sig) != signatures.end();
 }
@@ -4750,6 +4899,7 @@ RcppExport SEXP _medfate_RcppExport_registerCCallable() {
     R_RegisterCCallable("medfate", "_medfate_.hydrology_interceptionGashDay", (DL_FUNC)_medfate_interceptionGashDay_try);
     R_RegisterCCallable("medfate", "_medfate_hydrology_soilEvaporationAmount", (DL_FUNC)_medfate_soilEvaporationAmount_try);
     R_RegisterCCallable("medfate", "_medfate_hydrology_soilEvaporation", (DL_FUNC)_medfate_soilEvaporation_try);
+    R_RegisterCCallable("medfate", "_medfate_hydrology_herbaceousTranspiration", (DL_FUNC)_medfate_herbaceousTranspiration_try);
     R_RegisterCCallable("medfate", "_medfate_.hydrology_infiltrationAmount", (DL_FUNC)_medfate_infiltrationAmount_try);
     R_RegisterCCallable("medfate", "_medfate_hydrology_infiltrationRepartition", (DL_FUNC)_medfate_infiltrationRepartition_try);
     R_RegisterCCallable("medfate", "_medfate_hydrology_snowMelt", (DL_FUNC)_medfate_snowMelt_try);
@@ -4813,61 +4963,68 @@ static const R_CallMethodDef CallEntries[] = {
     {"_medfate_criticalFirelineIntensity", (DL_FUNC) &_medfate_criticalFirelineIntensity, 2},
     {"_medfate_FCCSbehaviour", (DL_FUNC) &_medfate_FCCSbehaviour, 5},
     {"_medfate_rothermel", (DL_FUNC) &_medfate_rothermel, 11},
+    {"_medfate_plumeTemperature", (DL_FUNC) &_medfate_plumeTemperature, 4},
+    {"_medfate_barkThermalDiffusivity", (DL_FUNC) &_medfate_barkThermalDiffusivity, 3},
+    {"_medfate_radialBoleNecrosis", (DL_FUNC) &_medfate_radialBoleNecrosis, 6},
+    {"_medfate_leafThermalFactor", (DL_FUNC) &_medfate_leafThermalFactor, 3},
+    {"_medfate_necrosisCriticalTemperature", (DL_FUNC) &_medfate_necrosisCriticalTemperature, 4},
+    {"_medfate_necrosisHeight", (DL_FUNC) &_medfate_necrosisHeight, 6},
     {"_medfate_treeBasalArea", (DL_FUNC) &_medfate_treeBasalArea, 2},
-    {"_medfate_shrubCrownRatio", (DL_FUNC) &_medfate_shrubCrownRatio, 2},
+    {"_medfate_shrubCrownRatioAllometric", (DL_FUNC) &_medfate_shrubCrownRatioAllometric, 2},
     {"_medfate_shrubCover", (DL_FUNC) &_medfate_shrubCover, 2},
-    {"_medfate_shrubPhytovolume", (DL_FUNC) &_medfate_shrubPhytovolume, 5},
+    {"_medfate_shrubPhytovolumeAllometric", (DL_FUNC) &_medfate_shrubPhytovolumeAllometric, 4},
     {"_medfate_cohortIDs", (DL_FUNC) &_medfate_cohortIDs, 4},
     {"_medfate_cohortBasalArea", (DL_FUNC) &_medfate_cohortBasalArea, 2},
     {"_medfate_cohortLargerTreeBasalArea", (DL_FUNC) &_medfate_cohortLargerTreeBasalArea, 3},
-    {"_medfate_cohortCover", (DL_FUNC) &_medfate_cohortCover, 3},
+    {"_medfate_cohortCover", (DL_FUNC) &_medfate_cohortCover, 2},
     {"_medfate_cohortSpecies", (DL_FUNC) &_medfate_cohortSpecies, 2},
     {"_medfate_cohortSpeciesName", (DL_FUNC) &_medfate_cohortSpeciesName, 2},
-    {"_medfate_cohortDensity", (DL_FUNC) &_medfate_cohortDensity, 3},
+    {"_medfate_cohortDensity", (DL_FUNC) &_medfate_cohortDensity, 2},
     {"_medfate_cohortHeight", (DL_FUNC) &_medfate_cohortHeight, 2},
-    {"_medfate_cohortIndividualArea", (DL_FUNC) &_medfate_cohortIndividualArea, 3},
-    {"_medfate_cohortCrownRatio", (DL_FUNC) &_medfate_cohortCrownRatio, 3},
-    {"_medfate_cohortCrownBaseHeight", (DL_FUNC) &_medfate_cohortCrownBaseHeight, 3},
-    {"_medfate_cohortCrownLength", (DL_FUNC) &_medfate_cohortCrownLength, 3},
-    {"_medfate_cohortFoliarBiomass", (DL_FUNC) &_medfate_cohortFoliarBiomass, 4},
-    {"_medfate_cohortFuel", (DL_FUNC) &_medfate_cohortFuel, 5},
-    {"_medfate_cohortEquilibriumLeafLitter", (DL_FUNC) &_medfate_cohortEquilibriumLeafLitter, 4},
-    {"_medfate_cohortEquilibriumSmallBranchLitter", (DL_FUNC) &_medfate_cohortEquilibriumSmallBranchLitter, 4},
+    {"_medfate_cohortIndividualArea", (DL_FUNC) &_medfate_cohortIndividualArea, 2},
+    {"_medfate_cohortCrownRatio", (DL_FUNC) &_medfate_cohortCrownRatio, 2},
+    {"_medfate_cohortCrownBaseHeight", (DL_FUNC) &_medfate_cohortCrownBaseHeight, 2},
+    {"_medfate_cohortCrownLength", (DL_FUNC) &_medfate_cohortCrownLength, 2},
+    {"_medfate_cohortFoliarBiomass", (DL_FUNC) &_medfate_cohortFoliarBiomass, 3},
+    {"_medfate_cohortFuelLoading", (DL_FUNC) &_medfate_cohortFuelLoading, 4},
+    {"_medfate_cohortEquilibriumLeafLitter", (DL_FUNC) &_medfate_cohortEquilibriumLeafLitter, 3},
+    {"_medfate_cohortEquilibriumSmallBranchLitter", (DL_FUNC) &_medfate_cohortEquilibriumSmallBranchLitter, 3},
     {"_medfate_cohortPhytovolume", (DL_FUNC) &_medfate_cohortPhytovolume, 2},
-    {"_medfate_cohortLAI", (DL_FUNC) &_medfate_cohortLAI, 5},
+    {"_medfate_cohortLAI", (DL_FUNC) &_medfate_cohortLAI, 4},
+    {"_medfate_herbFoliarBiomass", (DL_FUNC) &_medfate_herbFoliarBiomass, 2},
+    {"_medfate_herbFuelLoading", (DL_FUNC) &_medfate_herbFuelLoading, 2},
+    {"_medfate_herbLAI", (DL_FUNC) &_medfate_herbLAI, 2},
     {"_medfate_speciesBasalArea", (DL_FUNC) &_medfate_speciesBasalArea, 2},
-    {"_medfate_speciesCover", (DL_FUNC) &_medfate_speciesCover, 3},
-    {"_medfate_speciesDensity", (DL_FUNC) &_medfate_speciesDensity, 3},
-    {"_medfate_speciesFoliarBiomass", (DL_FUNC) &_medfate_speciesFoliarBiomass, 4},
-    {"_medfate_speciesFuel", (DL_FUNC) &_medfate_speciesFuel, 5},
-    {"_medfate_speciesPhytovolume", (DL_FUNC) &_medfate_speciesPhytovolume, 2},
-    {"_medfate_speciesLAI", (DL_FUNC) &_medfate_speciesLAI, 5},
+    {"_medfate_speciesCover", (DL_FUNC) &_medfate_speciesCover, 2},
+    {"_medfate_speciesDensity", (DL_FUNC) &_medfate_speciesDensity, 2},
+    {"_medfate_speciesFoliarBiomass", (DL_FUNC) &_medfate_speciesFoliarBiomass, 3},
+    {"_medfate_speciesFuelLoading", (DL_FUNC) &_medfate_speciesFuelLoading, 4},
+    {"_medfate_speciesLAI", (DL_FUNC) &_medfate_speciesLAI, 4},
     {"_medfate_standBasalArea", (DL_FUNC) &_medfate_standBasalArea, 2},
-    {"_medfate_standFoliarBiomass", (DL_FUNC) &_medfate_standFoliarBiomass, 4},
-    {"_medfate_standPhytovolume", (DL_FUNC) &_medfate_standPhytovolume, 2},
-    {"_medfate_standFuel", (DL_FUNC) &_medfate_standFuel, 5},
-    {"_medfate_standLAI", (DL_FUNC) &_medfate_standLAI, 5},
+    {"_medfate_standFoliarBiomass", (DL_FUNC) &_medfate_standFoliarBiomass, 3},
+    {"_medfate_standFuelLoading", (DL_FUNC) &_medfate_standFuelLoading, 4},
+    {"_medfate_standLAI", (DL_FUNC) &_medfate_standLAI, 4},
     {"_medfate_LAIdistributionVectors", (DL_FUNC) &_medfate_LAIdistributionVectors, 4},
-    {"_medfate_LAIdistribution", (DL_FUNC) &_medfate_LAIdistribution, 6},
+    {"_medfate_LAIdistribution", (DL_FUNC) &_medfate_LAIdistribution, 5},
     {"_medfate_LAIprofileVectors", (DL_FUNC) &_medfate_LAIprofileVectors, 4},
-    {"_medfate_LAIprofile", (DL_FUNC) &_medfate_LAIprofile, 6},
+    {"_medfate_LAIprofile", (DL_FUNC) &_medfate_LAIprofile, 5},
     {"_medfate_forest2aboveground", (DL_FUNC) &_medfate_forest2aboveground, 4},
     {"_medfate_forest2belowground", (DL_FUNC) &_medfate_forest2belowground, 3},
     {"_medfate_fuelConditions", (DL_FUNC) &_medfate_fuelConditions, 4},
     {"_medfate_EMCdesorption", (DL_FUNC) &_medfate_EMCdesorption, 2},
     {"_medfate_EMCadsorption", (DL_FUNC) &_medfate_EMCadsorption, 2},
     {"_medfate_EMCSimard", (DL_FUNC) &_medfate_EMCSimard, 2},
-    {"_medfate_woodyFuelProfile", (DL_FUNC) &_medfate_woodyFuelProfile, 5},
+    {"_medfate_woodyFuelProfile", (DL_FUNC) &_medfate_woodyFuelProfile, 4},
     {"_medfate_layerCohortFuelLoading", (DL_FUNC) &_medfate_layerCohortFuelLoading, 5},
     {"_medfate_layerFuelLoading", (DL_FUNC) &_medfate_layerFuelLoading, 5},
     {"_medfate_layerLAI", (DL_FUNC) &_medfate_layerLAI, 5},
     {"_medfate_layerFuelAverageSpeciesParameter", (DL_FUNC) &_medfate_layerFuelAverageSpeciesParameter, 6},
     {"_medfate_layerFuelAverageParameter", (DL_FUNC) &_medfate_layerFuelAverageParameter, 6},
     {"_medfate_layerFuelAverageCrownLength", (DL_FUNC) &_medfate_layerFuelAverageCrownLength, 6},
-    {"_medfate_fuelLiveStratification", (DL_FUNC) &_medfate_fuelLiveStratification, 7},
-    {"_medfate_FCCSproperties", (DL_FUNC) &_medfate_FCCSproperties, 9},
-    {"_medfate_dailyMortalityProbability", (DL_FUNC) &_medfate_dailyMortalityProbability, 5},
-    {"_medfate_growthDay", (DL_FUNC) &_medfate_growthDay, 16},
+    {"_medfate_fuelLiveStratification", (DL_FUNC) &_medfate_fuelLiveStratification, 6},
+    {"_medfate_FCCSproperties", (DL_FUNC) &_medfate_FCCSproperties, 8},
+    {"_medfate_dailyMortalityProbability", (DL_FUNC) &_medfate_dailyMortalityProbability, 2},
+    {"_medfate_growthDay", (DL_FUNC) &_medfate_growthDay, 9},
     {"_medfate_growth", (DL_FUNC) &_medfate_growth, 7},
     {"_medfate_Psi2K", (DL_FUNC) &_medfate_Psi2K, 3},
     {"_medfate_K2Psi", (DL_FUNC) &_medfate_K2Psi, 3},
@@ -4916,6 +5073,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_medfate_interceptionGashDay", (DL_FUNC) &_medfate_interceptionGashDay, 4},
     {"_medfate_soilEvaporationAmount", (DL_FUNC) &_medfate_soilEvaporationAmount, 3},
     {"_medfate_soilEvaporation", (DL_FUNC) &_medfate_soilEvaporation, 5},
+    {"_medfate_herbaceousTranspiration", (DL_FUNC) &_medfate_herbaceousTranspiration, 6},
     {"_medfate_infiltrationAmount", (DL_FUNC) &_medfate_infiltrationAmount, 2},
     {"_medfate_infiltrationRepartition", (DL_FUNC) &_medfate_infiltrationRepartition, 5},
     {"_medfate_snowMelt", (DL_FUNC) &_medfate_snowMelt, 4},
@@ -4924,12 +5082,15 @@ static const R_CallMethodDef CallEntries[] = {
     {"_medfate_incgam", (DL_FUNC) &_medfate_incgam, 2},
     {"_medfate_invincgam", (DL_FUNC) &_medfate_invincgam, 3},
     {"_medfate_gammds", (DL_FUNC) &_medfate_gammds, 2},
+    {"_medfate_initCochardNetworks", (DL_FUNC) &_medfate_initCochardNetworks, 1},
+    {"_medfate_semi_implicit_integration", (DL_FUNC) &_medfate_semi_implicit_integration, 3},
+    {"_medfate_profitMaximization", (DL_FUNC) &_medfate_profitMaximization, 4},
     {"_medfate_parcohort", (DL_FUNC) &_medfate_parcohort, 5},
-    {"_medfate_PARcohort", (DL_FUNC) &_medfate_PARcohort, 4},
-    {"_medfate_parheight", (DL_FUNC) &_medfate_parheight, 5},
-    {"_medfate_PARground", (DL_FUNC) &_medfate_PARground, 4},
-    {"_medfate_swrheight", (DL_FUNC) &_medfate_swrheight, 5},
-    {"_medfate_SWRground", (DL_FUNC) &_medfate_SWRground, 4},
+    {"_medfate_PARcohort", (DL_FUNC) &_medfate_PARcohort, 3},
+    {"_medfate_parheight", (DL_FUNC) &_medfate_parheight, 4},
+    {"_medfate_PARground", (DL_FUNC) &_medfate_PARground, 3},
+    {"_medfate_swrheight", (DL_FUNC) &_medfate_swrheight, 4},
+    {"_medfate_SWRground", (DL_FUNC) &_medfate_SWRground, 3},
     {"_medfate_parExtinctionProfile", (DL_FUNC) &_medfate_parExtinctionProfile, 5},
     {"_medfate_swrExtinctionProfile", (DL_FUNC) &_medfate_swrExtinctionProfile, 5},
     {"_medfate_cohortAbsorbedSWRFraction", (DL_FUNC) &_medfate_cohortAbsorbedSWRFraction, 4},
@@ -4940,10 +5101,10 @@ static const R_CallMethodDef CallEntries[] = {
     {"_medfate_instantaneousLightExtinctionAbsortion", (DL_FUNC) &_medfate_instantaneousLightExtinctionAbsortion, 9},
     {"_medfate_longwaveRadiationSHAW", (DL_FUNC) &_medfate_longwaveRadiationSHAW, 7},
     {"_medfate_paramsBelow", (DL_FUNC) &_medfate_paramsBelow, 7},
-    {"_medfate_spwbInput", (DL_FUNC) &_medfate_spwbInput, 6},
-    {"_medfate_growthInput", (DL_FUNC) &_medfate_growthInput, 6},
+    {"_medfate_spwbInput", (DL_FUNC) &_medfate_spwbInput, 7},
+    {"_medfate_growthInput", (DL_FUNC) &_medfate_growthInput, 7},
     {"_medfate_cloneInput", (DL_FUNC) &_medfate_cloneInput, 1},
-    {"_medfate_forest2spwbInput", (DL_FUNC) &_medfate_forest2spwbInput, 5},
+    {"_medfate_forest2spwbInput", (DL_FUNC) &_medfate_forest2spwbInput, 4},
     {"_medfate_forest2growthInput", (DL_FUNC) &_medfate_forest2growthInput, 4},
     {"_medfate_resetInputs", (DL_FUNC) &_medfate_resetInputs, 1},
     {"_medfate_updateBelow", (DL_FUNC) &_medfate_updateBelow, 1},
@@ -5017,9 +5178,9 @@ static const R_CallMethodDef CallEntries[] = {
     {"_medfate_thermalConductivity", (DL_FUNC) &_medfate_thermalConductivity, 2},
     {"_medfate_temperatureGradient", (DL_FUNC) &_medfate_temperatureGradient, 2},
     {"_medfate_temperatureChange", (DL_FUNC) &_medfate_temperatureChange, 7},
-    {"_medfate_spwbDay", (DL_FUNC) &_medfate_spwbDay, 16},
+    {"_medfate_spwbDay", (DL_FUNC) &_medfate_spwbDay, 9},
     {"_medfate_spwb", (DL_FUNC) &_medfate_spwb, 7},
-    {"_medfate_pwb", (DL_FUNC) &_medfate_pwb, 11},
+    {"_medfate_pwb", (DL_FUNC) &_medfate_pwb, 12},
     {"_medfate_sapwoodWaterCapacity", (DL_FUNC) &_medfate_sapwoodWaterCapacity, 5},
     {"_medfate_leafWaterCapacity", (DL_FUNC) &_medfate_leafWaterCapacity, 2},
     {"_medfate_turgorLossPoint", (DL_FUNC) &_medfate_turgorLossPoint, 2},
@@ -5027,9 +5188,10 @@ static const R_CallMethodDef CallEntries[] = {
     {"_medfate_symplasticWaterPotential", (DL_FUNC) &_medfate_symplasticWaterPotential, 3},
     {"_medfate_apoplasticRelativeWaterContent", (DL_FUNC) &_medfate_apoplasticRelativeWaterContent, 3},
     {"_medfate_apoplasticWaterPotential", (DL_FUNC) &_medfate_apoplasticWaterPotential, 3},
-    {"_medfate_tissueRelativeWaterContent", (DL_FUNC) &_medfate_tissueRelativeWaterContent, 8},
-    {"_medfate_profitMaximization", (DL_FUNC) &_medfate_profitMaximization, 4},
-    {"_medfate_transpirationSperry", (DL_FUNC) &_medfate_transpirationSperry, 12},
+    {"_medfate_tissueRelativeWaterContent", (DL_FUNC) &_medfate_tissueRelativeWaterContent, 7},
+    {"_medfate_plantWaterContent", (DL_FUNC) &_medfate_plantWaterContent, 1},
+    {"_medfate_transpirationSperry", (DL_FUNC) &_medfate_transpirationSperry, 13},
+    {"_medfate_transpirationCochard", (DL_FUNC) &_medfate_transpirationCochard, 12},
     {"_medfate_transpirationGranier", (DL_FUNC) &_medfate_transpirationGranier, 8},
     {"_medfate_windCanopyTurbulenceModel", (DL_FUNC) &_medfate_windCanopyTurbulenceModel, 6},
     {"_medfate_windCanopyTurbulence", (DL_FUNC) &_medfate_windCanopyTurbulence, 6},

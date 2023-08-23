@@ -25,7 +25,6 @@ using namespace Rcpp;
 //' @param epsilon Bulk modulus of elasticity (MPa).
 //' @param c,d Parameters of the xylem vulnerability curve.
 //' @param af Apoplastic fraction (proportion) in the segment (e.g. leaf or stem).
-//' @param femb Fraction of embolized conduits.
 //' @param L Vector with the length of coarse roots (mm) for each soil layer.
 //' @param V Vector with the proportion [0-1] of fine roots within each soil layer.
 //' @param Al2As Leaf area to sapwood area (in m2·m-2).
@@ -43,6 +42,7 @@ using namespace Rcpp;
 //'   \item{\code{moisture_apoplasticWaterPotential}: Water potential (in MPa) of the apoplastic fraction.}
 //'   \item{\code{moisture_turgorLossPoint}: Water potential (in MPa) corresponding to turgor loss point.}
 //'   \item{\code{moisture_segmentRWC}: Segment relative water content [0-1].}
+//'   \item{\code{water_plant}: A vector of water content (mm) per plant cohort.}
 //' }
 //' 
 //' @references
@@ -171,8 +171,85 @@ double apoplasticWaterPotential(double RWC, double c, double d) {
 // [[Rcpp::export("moisture_tissueRWC")]]
 double tissueRelativeWaterContent(double psiSym, double pi0, double epsilon, 
                                   double psiApo, double c, double d, 
-                                  double af, double femb = 0.0) {
+                                  double af) {
   double sym_rwc = symplasticRelativeWaterContent(psiSym, pi0, epsilon);
-  double apo_rwc = std::min(1.0-femb, apoplasticRelativeWaterContent(psiApo, c, d)); //Water content cannot be higher than the fraction of non-embolized conduits
+  double apo_rwc = apoplasticRelativeWaterContent(psiApo, c, d); //Water content cannot be higher than the fraction of non-embolized conduits
   return(sym_rwc*(1.0-af)+apo_rwc*af);
+}
+
+//' @rdname moisture
+// [[Rcpp::export("plant_water")]]
+NumericVector plantWaterContent(List x) {
+  List control = x["control"];
+  String transpirationMode = control["transpirationMode"];
+  DataFrame cohorts = Rcpp::as<Rcpp::DataFrame>(x["cohorts"]);
+  DataFrame above = Rcpp::as<Rcpp::DataFrame>(x["above"]);
+  NumericVector LAIlive = Rcpp::as<Rcpp::NumericVector>(above["LAI_live"]);
+  NumericVector vol(LAIlive.size(), NA_REAL);
+  
+  DataFrame paramsTransp = Rcpp::as<Rcpp::DataFrame>(x["paramsTranspiration"]);
+  DataFrame paramsWaterStorage = Rcpp::as<Rcpp::DataFrame>(x["paramsWaterStorage"]);
+  NumericVector StemPI0 = Rcpp::as<Rcpp::NumericVector>(paramsWaterStorage["StemPI0"]);
+  NumericVector StemEPS = Rcpp::as<Rcpp::NumericVector>(paramsWaterStorage["StemEPS"]);
+  NumericVector StemAF = Rcpp::as<Rcpp::NumericVector>(paramsWaterStorage["StemAF"]);
+  NumericVector Vsapwood = Rcpp::as<Rcpp::NumericVector>(paramsWaterStorage["Vsapwood"]); //l·m-2 = mm
+  NumericVector LeafPI0 = Rcpp::as<Rcpp::NumericVector>(paramsWaterStorage["LeafPI0"]);
+  NumericVector LeafEPS = Rcpp::as<Rcpp::NumericVector>(paramsWaterStorage["LeafEPS"]);
+  NumericVector LeafAF = Rcpp::as<Rcpp::NumericVector>(paramsWaterStorage["LeafAF"]);
+  NumericVector Vleaf = Rcpp::as<Rcpp::NumericVector>(paramsWaterStorage["Vleaf"]); //l·m-2 = mm
+  
+  DataFrame internalWater = Rcpp::as<Rcpp::DataFrame>(x["internalWater"]);
+  if(transpirationMode == "Granier") {
+    NumericVector VCstem_c = Rcpp::as<Rcpp::NumericVector>(paramsTransp["VCstem_c"]);
+    NumericVector VCstem_d = Rcpp::as<Rcpp::NumericVector>(paramsTransp["VCstem_d"]);
+    NumericVector PlantPsi = clone(Rcpp::as<Rcpp::NumericVector>(internalWater["PlantPsi"]));
+    for(int c = 0;c< LAIlive.size();c++) {
+      double leafrwc = tissueRelativeWaterContent(PlantPsi[c], LeafPI0[c], LeafEPS[c], 
+                                                  PlantPsi[c], VCstem_c[c], VCstem_d[c], 
+                                                  LeafAF[c]);
+      
+      double stemrwc = tissueRelativeWaterContent(PlantPsi[c], StemPI0[c], StemEPS[c], 
+                                                  PlantPsi[c], VCstem_c[c], VCstem_d[c], 
+                                                  StemAF[c]);
+      vol[c] = ((Vleaf[c] * leafrwc) + (Vsapwood[c] * stemrwc))*LAIlive[c];
+    }
+  } else if(transpirationMode == "Sperry"){
+    NumericVector VCstem_c = Rcpp::as<Rcpp::NumericVector>(paramsTransp["VCstem_c"]);
+    NumericVector VCstem_d = Rcpp::as<Rcpp::NumericVector>(paramsTransp["VCstem_d"]);
+    NumericVector StemPLCVEC = Rcpp::as<Rcpp::NumericVector>(internalWater["StemPLC"]);
+    NumericVector Stem1PsiVEC = Rcpp::as<Rcpp::NumericVector>(internalWater["Stem1Psi"]);
+    NumericVector LeafPsiVEC = Rcpp::as<Rcpp::NumericVector>(internalWater["LeafPsi"]);
+    NumericVector StemSympPsiVEC = Rcpp::as<Rcpp::NumericVector>(internalWater["StemSympPsi"]);
+    NumericVector LeafSympPsiVEC = Rcpp::as<Rcpp::NumericVector>(internalWater["LeafSympPsi"]);
+    for(int c = 0;c< LAIlive.size();c++) {
+      double leafrwc = tissueRelativeWaterContent(LeafSympPsiVEC[c], LeafPI0[c], LeafEPS[c], 
+                                                  LeafPsiVEC[c], VCstem_c[c], VCstem_d[c], 
+                                                  LeafAF[c]);
+        
+      double stemrwc = tissueRelativeWaterContent(StemSympPsiVEC[c], StemPI0[c], StemEPS[c], 
+                                                  Stem1PsiVEC[c], VCstem_c[c], VCstem_d[c], 
+                                                  StemAF[c]);
+      vol[c] = ((Vleaf[c] * leafrwc) + (Vsapwood[c] * stemrwc))*LAIlive[c];
+    }
+  } else if(transpirationMode == "Cochard"){
+    NumericVector LeafPLCVEC = Rcpp::as<Rcpp::NumericVector>(internalWater["LeafPLC"]);
+    NumericVector StemPLCVEC = Rcpp::as<Rcpp::NumericVector>(internalWater["StemPLC"]);
+    NumericVector StemPsiVEC = Rcpp::as<Rcpp::NumericVector>(internalWater["StemPsi"]);
+    NumericVector LeafPsiVEC = Rcpp::as<Rcpp::NumericVector>(internalWater["LeafPsi"]);
+    NumericVector StemSympPsiVEC = Rcpp::as<Rcpp::NumericVector>(internalWater["StemSympPsi"]);
+    for(int c = 0;c< LAIlive.size();c++) {
+      double leaf_sym_rwc = symplasticRelativeWaterContent(LeafPsiVEC[c], LeafPI0[c], LeafEPS[c]);
+      double leaf_apo_rwc = (1.0 - LeafPLCVEC[c]); 
+      double leafrwc =(leaf_sym_rwc*(1.0-LeafAF[c])+leaf_apo_rwc*LeafAF[c]);
+      
+      double stem_sym_rwc = symplasticRelativeWaterContent(StemSympPsiVEC[c], StemPI0[c], StemEPS[c]);
+      double stem_apo_rwc = (1.0 - StemPLCVEC[c]); 
+      double stemrwc =(stem_sym_rwc*(1.0-StemAF[c])+stem_apo_rwc*StemAF[c]);
+      
+      vol[c] = ((Vleaf[c] * leafrwc) + (Vsapwood[c] * stemrwc))*LAIlive[c];
+    }
+  }
+    
+  vol.attr("names") = above.attr("row.names");
+  return(vol);
 }

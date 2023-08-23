@@ -321,30 +321,94 @@ fire_Rothermel <- function(modeltype, wSI, sSI, delta, mx_dead, hSI, mSI, u, win
     .Call(`_medfate_rothermel`, modeltype, wSI, sSI, delta, mx_dead, hSI, mSI, u, windDir, slope, aspect)
 }
 
+#' Fire severity functions
+#' 
+#' Functions to estimate fire effects on foliage, buds and cambium, based on the model
+#' by Michaletz & Johnson (2008)
+#' 
+#' @param Ib_surf Surface fireline intensity (kW/m).
+#' @param t_res fire residence time (seconds).
+#' @param T_air Air temperature (degrees Celsius).
+#' @param T_necrosis Temperature of tissue necrosis (degrees Celsius).
+#' @param rho_air Air density (kg/m3).
+#' @param rho_bark Bark density (kg/m3).
+#' @param fmc_bark Bark moisture content (\% dry weight).
+#' @param z height (m).
+#' @param SLA Specific leaf area (m2/kg).
+#' @param h Heat transfer coefficient
+#' @param c Specific heat capacity
+#' @param thermal_factor Tissue thermal factor.
+#' @param bark_diffusivity Bark thermal diffusivity (m2/s).
+#' 
+#' @return 
+#' \itemize{
+#'   \item{Function \code{fire_plumeTemperature} returns the plume temperature at a given height.}
+#'   \item{Function \code{fire_barkThermalDiffusivity} returns the bark thermal diffusivity given a bark moisture value.}
+#'   \item{Function \code{fire_radialBoleNecrosis} returns the depth of radial bole necrosis in cm.}
+#'   \item{Function \code{fire_leafThermalFactor} returns the thermal factor of leaves as a function of specific leaf area.}
+#'   \item{Function \code{fire_necrosisCriticalTemperature} returns the (plume) temperature yielding necrosis for a given residence time and tissue thermal factor.}
+#'   \item{Function \code{fire_necrosisHeight} returns the height (in m) of necrosis for tissues with given thermal factor.}
+#' }
+#' 
+#' @references
+#' 
+#'   Michaletz, S.T., and Johnson, E.A. 2006. A heat transfer model of crown scorch in forest fires. Can. J. For. Res. 36: 2839–2851. doi:10.1139/X06-158.
+#' 
+#'   Michaletz ST, Johnson EA. 2008. A biophysical process model of tree mortality in surface fires. Canadian Journal of Forest Research 38: 2013–2029.
+#'   
+#' @name fire_severity
+fire_plumeTemperature <- function(Ib_surf, z, T_air = 25.0, rho_air = 1.169) {
+    .Call(`_medfate_plumeTemperature`, Ib_surf, z, T_air, rho_air)
+}
+
+#' @rdname fire_severity
+fire_barkThermalDiffusivity <- function(fmc_bark, rho_bark = 500.0, T_air = 25.0) {
+    .Call(`_medfate_barkThermalDiffusivity`, fmc_bark, rho_bark, T_air)
+}
+
+#' @rdname fire_severity
+fire_radialBoleNecrosis <- function(Ib_surf, t_res, bark_diffusivity, T_air = 25.0, rho_air = 1.169, T_necrosis = 60.0) {
+    .Call(`_medfate_radialBoleNecrosis`, Ib_surf, t_res, bark_diffusivity, T_air, rho_air, T_necrosis)
+}
+
+#' @rdname fire_severity
+fire_leafThermalFactor <- function(SLA, h = 130.0, c = 2500.0) {
+    .Call(`_medfate_leafThermalFactor`, SLA, h, c)
+}
+
+#' @rdname fire_severity
+fire_necrosisCriticalTemperature <- function(t_res, thermal_factor, T_air = 25.0, T_necrosis = 60.0) {
+    .Call(`_medfate_necrosisCriticalTemperature`, t_res, thermal_factor, T_air, T_necrosis)
+}
+
+#' @rdname fire_severity
+fire_necrosisHeight <- function(Ib_surf, t_res, thermal_factor, T_air = 25.0, rho_air = 1.169, T_necrosis = 60.0) {
+    .Call(`_medfate_necrosisHeight`, Ib_surf, t_res, thermal_factor, T_air, rho_air, T_necrosis)
+}
+
 .treeBasalArea <- function(N, dbh) {
     .Call(`_medfate_treeBasalArea`, N, dbh)
 }
 
 .shrubCrownRatio <- function(SP, SpParams) {
-    .Call(`_medfate_shrubCrownRatio`, SP, SpParams)
+    .Call(`_medfate_shrubCrownRatioAllometric`, SP, SpParams)
 }
 
 .shrubCover <- function(x, excludeMinHeight = 0.0) {
     .Call(`_medfate_shrubCover`, x, excludeMinHeight)
 }
 
-.shrubPhytovolume <- function(SP, Cover, H, CR, SpParams) {
-    .Call(`_medfate_shrubPhytovolume`, SP, Cover, H, CR, SpParams)
+.shrubPhytovolume <- function(SP, Cover, H, SpParams) {
+    .Call(`_medfate_shrubPhytovolumeAllometric`, SP, Cover, H, SpParams)
 }
 
-#' Plant description functions
+#' Woody plant cohort description functions
 #'
-#' Functions to calculate attributes of plants in a \code{\link{forest}} object.
+#' Functions to calculate attributes of woody plants in a \code{\link{forest}} object.
 #' 
 #' @param x An object of class \code{\link{forest}}.
 #' @param SpParams A data frame with species parameters (see \code{\link{SpParamsMED}}).
 #' @param parName A string with a parameter name.
-#' @param mode Calculation mode, either "MED" or "US".
 #' @param gdd Growth degree days (to account for leaf phenology effects).
 #' @param AET Actual annual evapotranspiration (in mm).
 #' @param smallBranchDecompositionRate Decomposition rate of small branches.
@@ -357,7 +421,7 @@ fire_Rothermel <- function(modeltype, wSI, sSI, delta, mx_dead, hSI, mSI, u, win
 #' @author Miquel De \enc{Cáceres}{Caceres} Ainsa, CREAF
 #' 
 #' @return
-#' A vector with values for each plant of the input \code{\link{forest}} object:
+#' A vector with values for each woody plant cohort of the input \code{\link{forest}} object:
 #' \itemize{
 #'   \item{\code{plant_basalArea}: Tree basal area (m2/ha).}
 #'   \item{\code{plant_largerTreeBasalArea}: Basal area (m2/ha) of trees larger (in diameter) than the tree. Half of the trees of the same record are included.}
@@ -370,7 +434,7 @@ fire_Rothermel <- function(modeltype, wSI, sSI, delta, mx_dead, hSI, mSI, u, win
 #'   \item{\code{plant_equilibriumLeafLitter}: Litter biomass of leaves at equilibrium (in kg/m2).}
 #'   \item{\code{plant_equilibriumSmallBranchLitter}: Litter biomass of small branches (< 6.35 mm diameter) at equilibrium (in kg/m2).}
 #'   \item{\code{plant_foliarBiomass}: Standing biomass of leaves (in kg/m2).}
-#'   \item{\code{plant_fuel}: Fine fuel load (in kg/m2).}
+#'   \item{\code{plant_fuelLoading}: Fine fuel load (in kg/m2).}
 #'   \item{\code{plant_height}: Total height (in cm).}
 #'   \item{\code{plant_ID}: Cohort coding for simulation functions (concatenation of 'T' (Trees) or 'S' (Shrub), cohort index and species index).}
 #'   \item{\code{plant_LAI}: Leaf area index (m2/m2).}
@@ -397,7 +461,7 @@ fire_Rothermel <- function(modeltype, wSI, sSI, delta, mx_dead, hSI, mSI, u, win
 #' sum(plant_LAI(exampleforestMED, SpParamsMED))
 #'   
 #' #The analogous plant-level function for fuel loading
-#' sum(plant_fuel(exampleforestMED, SpParamsMED))
+#' sum(plant_fuelLoading(exampleforestMED, SpParamsMED))
 #'       
 #' #Summary function for 'forest' objects can be also used
 #' summary(exampleforestMED, SpParamsMED)
@@ -421,8 +485,8 @@ plant_largerTreeBasalArea <- function(x, SpParams, self_proportion = 0.5) {
 }
 
 #' @rdname plant_values
-plant_cover <- function(x, SpParams, mode = "MED") {
-    .Call(`_medfate_cohortCover`, x, SpParams, mode)
+plant_cover <- function(x, SpParams) {
+    .Call(`_medfate_cohortCover`, x, SpParams)
 }
 
 #' @rdname plant_values
@@ -436,8 +500,8 @@ plant_speciesName <- function(x, SpParams) {
 }
 
 #' @rdname plant_values
-plant_density <- function(x, SpParams, mode = "MED") {
-    .Call(`_medfate_cohortDensity`, x, SpParams, mode)
+plant_density <- function(x, SpParams) {
+    .Call(`_medfate_cohortDensity`, x, SpParams)
 }
 
 #' @rdname plant_values
@@ -446,43 +510,43 @@ plant_height <- function(x, SpParams) {
 }
 
 #' @rdname plant_values
-plant_individualArea <- function(x, SpParams, mode = "MED") {
-    .Call(`_medfate_cohortIndividualArea`, x, SpParams, mode)
+plant_individualArea <- function(x, SpParams) {
+    .Call(`_medfate_cohortIndividualArea`, x, SpParams)
 }
 
 #' @rdname plant_values
-plant_crownRatio <- function(x, SpParams, mode = "MED") {
-    .Call(`_medfate_cohortCrownRatio`, x, SpParams, mode)
+plant_crownRatio <- function(x, SpParams) {
+    .Call(`_medfate_cohortCrownRatio`, x, SpParams)
 }
 
 #' @rdname plant_values
-plant_crownBaseHeight <- function(x, SpParams, mode = "MED") {
-    .Call(`_medfate_cohortCrownBaseHeight`, x, SpParams, mode)
+plant_crownBaseHeight <- function(x, SpParams) {
+    .Call(`_medfate_cohortCrownBaseHeight`, x, SpParams)
 }
 
 #' @rdname plant_values
-plant_crownLength <- function(x, SpParams, mode = "MED") {
-    .Call(`_medfate_cohortCrownLength`, x, SpParams, mode)
+plant_crownLength <- function(x, SpParams) {
+    .Call(`_medfate_cohortCrownLength`, x, SpParams)
 }
 
 #' @rdname plant_values
-plant_foliarBiomass <- function(x, SpParams, gdd = NA_real_, mode = "MED") {
-    .Call(`_medfate_cohortFoliarBiomass`, x, SpParams, gdd, mode)
+plant_foliarBiomass <- function(x, SpParams, gdd = NA_real_) {
+    .Call(`_medfate_cohortFoliarBiomass`, x, SpParams, gdd)
 }
 
 #' @rdname plant_values
-plant_fuel <- function(x, SpParams, gdd = NA_real_, includeDead = TRUE, mode = "MED") {
-    .Call(`_medfate_cohortFuel`, x, SpParams, gdd, includeDead, mode)
+plant_fuelLoading <- function(x, SpParams, gdd = NA_real_, includeDead = TRUE) {
+    .Call(`_medfate_cohortFuelLoading`, x, SpParams, gdd, includeDead)
 }
 
 #' @rdname plant_values
-plant_equilibriumLeafLitter <- function(x, SpParams, AET = 800, mode = "MED") {
-    .Call(`_medfate_cohortEquilibriumLeafLitter`, x, SpParams, AET, mode)
+plant_equilibriumLeafLitter <- function(x, SpParams, AET = 800) {
+    .Call(`_medfate_cohortEquilibriumLeafLitter`, x, SpParams, AET)
 }
 
 #' @rdname plant_values
-plant_equilibriumSmallBranchLitter <- function(x, SpParams, smallBranchDecompositionRate = 0.81, mode = "MED") {
-    .Call(`_medfate_cohortEquilibriumSmallBranchLitter`, x, SpParams, smallBranchDecompositionRate, mode)
+plant_equilibriumSmallBranchLitter <- function(x, SpParams, smallBranchDecompositionRate = 0.81) {
+    .Call(`_medfate_cohortEquilibriumSmallBranchLitter`, x, SpParams, smallBranchDecompositionRate)
 }
 
 #' @rdname plant_values
@@ -491,8 +555,42 @@ plant_phytovolume <- function(x, SpParams) {
 }
 
 #' @rdname plant_values
-plant_LAI <- function(x, SpParams, gdd = NA_real_, mode = "MED", bounded = TRUE) {
-    .Call(`_medfate_cohortLAI`, x, SpParams, gdd, mode, bounded)
+plant_LAI <- function(x, SpParams, gdd = NA_real_, bounded = TRUE) {
+    .Call(`_medfate_cohortLAI`, x, SpParams, gdd, bounded)
+}
+
+#' Herbaceous description functions
+#'
+#' Functions to calculate attributes of the herbaceous component of a \code{\link{forest}} object 
+#' @param SpParams A data frame with species parameters (see \code{\link{SpParamsMED}}).
+#'  
+#' @param x An object of class \code{\link{forest}}.
+#' 
+#' @return
+#' A single scalar:
+#' \itemize{
+#'   \item{\code{herb_foliarBiomass}: Herbaceous biomass of leaves (in kg/m2).}
+#'   \item{\code{herb_fuelLoading}: Herbaceous fine fuel loading (in kg/m2).}
+#'   \item{\code{herb_LAI}: Herbaceous leaf area index (m2/m2).}
+#' }
+#' 
+#' @author Miquel De \enc{Cáceres}{Caceres} Ainsa, CREAF
+#' 
+#' @seealso \code{\link{spwb}}, \code{\link{forest}}, \code{\link{plant_basalArea}}, \code{\link{summary.forest}}
+#' 
+#' @name herb_values
+herb_foliarBiomass <- function(x, SpParams) {
+    .Call(`_medfate_herbFoliarBiomass`, x, SpParams)
+}
+
+#' @rdname herb_values
+herb_fuelLoading <- function(x, SpParams) {
+    .Call(`_medfate_herbFuelLoading`, x, SpParams)
+}
+
+#' @rdname herb_values
+herb_LAI <- function(x, SpParams) {
+    .Call(`_medfate_herbLAI`, x, SpParams)
 }
 
 #' Species description functions
@@ -503,7 +601,6 @@ plant_LAI <- function(x, SpParams, gdd = NA_real_, mode = "MED", bounded = TRUE)
 #' @param SpParams A data frame with species parameters (see \code{\link{SpParamsMED}}).
 #' @param gdd Growth degree days (to account for leaf phenology effects).
 #' @param includeDead A flag to indicate that standing dead fuels (dead branches) are included.
-#' @param mode Calculation mode, either "MED" or "US".
 #' @param species A character vector of species names.
 #' @param parName A string with a parameter name.
 #' @param fillMissing A boolean flag to try imputation on missing values.
@@ -546,33 +643,28 @@ species_basalArea <- function(x, SpParams) {
 }
 
 #' @rdname species_values
-species_cover <- function(x, SpParams, mode = "MED") {
-    .Call(`_medfate_speciesCover`, x, SpParams, mode)
+species_cover <- function(x, SpParams) {
+    .Call(`_medfate_speciesCover`, x, SpParams)
 }
 
 #' @rdname species_values
-species_density <- function(x, SpParams, mode = "MED") {
-    .Call(`_medfate_speciesDensity`, x, SpParams, mode)
+species_density <- function(x, SpParams) {
+    .Call(`_medfate_speciesDensity`, x, SpParams)
 }
 
 #' @rdname species_values
-species_foliarBiomass <- function(x, SpParams, gdd = NA_real_, mode = "MED") {
-    .Call(`_medfate_speciesFoliarBiomass`, x, SpParams, gdd, mode)
+species_foliarBiomass <- function(x, SpParams, gdd = NA_real_) {
+    .Call(`_medfate_speciesFoliarBiomass`, x, SpParams, gdd)
 }
 
 #' @rdname species_values
-species_fuel <- function(x, SpParams, gdd = NA_real_, includeDead = TRUE, mode = "MED") {
-    .Call(`_medfate_speciesFuel`, x, SpParams, gdd, includeDead, mode)
+species_fuelLoading <- function(x, SpParams, gdd = NA_real_, includeDead = TRUE) {
+    .Call(`_medfate_speciesFuelLoading`, x, SpParams, gdd, includeDead)
 }
 
 #' @rdname species_values
-species_phytovolume <- function(x, SpParams) {
-    .Call(`_medfate_speciesPhytovolume`, x, SpParams)
-}
-
-#' @rdname species_values
-species_LAI <- function(x, SpParams, gdd = NA_real_, mode = "MED", bounded = TRUE) {
-    .Call(`_medfate_speciesLAI`, x, SpParams, gdd, mode, bounded)
+species_LAI <- function(x, SpParams, gdd = NA_real_, bounded = TRUE) {
+    .Call(`_medfate_speciesLAI`, x, SpParams, gdd, bounded)
 }
 
 #' @rdname stand_values
@@ -581,44 +673,39 @@ stand_basalArea <- function(x, minDBH = 7.5) {
 }
 
 #' @rdname stand_values
-stand_foliarBiomass <- function(x, SpParams, gdd = NA_real_, mode = "MED") {
-    .Call(`_medfate_standFoliarBiomass`, x, SpParams, gdd, mode)
+stand_foliarBiomass <- function(x, SpParams, gdd = NA_real_) {
+    .Call(`_medfate_standFoliarBiomass`, x, SpParams, gdd)
 }
 
 #' @rdname stand_values
-stand_phytovolume <- function(x, SpParams) {
-    .Call(`_medfate_standPhytovolume`, x, SpParams)
+stand_fuelLoading <- function(x, SpParams, gdd = NA_real_, includeDead = TRUE) {
+    .Call(`_medfate_standFuelLoading`, x, SpParams, gdd, includeDead)
 }
 
 #' @rdname stand_values
-stand_fuel <- function(x, SpParams, gdd = NA_real_, includeDead = TRUE, mode = "MED") {
-    .Call(`_medfate_standFuel`, x, SpParams, gdd, includeDead, mode)
-}
-
-#' @rdname stand_values
-stand_LAI <- function(x, SpParams, gdd = NA_real_, mode = "MED", bounded = TRUE) {
-    .Call(`_medfate_standLAI`, x, SpParams, gdd, mode, bounded)
+stand_LAI <- function(x, SpParams, gdd = NA_real_, bounded = TRUE) {
+    .Call(`_medfate_standLAI`, x, SpParams, gdd, bounded)
 }
 
 .LAIdistributionVectors <- function(z, LAI, H, CR) {
     .Call(`_medfate_LAIdistributionVectors`, z, LAI, H, CR)
 }
 
-.LAIdistribution <- function(z, x, SpParams, gdd = NA_real_, mode = "MED", bounded = TRUE) {
-    .Call(`_medfate_LAIdistribution`, z, x, SpParams, gdd, mode, bounded)
+.LAIdistribution <- function(z, x, SpParams, gdd = NA_real_, bounded = TRUE) {
+    .Call(`_medfate_LAIdistribution`, z, x, SpParams, gdd, bounded)
 }
 
 .LAIprofileVectors <- function(z, LAI, H, CR) {
     .Call(`_medfate_LAIprofileVectors`, z, LAI, H, CR)
 }
 
-.LAIprofile <- function(z, x, SpParams, gdd = NA_real_, mode = "MED", bounded = TRUE) {
-    .Call(`_medfate_LAIprofile`, z, x, SpParams, gdd, mode, bounded)
+.LAIprofile <- function(z, x, SpParams, gdd = NA_real_, bounded = TRUE) {
+    .Call(`_medfate_LAIprofile`, z, x, SpParams, gdd, bounded)
 }
 
 #' @rdname modelInput
-forest2aboveground <- function(x, SpParams, gdd = NA_real_, mode = "MED") {
-    .Call(`_medfate_forest2aboveground`, x, SpParams, gdd, mode)
+forest2aboveground <- function(x, SpParams, gdd = NA_real_, loading = FALSE) {
+    .Call(`_medfate_forest2aboveground`, x, SpParams, gdd, loading)
 }
 
 #' @rdname modelInput
@@ -642,8 +729,8 @@ forest2belowground <- function(x, soil, SpParams) {
     .Call(`_medfate_EMCSimard`, fuelTemperature, fuelHumidity)
 }
 
-.woodyFuelProfile <- function(z, x, SpParams, gdd = NA_real_, mode = "MED") {
-    .Call(`_medfate_woodyFuelProfile`, z, x, SpParams, gdd, mode)
+.woodyFuelProfile <- function(z, x, SpParams, gdd = NA_real_) {
+    .Call(`_medfate_woodyFuelProfile`, z, x, SpParams, gdd)
 }
 
 .layerCohortFuelLoading <- function(minHeight, maxHeight, cohortLoading, H, CR) {
@@ -681,7 +768,6 @@ forest2belowground <- function(x, soil, SpParams) {
 #' @param SpParams A data frame with species parameters (see \code{\link{SpParamsMED}}).
 #' @param cohortFMC A numeric vector of (actual) fuel moisture content by cohort.
 #' @param gdd Growth degree-days.
-#' @param mode Calculation mode, either "MED" or "US".
 #' @param heightProfileStep Precision for the fuel bulk density profile.
 #' @param maxHeightProfile Maximum height for the fuel bulk density profile.
 #' 
@@ -753,8 +839,8 @@ forest2belowground <- function(x, soil, SpParams) {
 #' fuel_windAdjustmentFactor(fccs$htc[2], fccs$hbc[1], fccs$htc[1], fccs$cover[1])
 #' 
 #' @name fuel_properties
-fuel_stratification <- function(object, SpParams, gdd = NA_real_, mode = "MED", heightProfileStep = 10.0, maxHeightProfile = 5000.0, bulkDensityThreshold = 0.05) {
-    .Call(`_medfate_fuelLiveStratification`, object, SpParams, gdd, mode, heightProfileStep, maxHeightProfile, bulkDensityThreshold)
+fuel_stratification <- function(object, SpParams, gdd = NA_real_, heightProfileStep = 10.0, maxHeightProfile = 5000.0, bulkDensityThreshold = 0.05) {
+    .Call(`_medfate_fuelLiveStratification`, object, SpParams, gdd, heightProfileStep, maxHeightProfile, bulkDensityThreshold)
 }
 
 #' @rdname fuel_properties
@@ -766,33 +852,32 @@ fuel_stratification <- function(object, SpParams, gdd = NA_real_, mode = "MED", 
 #'     \item{\code{"profile"}: As the difference of base and top heights in bulk density profiles.}  
 #'     \item{\code{"absoluteprofile"}: As the difference of absolute base and absolute top heights in bulk density profiles.}  
 #'   }
-fuel_FCCS <- function(object, SpParams, cohortFMC = as.numeric( c()), gdd = NA_real_, mode = "MED", heightProfileStep = 10.0, maxHeightProfile = 5000, bulkDensityThreshold = 0.05, depthMode = "crownaverage") {
-    .Call(`_medfate_FCCSproperties`, object, SpParams, cohortFMC, gdd, mode, heightProfileStep, maxHeightProfile, bulkDensityThreshold, depthMode)
+fuel_FCCS <- function(object, SpParams, cohortFMC = as.numeric( c()), gdd = NA_real_, heightProfileStep = 10.0, maxHeightProfile = 5000, bulkDensityThreshold = 0.05, depthMode = "crownaverage") {
+    .Call(`_medfate_FCCSproperties`, object, SpParams, cohortFMC, gdd, heightProfileStep, maxHeightProfile, bulkDensityThreshold, depthMode)
 }
 
 #' Mortality
 #' 
-#' A simple function to determine a daily mortality likelihood according to the value of a stress variable.
+#' A simple sigmoid function to determine a daily mortality likelihood according 
+#' to the value of a stress variable.
 #'
-#' @param basalMortalityRate Basal daily mortality rate per individual.
-#' @param stressValue Current value of the stress variable (lower values indicate stronger stress).
-#' @param stressThreshold Threshold to indicate that lower values increase mortality likelihood.
-#' @param minValue Minimum value of the stress variable (i.e. maximum stress), corresponding to probability of mortality equal to 1.
-#' @param exponent Coefficient modulating the steepness of the relationship.
+#' @param stressValue Current value of the stress variable (0 to 1, 
+#'                    with higher values indicate stronger stress).
+#' @param stressThreshold Threshold to indicate 50\% annual mortality probability.
 #' 
-#' @return Returns a probability (between 0 and 1).
+#' @return Returns a probability (between 0 and 1)
 #' 
 #' @author Miquel De \enc{Cáceres}{Caceres} Ainsa, CREAF
 #' 
-#' @seealso \code{\link{growth}}, \code{\link{recruitment}}
+#' @seealso \code{\link{growth}}, \code{\link{regeneration}}
 #' 
-mortality_dailyProbability <- function(basalMortalityRate, stressValue, stressThreshold, minValue = 0.0, exponent = 10.0) {
-    .Call(`_medfate_dailyMortalityProbability`, basalMortalityRate, stressValue, stressThreshold, minValue, exponent)
+mortality_dailyProbability <- function(stressValue, stressThreshold) {
+    .Call(`_medfate_dailyMortalityProbability`, stressValue, stressThreshold)
 }
 
 #' @rdname spwb_day
-growth_day <- function(x, date, tmin, tmax, rhmin, rhmax, rad, wind, latitude, elevation, slope, aspect, prec, CO2 = NA_real_, runon = 0.0, modifyInput = TRUE) {
-    .Call(`_medfate_growthDay`, x, date, tmin, tmax, rhmin, rhmax, rad, wind, latitude, elevation, slope, aspect, prec, CO2, runon, modifyInput)
+growth_day <- function(x, date, meteovec, latitude, elevation, slope, aspect, runon = 0.0, modifyInput = TRUE) {
+    .Call(`_medfate_growthDay`, x, date, meteovec, latitude, elevation, slope, aspect, runon, modifyInput)
 }
 
 #' Forest growth
@@ -803,25 +888,15 @@ growth_day <- function(x, date, tmin, tmax, rhmin, rhmax, rad, wind, latitude, e
 #' during a period specified in the input climatic data. 
 #' 
 #' @param x An object of class \code{\link{growthInput}}.
-#' @param meteo A data frame with daily meteorological data series. Row names of the data frame should correspond to date strings with format "yyyy-mm-dd" (see \code{\link{Date}}).The following columns are required:
-#'   \itemize{
-#'     \item{\code{MinTemperature}: Minimum temperature (in degrees Celsius).}
-#'     \item{\code{MaxTemperature}: Maximum temperature (in degrees Celsius).}
-#'     \item{\code{MinRelativeHumidity}: Minimum relative humidity (in percent).}
-#'     \item{\code{MaxRelativeHumidity}: Maximum relative humidity (in percent).}
-#'     \item{\code{Precipitation}: Precipitation (in mm).}
-#'     \item{\code{Radiation}: Solar radiation (in MJ/m2/day), required only if \code{snowpack = TRUE}.}
-#'     \item{\code{WindSpeed}: Wind speed (in m/s). If not available, this column can be left with \code{NA} values.}
-#'     \item{\code{CO2}: Atmospheric (abovecanopy) CO2 concentration (in ppm). This column may not exist, or can be left with \code{NA} values. In both cases simulations will assume a constant value specified in \code{\link{defaultControl}}.}
-#'   }
-#' @param latitude Latitude (in degrees). Required when \code{x$TranspirationMode = "Sperry"}.
-#' @param elevation,slope,aspect Elevation above sea level (in m), slope (in degrees) and aspect (in degrees from North). Required when \code{x$TranspirationMode = "Sperry"}. Elevation is also required for 'Granier' if snowpack dynamics are simulated.
+#' @param meteo A data frame with daily meteorological data series (see \code{\link{spwb}}).
+#' @param latitude Latitude (in degrees).
+#' @param elevation,slope,aspect Elevation above sea level (in m), slope (in degrees) and aspect (in degrees from North). 
 #' @param CO2ByYear A named numeric vector with years as names and atmospheric CO2 concentration (in ppm) as values. Used to specify annual changes in CO2 concentration along the simulation (as an alternative to specifying daily values in \code{meteo}).
 #' 
 #' @details
 #' Detailed model description is available in the medfate book. 
-#' Simulations using the 'Sperry' transpiration mode are computationally much more expensive 
-#' than those using the simple transpiration mode. 
+#' Simulations using the 'Sperry' or 'Cochard' transpiration modes are computationally much more expensive 
+#' than those using the 'Granier' transpiration mode. 
 #' 
 #' @return
 #' A list of class 'growth' with the following elements:
@@ -832,14 +907,14 @@ growth_day <- function(x, date, tmin, tmax, rhmin, rhmax, rad, wind, latitude, e
 #'   \item{\code{"growthInput"}: A copy of the object \code{x} of class \code{\link{growthInput}} given as input.}
 #'   \item{\code{"growthOutput"}: An copy of the final state of the object \code{x} of class \code{\link{growthInput}}.}
 #'   \item{\code{"WaterBalance"}: A data frame where different water balance variables (see \code{\link{spwb}}).}
-#'   \item{\code{"EnergyBalance"}: A data frame with the daily values of energy balance components for the soil and the canopy (only for \code{transpirationMode = "Sperry"}; see \code{\link{spwb}}).}
+#'   \item{\code{"EnergyBalance"}: A data frame with the daily values of energy balance components for the soil and the canopy (only for \code{transpirationMode = "Sperry"} or \code{transpirationMode = "Cochard"}; see \code{\link{spwb}}).}
 #'   \item{\code{"CarbonBalance"}: A data frame where different stand-level carbon balance components (gross primary production, maintenance respiration, synthesis respiration and net primary production), all in g C · m-2.}
 #'   \item{\code{"BiomassBalance"}: A data frame with the daily values of stand biomass balance components (in g dry · m-2.}
-#'   \item{\code{"Temperature"}: A data frame with the daily values of minimum/mean/maximum temperatures for the atmosphere (input), canopy and soil (only for \code{transpirationMode = "Sperry"}; see \code{\link{spwb}}).}
+#'   \item{\code{"Temperature"}: A data frame with the daily values of minimum/mean/maximum temperatures for the atmosphere (input), canopy and soil (only for \code{transpirationMode = "Sperry"} or \code{transpirationMode = "Cochard"}; see \code{\link{spwb}}).}
 #'   \item{\code{"Soil"}: A data frame where different soil variables  (see \code{\link{spwb}}).}
 #'   \item{\code{"Stand"}: A data frame where different stand-level variables (see \code{\link{spwb}}).}
 #'   \item{\code{"Plants"}: A list of daily results for plant cohorts (see \code{\link{spwb}}).}
-#'   \item{\code{"SunlitLeaves"} and \code{"ShadeLeaves"}: A list with daily results for sunlit and shade leaves (only for \code{transpirationMode = "Sperry"}; see \code{\link{spwb}}).}
+#'   \item{\code{"SunlitLeaves"} and \code{"ShadeLeaves"}: A list with daily results for sunlit and shade leaves (only for \code{transpirationMode = "Sperry"} or \code{transpirationMode = "Cochard"}; see \code{\link{spwb}}).}
 #'   \item{\code{"LabileCarbonBalance"}: A list of daily labile carbon balance results for plant cohorts, with elements:}
 #'   \itemize{
 #'     \item{\code{"GrossPhotosynthesis"}: Daily gross photosynthesis per dry weight of living biomass (g gluc · g dry-1).}
@@ -890,6 +965,12 @@ growth_day <- function(x, date, tmin, tmax, rhmin, rhmax, rad, wind, latitude, e
 #' 
 #' @seealso \code{\link{growthInput}}, \code{\link{growth_day}}, \code{\link{plot.growth}}
 #' 
+#' @references
+#' De Cáceres M, Molowny-Horas R, Cabon A, Martínez-Vilalta J, Mencuccini M, García-Valdés R, Nadal-Sala D, Sabaté S, 
+#' Martin-StPaul N, Morin X, D'Adamo F, Batllori E, Améztegui A (2023) MEDFATE 2.9.3: A trait-enabled model to simulate 
+#' Mediterranean forest function and dynamics at regional scales. 
+#' Geoscientific Model Development 16: 3165-3201 (https://doi.org/10.5194/gmd-16-3165-2023).
+#' 
 #' @examples
 #' #Load example daily meteorological data
 #' data(examplemeteo)
@@ -901,26 +982,35 @@ growth_day <- function(x, date, tmin, tmax, rhmin, rhmax, rad, wind, latitude, e
 #' data(SpParamsMED)
 #'   
 #' #Initialize control parameters
-#' control = defaultControl("Granier")
+#' control <- defaultControl("Granier")
 #'   
 #' #Initialize soil with default soil params (4 layers)
-#' examplesoil = soil(defaultSoilParams(4))
+#' examplesoil <- soil(defaultSoilParams(4))
 #' 
 #' #Initialize vegetation input
-#' x1 = forest2growthInput(exampleforestMED, examplesoil, SpParamsMED, control)
+#' x1 <- forest2growthInput(exampleforestMED, examplesoil, SpParamsMED, control)
 #' 
 #' #Call simulation function
-#' G1<-growth(x1, examplemeteo, latitude = 41.82592, elevation = 100)
+#' G1 <- growth(x1, examplemeteo, latitude = 41.82592, elevation = 100)
 #'  
 #' \donttest{
 #' #Switch to 'Sperry' transpiration mode
-#' control = defaultControl("Sperry")
+#' control <- defaultControl("Sperry")
 #' 
 #' #Initialize vegetation input
-#' x2 = forest2growthInput(exampleforestMED,examplesoil, SpParamsMED, control)
+#' x2 <- forest2growthInput(exampleforestMED,examplesoil, SpParamsMED, control)
 #' 
 #' #Call simulation function
-#' G2<-growth(x2, examplemeteo, latitude = 41.82592, elevation = 100)
+#' G2 <-growth(x2, examplemeteo, latitude = 41.82592, elevation = 100)
+#' 
+#' #Switch to 'Cochard' transpiration mode
+#' control <- defaultControl("Cochard")
+#' 
+#' #Initialize vegetation input
+#' x3 <- forest2growthInput(exampleforestMED,examplesoil, SpParamsMED, control)
+#' 
+#' #Call simulation function
+#' G3 <-growth(x3, examplemeteo, latitude = 41.82592, elevation = 100)
 #' }
 #'       
 growth <- function(x, meteo, latitude, elevation = NA_real_, slope = NA_real_, aspect = NA_real_, CO2ByYear = numeric(0)) {
@@ -1401,6 +1491,13 @@ hydrology_soilEvaporation <- function(soil, soilFunctions, pet, LgroundSWR, modi
     .Call(`_medfate_soilEvaporation`, soil, soilFunctions, pet, LgroundSWR, modifySoil)
 }
 
+#' @rdname hydrology_soil
+#' @param LherbSWR Percentage of short-wave radiation (SWR) reaching the herbaceous layer.
+#' @param herbLAI Leaf area index of the herbaceous layer.
+hydrology_herbaceousTranspiration <- function(pet, LherbSWR, herbLAI, soil, soilFunctions, modifySoil = TRUE) {
+    .Call(`_medfate_herbaceousTranspiration`, pet, LherbSWR, herbLAI, soil, soilFunctions, modifySoil)
+}
+
 .hydrology_infiltrationAmount <- function(input, Ssoil) {
     .Call(`_medfate_infiltrationAmount`, input, Ssoil)
 }
@@ -1496,6 +1593,100 @@ hydrology_soilInfiltrationPercolation <- function(soil, soilFunctions, waterInpu
     .Call(`_medfate_gammds`, x, p)
 }
 
+#' Sureau-ECOS inner functions for testing only
+#' 
+#' Function \code{initCochardNetworks} initializes hydraulic networks for all plant cohorts in x
+#' Function \code{semi_implicit_integration} updates water potentials and cavitation across the hydraulic network
+#' 
+#' @param x An object of class \code{\link{spwbInput}} or \code{\link{growthInput}} created using \code{transpirationMode = "Cochard"}.
+#'  
+#' @return Function \code{initCochardNetworks} returns a vector of length equal to the number of cohorts. Each element is a list with Sureau-ECOS parameters.
+#' Function \code{semi_implicit_integration} does not return anything, but modifies input parameter \code{network}.
+#' 
+#' @author
+#' \itemize{
+#'   \item{Miquel De \enc{Cáceres}{Caceres} Ainsa, CREAF}
+#'   \item{Nicolas Martin-StPaul, URFM-INRAE}
+#' }
+#' 
+#' @references
+#' Ruffault J, Pimont F, Cochard H, Dupuy JL, Martin-StPaul N (2022) 
+#' SurEau-Ecos v2.0: a trait-based plant hydraulics model for simulations of plant water status and drought-induced mortality at the ecosystem level.
+#' Geoscientific Model Development 15, 5593-5626 (doi:10.5194/gmd-15-5593-2022).
+#' 
+#' 
+#' @seealso  \code{\link{spwb}}
+#' 
+#' @name sureau_ecos
+initCochardNetworks <- function(x) {
+    .Call(`_medfate_initCochardNetworks`, x)
+}
+
+#' @rdname sureau_ecos
+#' @param network A hydraulic network element of the list returned by \code{initCochardNetworks}
+#' @param dt Smallest time step (seconds)
+#' @param opt Option flag vector
+semi_implicit_integration <- function(network, dt, opt) {
+    invisible(.Call(`_medfate_semi_implicit_integration`, network, dt, opt))
+}
+
+#' Stomatal regulation
+#' 
+#' Set of high-level functions used in the calculation of stomatal conductance and transpiration. 
+#' Function \code{transp_profitMaximization} calculates gain and cost functions, 
+#' as well as profit maximization from supply and photosynthesis input functions. 
+#' Function \code{transp_stomatalRegulationPlot} produces a plot with the cohort supply functions against water potential 
+#' and a plot with the cohort photosynthesis functions against water potential, both with the maximum profit values indicated.
+#' 
+#' @param supplyFunction Water supply function (see \code{\link{hydraulics_supplyFunctionNetwork}}).
+#' @param photosynthesisFunction Function returned by \code{photo_photosynthesisFunction()}.
+#' @param Gswmin,Gswmax Minimum and maximum stomatal conductance to water vapour (mol·m-2·s-1).
+#' 
+#' @return
+#' Function \code{transp_profitMaximization} returns a list with the following elements:
+#' \itemize{
+#'   \item{\code{Cost}: Cost function [0-1].}
+#'   \item{\code{Gain}: Gain function [0-1].}
+#'   \item{\code{Profit}: Profit function [0-1].}
+#'   \item{\code{iMaxProfit}: Index corresponding to maximum profit (starting from 0).}
+#' }
+#' 
+#' @references
+#' Sperry, J. S., M. D. Venturas, W. R. L. Anderegg, M. Mencuccini, D. S. Mackay, Y. Wang, and D. M. Love. 2017. Predicting stomatal responses to the environment from the optimization of photosynthetic gain and hydraulic cost. Plant Cell and Environment 40, 816-830 (doi: 10.1111/pce.12852).
+#' 
+#' @author Miquel De \enc{Cáceres}{Caceres} Ainsa, CREAF
+#' 
+#' @seealso
+#' \code{\link{transp_transpirationSperry}}, \code{\link{hydraulics_supplyFunctionNetwork}}, \code{\link{biophysics_leafTemperature}}, \code{\link{photo_photosynthesis}}, \code{\link{spwb_day}}, \code{\link{plot.spwb_day}}
+#' 
+#' @examples
+#' #Load example daily meteorological data
+#' data(examplemeteo)
+#' 
+#' #Load example plot plant data
+#' data(exampleforestMED)
+#' 
+#' #Default species parameterization
+#' data(SpParamsMED)
+#' 
+#' #Initialize soil with default soil params (4 layers)
+#' examplesoil = soil(defaultSoilParams(4))
+#' 
+#' #Initialize control parameters
+#' control = defaultControl(transpirationMode="Sperry")
+#' 
+#' #Initialize input
+#' x2 = forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
+#' 
+#' # Stomatal VPD curve and chosen value for the 12th time step at day 100
+#' transp_stomatalRegulationPlot(x2, examplemeteo, day=100, timestep = 12,
+#'                               latitude = 41.82592, elevation = 100, type="VPD")
+#'  
+#' @name transp_stomatalregulation
+transp_profitMaximization <- function(supplyFunction, photosynthesisFunction, Gswmin, Gswmax) {
+    .Call(`_medfate_profitMaximization`, supplyFunction, photosynthesisFunction, Gswmin, Gswmax)
+}
+
 .parcohort <- function(SP, H, CR, LAI, SpParams) {
     .Call(`_medfate_parcohort`, SP, H, CR, LAI, SpParams)
 }
@@ -1534,7 +1725,6 @@ hydrology_soilInfiltrationPercolation <- function(soil, soilFunctions, waterInpu
 #' @param SpParams A data frame with species parameters (see \code{\link{SpParamsMED}}).
 #' @param z A numeric vector with height values.
 #' @param gdd Growth degree days.
-#' @param mode Calculation mode, either "MED" or "US".
 #' 
 #' @details
 #' Functions for short-wave radiation are adapted from Anten & Bastiaans (2016), 
@@ -1619,34 +1809,34 @@ hydrology_soilInfiltrationPercolation <- function(soil, soilFunctions, waterInpu
 #' par(oldpar)
 #'   
 #' @name light
-light_PARcohort <- function(x, SpParams, gdd = NA_real_, mode = "MED") {
-    .Call(`_medfate_PARcohort`, x, SpParams, gdd, mode)
+light_PARcohort <- function(x, SpParams, gdd = NA_real_) {
+    .Call(`_medfate_PARcohort`, x, SpParams, gdd)
 }
 
-.parheight <- function(z, x, SpParams, gdd = NA_real_, mode = "MED") {
-    .Call(`_medfate_parheight`, z, x, SpParams, gdd, mode)
-}
-
-#' @rdname light
-light_PARground <- function(x, SpParams, gdd = NA_real_, mode = "MED") {
-    .Call(`_medfate_PARground`, x, SpParams, gdd, mode)
-}
-
-.swrheight <- function(z, x, SpParams, gdd = NA_real_, mode = "MED") {
-    .Call(`_medfate_swrheight`, z, x, SpParams, gdd, mode)
+.parheight <- function(z, x, SpParams, gdd = NA_real_) {
+    .Call(`_medfate_parheight`, z, x, SpParams, gdd)
 }
 
 #' @rdname light
-light_SWRground <- function(x, SpParams, gdd = NA_real_, mode = "MED") {
-    .Call(`_medfate_SWRground`, x, SpParams, gdd, mode)
+light_PARground <- function(x, SpParams, gdd = NA_real_) {
+    .Call(`_medfate_PARground`, x, SpParams, gdd)
 }
 
-.parExtinctionProfile <- function(z, x, SpParams, gdd = NA_real_, mode = "MED") {
-    .Call(`_medfate_parExtinctionProfile`, z, x, SpParams, gdd, mode)
+.swrheight <- function(z, x, SpParams, gdd = NA_real_) {
+    .Call(`_medfate_swrheight`, z, x, SpParams, gdd)
 }
 
-.swrExtinctionProfile <- function(z, x, SpParams, gdd = NA_real_, mode = "MED") {
-    .Call(`_medfate_swrExtinctionProfile`, z, x, SpParams, gdd, mode)
+#' @rdname light
+light_SWRground <- function(x, SpParams, gdd = NA_real_) {
+    .Call(`_medfate_SWRground`, x, SpParams, gdd)
+}
+
+.parExtinctionProfile <- function(z, x, SpParams, gdd = NA_real_, includeHerbs = FALSE) {
+    .Call(`_medfate_parExtinctionProfile`, z, x, SpParams, gdd, includeHerbs)
+}
+
+.swrExtinctionProfile <- function(z, x, SpParams, gdd = NA_real_, includeHerbs = FALSE) {
+    .Call(`_medfate_swrExtinctionProfile`, z, x, SpParams, gdd, includeHerbs)
 }
 
 #' @rdname light
@@ -1688,29 +1878,38 @@ light_longwaveRadiationSHAW <- function(LAIme, LAImd, LAImx, LWRatm, Tsoil, Tair
     .Call(`_medfate_paramsBelow`, above, Z50, Z95, soil, paramsAnatomydf, paramsTranspirationdf, control)
 }
 
+.spwbInput <- function(above, Z50, Z95, soil, FCCSprops, SpParams, control) {
+    .Call(`_medfate_spwbInput`, above, Z50, Z95, soil, FCCSprops, SpParams, control)
+}
+
+.growthInput <- function(above, Z50, Z95, soil, FCCSprops, SpParams, control) {
+    .Call(`_medfate_growthInput`, above, Z50, Z95, soil, FCCSprops, SpParams, control)
+}
+
+.cloneInput <- function(input) {
+    .Call(`_medfate_cloneInput`, input)
+}
+
 #' Input for simulation models
 #'
 #' Functions \code{forest2spwbInput} and \code{forest2growthInput} take an object of class \code{\link{forest}} 
-#' and calculate input data for functions \code{\link{spwb}}, \code{\link{pwb}} and \code{\link{growth}}, respectively. 
-#' Functions \code{spwbInput} and \code{growthInput} do the same but starting from different input data. 
-#' Function \code{forest2aboveground} calculates aboveground variables that may be used in \code{spwbInput} and \code{growthInput} functions. 
+#' and create input objects for simulation functions \code{\link{spwb}} (or \code{\link{pwb}}) and \code{\link{growth}}, respectively. 
+#' Function \code{forest2aboveground} calculates aboveground variables such as leaf area index. 
 #' Function \code{forest2belowground} calculates belowground variables such as fine root distribution.
 #' 
 #' @param x An object of class \code{\link{forest}}.
 #' @param SpParams A data frame with species parameters (see \code{\link{SpParamsDefinition}} and \code{\link{SpParamsMED}}).
 #' @param gdd Growth degree days to account for leaf phenology effects (in Celsius). This should be left \code{NA} in most applications.
-#' @param mode Calculation mode, either "MED" or "US".
+#' @param loading A logical flag to indicate that fuel loading should be included (for fire hazard calculations). 
 #' @param soil An object of class \code{\link{soil}}.
 #' @param control A list with default control parameters (see \code{\link{defaultControl}}).
-#' @param above A data frame with aboveground plant information (see the return value of \code{forest2aboveground} below). In the case of \code{spwbInput} the variables should include \code{SP}, \code{N}, \code{LAI_live}, \code{LAI_dead}, \code{H} and \code{CR}. In the case of \code{growthInput} variables should include \code{DBH} and \code{Cover}.
-#' @param Z50,Z95 Numeric vectors with cohort depths (in mm) corresponding to 50\% and 95\% of fine roots.
 #' 
 #' @details
-#' Functions \code{forest2spwbInput} and \code{forest2abovegroundInput} extracts height and species identity from plant cohorts of \code{x}, 
-#' and calculate leaf area index and crown ratio. Function \code{forest2spwbInput} also calculates the distribution of fine roots 
-#' across soil. Both \code{forest2spwbInput} and \code{spwbInput} find parameter values for each plant cohort 
-#' according to the parameters of its species as specified in \code{SpParams}. If \code{control$transpirationMode = "Sperry"} 
-#' the functions also estimate the maximum conductance of rhizosphere, root xylem and stem xylem elements.
+#' Function \code{forest2aboveground} extract height and species identity from plant cohorts of \code{x}, 
+#' and calculate leaf area index and crown ratio. Functions \code{forest2spwbInput} and \code{forest2growthInput} also calculate the distribution of fine roots 
+#' across soil, and finds parameter values for each plant cohort according to the parameters of its species as specified in \code{SpParams}. 
+#' If \code{control$transpirationMode = "Sperry"} or \code{control$transpirationMode = "Cochard"},
+#' the \code{forest2spwbInput} and \code{forest2growthInput} also estimate the maximum conductance of rhizosphere, root xylem and stem xylem elements.
 #' 
 #' @return 
 #' Function \code{forest2aboveground()} returns a data frame with the following columns (rows are identified as specified by function \code{\link{plant_ID}}):
@@ -1723,9 +1922,10 @@ light_longwaveRadiationSHAW <- function(LAIme, LAImd, LAImx, LWRatm, Tsoil, Tair
 #'   \item{\code{LAI_live}: Live leaf area index (m2/m2) (one-side leaf area relative to plot area), includes leaves in winter dormant buds.}
 #'   \item{\code{LAI_expanded}: Leaf area index of expanded leaves (m2/m2) (one-side leaf area relative to plot area).}
 #'   \item{\code{LAI_dead}: Dead leaf area index (m2/m2) (one-side leaf area relative to plot area).}
+#'   \item{\code{Loading}: Fine fuel loading (kg/m2), only if \code{loading = TRUE}.}
 #' }
 #' 
-#' Functions \code{forest2spwbInput()} and \code{spwbInput()} return a list of class \code{spwbInput} with the following elements (rows of data frames are identified as specified by function \code{\link{plant_ID}}):
+#' Function \code{forest2spwbInput()} returns a list of class \code{spwbInput} with the following elements (rows of data frames are identified as specified by function \code{\link{plant_ID}}):
 #'   \itemize{
 #'     \item{\code{control}: List with control parameters (see \code{\link{defaultControl}}).}
 #'     \item{\code{canopy}: A list of stand-level state variables.}
@@ -1738,7 +1938,7 @@ light_longwaveRadiationSHAW <- function(LAIme, LAImd, LAImx, LWRatm, Tsoil, Tair
 #'         \item{\code{L}: A matrix with the length of coarse roots of each cohort (in rows) in each soil layer (in columns).}
 #'         \item{\code{Wpool}: A matrix with the soil moisture relative to field capacity around the rhizosphere of each cohort (in rows) in each soil layer (in columns).}
 #'       }
-#'       If \code{control$transpirationMode = "Sperry"} there are the following additional elements:
+#'       If \code{control$transpirationMode = "Sperry"} or \code{control$transpirationMode = "Cochard"} there are the following additional elements:
 #'       \itemize{
 #'         \item{\code{VGrhizo_kmax}: A matrix with maximum rhizosphere conductance values of each cohort (in rows) in each soil layer (in columns).}
 #'         \item{\code{VGroot_kmax}: A matrix with maximum root xylem conductance values of each cohort (in rows) in each soil layer (in columns).}
@@ -1777,7 +1977,7 @@ light_longwaveRadiationSHAW <- function(LAIme, LAImd, LAImx, LWRatm, Tsoil, Tair
 #'         \item{\code{kPAR}: PAR extinction coefficient.}
 #'         \item{\code{g}: Canopy water retention capacity per LAI unit (mm/LAI).}
 #'       }
-#'     If \code{control$transpirationMode = "Sperry"} additional columns are:
+#'     If \code{control$transpirationMode = "Sperry"} or \code{control$transpirationMode = "Cochard"} additional columns are:
 #'       \itemize{
 #'         \item{\code{gammaSWR}: Reflectance (albedo) coefficient for SWR .}
 #'         \item{\code{alphaSWR}: Absorbance coefficient for SWR .}
@@ -1796,7 +1996,22 @@ light_longwaveRadiationSHAW <- function(LAIme, LAImd, LAImx, LWRatm, Tsoil, Tair
 #'         \item{\code{WUE_par}: Coefficient regulating the influence of atmospheric CO2 concentration on gross photosynthesis.}
 #'         \item{\code{WUE_par}: Coefficient regulating the influence of vapor pressure deficit (VPD) on gross photosynthesis.}
 #'       }
-#'     If \code{control$transpirationMode = "Sperry"} columns are:
+#'      If \code{control$transpirationMode = "Sperry"} columns are:
+#'       \itemize{
+#'         \item{\code{Gswmin}: Minimum stomatal conductance to water vapor (in mol H2O·m-2·s-1).}
+#'         \item{\code{Gswmax}: Maximum stomatal conductance to water vapor (in mol H2O·m-2·s-1).}
+#'         \item{\code{Vmax298}: Maximum Rubisco carboxilation rate at 25ºC (in micromol CO2·s-1·m-2).}
+#'         \item{\code{Jmax298}: Maximum rate of electron transport at 25ºC (in micromol photons·s-1·m-2).}
+#'         \item{\code{Kmax_stemxylem}: Sapwood-specific hydraulic conductivity of stem xylem (in kg H2O·s-1·m-2).}
+#'         \item{\code{Kmax_rootxylem}: Sapwood-specific hydraulic conductivity of root xylem (in kg H2O·s-1·m-2).}
+#'         \item{\code{VCleaf_kmax}: Maximum leaf hydraulic conductance.}
+#'         \item{\code{VCleaf_c}, \code{VCleaf_d}: Parameters of the leaf vulnerability curve.}
+#'         \item{\code{VCstem_kmax}: Maximum stem xylem conductance.}
+#'         \item{\code{VCstem_c}, \code{VCstem_d}: Parameters of the stem xylem vulnerability curve.}
+#'         \item{\code{VCroot_c}, \code{VCroot_d}: Parameters of the root xylem vulnerability curve.}
+#'         \item{\code{Plant_kmax}: Maximum whole-plant conductance.}
+#'       }
+#'       If \code{control$transpirationMode = "Cochard"} columns are:
 #'       \itemize{
 #'         \item{\code{Gswmin}: Minimum stomatal conductance to water vapor (in mol H2O·m-2·s-1).}
 #'         \item{\code{Gswmax}: Maximum stomatal conductance to water vapor (in mol H2O·m-2·s-1).}
@@ -1825,8 +2040,10 @@ light_longwaveRadiationSHAW <- function(LAIme, LAImd, LAImx, LWRatm, Tsoil, Tair
 #'       }
 #'     }
 #'     \item{\code{internalPhenology} and \code{internalWater}: data frames to store internal state variables.}
+#'     \item{\code{internalFCCS}: A data frame with fuel characteristics, according to \code{\link{fuel_FCCS}} (only if \code{fireHazardResults = TRUE}, in the control list).}
 #'   }
-#' Functions \code{forest2growthInput} and \code{growthInput} return a list of class \code{growthInput} with the same elements as \code{spwbInput}, but with additional information. 
+#'   
+#' Function \code{forest2growthInput} returns a list of class \code{growthInput} with the same elements as \code{spwbInput}, but with additional information. 
 #' \itemize{
 #' \item{Element \code{above} includes the following additional columns:
 #'     \itemize{
@@ -1852,7 +2069,18 @@ light_longwaveRadiationSHAW <- function(LAIme, LAImd, LAImx, LWRatm, Tsoil, Tair
 #'       \item{\code{fHDmin}: Minimum value of the height-to-diameter ratio (dimensionless).}
 #'       \item{\code{fHDmax}: Maximum value of the height-to-diameter ratio (dimensionless).}
 #'       \item{\code{WoodC}: Wood carbon content per dry weight (g C /g dry).}
+#'     }
+#'   }
+#'   \item{\code{paramsMortalityRegeneration}: A data frame with mortality/regeneration parameters for each cohort:
+#'     \itemize{
 #'       \item{\code{MortalityBaselineRate}: Deterministic proportion or probability specifying the baseline reduction of cohort's density occurring in a year.}
+#'       \item{\code{SurvivalModelStep}: Time step in years of the empirical survival model depending on stand basal area (e.g. 10).}
+#'       \item{\code{SurvivalB0}: Intercept of the logistic baseline survival model depending on stand basal area.}
+#'       \item{\code{SurvivalB1}: Slope of the logistic baseline survival model depending on stand basal area.}
+#'       \item{\code{RecrTreeDensity}: Density of tree recruits from seeds.}
+#'       \item{\code{IngrowthTreeDensity}: Density of trees reaching ingrowth DBH.}
+#'       \item{\code{RecrTreeDBH}: DBH for tree recruits from seeds or resprouting (e.g. 1 cm).}
+#'       \item{\code{IngrowthTreeDBH}: Ingrowth DBH for trees (e.g. 7.5 cm).}
 #'     }
 #'   }
 #'   \item{\code{paramsAllometry}: A data frame with allometric parameters for each cohort:
@@ -1867,10 +2095,14 @@ light_longwaveRadiationSHAW <- function(LAIme, LAImd, LAImx, LWRatm, Tsoil, Tair
 #'     \itemize{
 #'       \item{\code{allocationTarget}: Value of the allocation target variable.}
 #'       \item{\code{leafAreaTarget}: Target leaf area (m2) per individual.}
-#'       \item{\code{fineRootBiomassTarget}: Target fine root biomass (g dry) per individual (only if \code{transpirationMode = "Sperry"}).}
+#'       \item{\code{sapwoodAreaTarget}: Target sapwood area (cm2) per individual.}
+#'       \item{\code{fineRootBiomassTarget}: Target fine root biomass (g dry) per individual.}
+#'       \item{\code{crownBudPercent}: Percentage of the crown with buds.}
 #'     }
 #'   }
-#'   \item{\code{internalCarbon} and \code{internalRings}: data structures to store other internal state variables.}
+#'   \item{\code{internalCarbon}: A data frame with the concentration (mol·gluc·l-1) of metabolic and storage carbon compartments for leaves and sapwood.}
+#'   \item{\code{internalMortality}: A data frame to store the cumulative mortality (density for trees and cover for shrubs) predicted during the simulation,
+#'   also distinguishing mortality due to starvation or dessication.}
 #' }
 #' 
 #' @author Miquel De \enc{Cáceres}{Caceres} Ainsa, CREAF
@@ -1886,47 +2118,42 @@ light_longwaveRadiationSHAW <- function(LAIme, LAImd, LAImx, LWRatm, Tsoil, Tair
 #' data(SpParamsMED)
 #' 
 #' # Aboveground parameters
-#' above = forest2aboveground(exampleforestMED, SpParamsMED)
-#' above
+#' forest2aboveground(exampleforestMED, SpParamsMED)
+#' 
+#' # Example of aboveground parameters taken from a forest
+#' # described using LAI and crown ratio
+#' data(exampleforestMED2)
+#' forest2aboveground(exampleforestMED2, SpParamsMED)
 #' 
 #' # Initialize soil with default soil params
-#' examplesoil = soil(defaultSoilParams())
+#' examplesoil <- soil(defaultSoilParams())
 #' 
-#' # Rooting depths
-#' Z50 = c(exampleforestMED$treeData$Z50, exampleforestMED$shrubData$Z50)
-#' Z95 = c(exampleforestMED$treeData$Z95, exampleforestMED$shrubData$Z95)
+#' # Bewowground parameters (distribution of fine roots)
+#' forest2belowground(exampleforestMED, examplesoil, SpParamsMED)
 #' 
-#' # Initialize control parameters
-#' control = defaultControl("Granier")
+#' # Initialize control parameters using 'Granier' transpiration mode
+#' control <- defaultControl("Granier")
 #' 
 #' # Prepare spwb input
-#' spwbInput(above, Z50, Z95, examplesoil,SpParamsMED, control)
-#' 
-#' # When starting from an object of class 'forest' the whole process
-#' # can be simplified:
 #' forest2spwbInput(exampleforestMED, examplesoil, SpParamsMED, control)
 #'                 
-#' # Prepare input for Sperry transpiration mode
-#' control = defaultControl("Sperry")
+#' # Prepare input for 'Sperry' transpiration mode
+#' control <- defaultControl("Sperry")
 #' forest2spwbInput(exampleforestMED,examplesoil,SpParamsMED, control)
 #' 
+#' # Prepare input for 'Cochard' transpiration mode
+#' control <- defaultControl("Cochard")
+#' forest2spwbInput(exampleforestMED,examplesoil,SpParamsMED, control)
+#' 
+#' # Example of initialization from a forest 
+#' # described using LAI and crown ratio
+#' control <- defaultControl("Granier")
+#' forest2spwbInput(exampleforestMED2, examplesoil, SpParamsMED, control)
+#' 
 #' @name modelInput
-spwbInput <- function(above, Z50, Z95, soil, SpParams, control) {
-    .Call(`_medfate_spwbInput`, above, Z50, Z95, soil, SpParams, control)
-}
-
-#' @rdname modelInput
-growthInput <- function(above, Z50, Z95, soil, SpParams, control) {
-    .Call(`_medfate_growthInput`, above, Z50, Z95, soil, SpParams, control)
-}
-
-.cloneInput <- function(input) {
-    .Call(`_medfate_cloneInput`, input)
-}
-
-#' @rdname modelInput
-forest2spwbInput <- function(x, soil, SpParams, control, mode = "MED") {
-    .Call(`_medfate_forest2spwbInput`, x, soil, SpParams, control, mode)
+#' @aliases spwbInput growthInput
+forest2spwbInput <- function(x, soil, SpParams, control) {
+    .Call(`_medfate_forest2spwbInput`, x, soil, SpParams, control)
 }
 
 #' @rdname modelInput
@@ -2249,7 +2476,7 @@ photo_multilayerPhotosynthesisFunction <- function(E, psiLeaf, Catm, Patm, Tair,
 #' @author Miquel De \enc{Cáceres}{Caceres} Ainsa, CREAF
 #' 
 #' @seealso
-#'  \code{\link{spwb}}, \code{\link{spwb_ldrOptimization}}, \code{\link{forest2spwbInput}}, \code{\link{soil}}
+#'  \code{\link{spwb}},  \code{\link{forest2spwbInput}}, \code{\link{soil}}
 #'
 #' @examples
 #' #Load example plot plant data
@@ -2562,8 +2789,8 @@ soil_vanGenuchtenParamsToth <- function(clay, sand, om, bd, topsoil) {
 #'   \item{\code{SoilDepth}: Soil depth (in mm).}
 #'   \item{\code{W}: State variable with relative water content of each layer (in as proportion relative to FC).}
 #'   \item{\code{Temp}: State variable with temperature (in ºC) of each layer.}
-#'   \item{\code{Ksoil}: Kappa parameter for infiltration.}
-#'   \item{\code{Gsoil}: Gamma parameter for infiltration.}
+#'   \item{\code{Ksoil}: Kappa parameter for bare soil evaporation.}
+#'   \item{\code{Gsoil}: Gamma parameter for bare soil evaporation (see \code{\link{hydrology_soilEvaporationAmount}}).}
 #'   \item{\code{dVec}: Width of soil layers (in mm).}
 #'   \item{\code{sand}: Sand percentage for each layer (in percent volume).}
 #'   \item{\code{clay}: Clay percentage for each layer (in percent volume).}
@@ -2670,29 +2897,29 @@ soil_temperatureChange <- function(dVec, Temp, sand, clay, W, Theta_FC, Gdown) {
     .Call(`_medfate_temperatureChange`, dVec, Temp, sand, clay, W, Theta_FC, Gdown)
 }
 
-#' Single day simulation
+#' Single-day simulation
 #'
 #' Function \code{spwb_day} performs water balance for a single day and \code{growth_day} 
 #' performs water and carbon balance for a single day.
 #' 
 #' @param x An object of class \code{\link{spwbInput}} or \code{\link{growthInput}}.
 #' @param date Date as string "yyyy-mm-dd".
-#' @param tmin,tmax Minimum and maximum temperature (in degrees Celsius).
-#' @param rhmin,rhmax Minimum and maximum relative humidity (in percent).
-#' @param rad Solar radiation (in MJ/m2/day).
-#' @param wind Wind speed (in m/s).
-#' @param prec Precipitation (in mm).
-#' @param latitude Latitude (in degrees). Required when using the 'Sperry' transpiration mode.
-#' @param elevation,slope,aspect Elevation above sea level (in m), slope (in degrees) and aspect (in degrees from North). Required when using the 'Sperry' transpiration mode.
-#' @param CO2 Atmospheric CO2 concentration (in ppm). If missing, default value is drawn from control parameter 'defaultCO2' in \code{x}.
+#' @param meteovec A named numerical vector with weather data. See variable names in parameter \code{meteo} of \code{\link{spwb}}.
+#' @param latitude Latitude (in degrees).
+#' @param elevation,slope,aspect Elevation above sea level (in m), slope (in degrees) and aspect (in degrees from North). 
 #' @param runon Surface water amount running on the target area from upslope (in mm).
 #' @param modifyInput Boolean flag to indicate that the input \code{x} object is allowed to be modified during the simulation.
 #' 
 #' @details
-#' Detailed model description is available in the medfate book. 
-#' The model using 'Granier' transpiration mode is described in De Caceres et al. (2015). 
-#' Simulations using the 'Sperry' transpiration mode are computationally much more expensive, are described in De Cáceres et al. (2021) 
-#' and are illustrated by function \code{\link{transp_transpirationSperry}}.
+#' The simulation functions allow using three different sub-models of transpiration and photosynthesis:
+#' \itemize{
+#'   \item{The sub-model corresponding to 'Granier' transpiration mode is illustrated by function \code{\link{transp_transpirationGranier}} and was described in De Caceres et al. (2015),
+#'   and implements an approach originally described in Granier et al. (1999).} 
+#'   \item{The sub-model corresponding to 'Sperry' transpiration mode is illustrated by function \code{\link{transp_transpirationSperry}} and was described in De Caceres et al. (2021), and
+#'   implements a modelling approach originally described in Sperry et al. (2017).}  
+#'   \item{The sub-model corresponding to 'Cochard' transpiration mode is illustrated by function \code{\link{transp_transpirationCochard}} and was described for model SurEau-Ecos v2.0 in Ruffault et al. (2022).} 
+#' }
+#' Simulations using the 'Sperry' or 'Cochard' transpiration mode are computationally much more expensive than 'Granier'.
 #' 
 #' @return
 #' Function \code{spwb_day()} returns a list of class \code{spwb_day} with the 
@@ -2714,23 +2941,35 @@ soil_temperatureChange <- function(dVec, Temp, sand, clay, W, Theta_FC, Gdown) {
 #'   \item{\code{"Stand"}: A named vector with with stand values for the simulated day, equivalent to one row of 'Stand' object returned by \code{\link{spwb}}.}
 #'   \item{\code{"Plants"}: A data frame of results for each plant cohort (see \code{\link{transp_transpirationGranier}} or \code{\link{transp_transpirationSperry}}).}
 #' }
-#' The following items are only returned when \code{transpirationMode = "Sperry"}:
-#'   \itemize{
-#'     \item{\code{"EnergyBalance"}: Energy balance of the stand (see \code{\link{transp_transpirationSperry}}).}
-#'     \item{\code{"RhizoPsi"}: Minimum water potential (in MPa) inside roots, after crossing rhizosphere, per cohort and soil layer.}
-#'     \item{\code{"SunlitLeaves"} and \code{"ShadeLeaves"}: For each leaf type, a data frame with values of LAI, Vmax298 and Jmax298 for leaves of this type in each plant cohort.}
-#'     \item{\code{"ExtractionInst"}: Water extracted by each plant cohort during each time step.}
-#'     \item{\code{"PlantsInst"}: A list with instantaneous (per time step) results for each plant cohort (see \code{\link{transp_transpirationSperry}}).}
-#'     \item{\code{"LightExtinction"}: A list of information regarding radiation balance through the canopy, as returned by function \code{\link{light_instantaneousLightExtinctionAbsortion}}.}
-#'     \item{\code{"CanopyTurbulence"}: Canopy turbulence (see \code{\link{wind_canopyTurbulence}}).}
-#'   }
+#' The following items are only returned when \code{transpirationMode = "Sperry"} or  \code{transpirationMode = "Cochard"}:
+#' \itemize{
+#'   \item{\code{"EnergyBalance"}: Energy balance of the stand (see \code{\link{transp_transpirationSperry}}).}
+#'   \item{\code{"RhizoPsi"}: Minimum water potential (in MPa) inside roots, after crossing rhizosphere, per cohort and soil layer.}
+#'   \item{\code{"SunlitLeaves"} and \code{"ShadeLeaves"}: For each leaf type, a data frame with values of LAI, Vmax298 and Jmax298 for leaves of this type in each plant cohort.}
+#'   \item{\code{"ExtractionInst"}: Water extracted by each plant cohort during each time step.}
+#'   \item{\code{"PlantsInst"}: A list with instantaneous (per time step) results for each plant cohort (see \code{\link{transp_transpirationSperry}}).}
+#'   \item{\code{"LightExtinction"}: A list of information regarding radiation balance through the canopy, as returned by function \code{\link{light_instantaneousLightExtinctionAbsortion}}.}
+#'   \item{\code{"CanopyTurbulence"}: Canopy turbulence (see \code{\link{wind_canopyTurbulence}}).}
+#' }
 #'   
 #' @references
 #' De \enc{Cáceres}{Caceres} M, \enc{Martínez}{Martinez}-Vilalta J, Coll L, Llorens P, Casals P, Poyatos R, Pausas JG, Brotons L. (2015) Coupling a water balance model with forest inventory data to predict drought stress: the role of forest structural changes vs. climate changes. Agricultural and Forest Meteorology 213: 77-90 (doi:10.1016/j.agrformet.2015.06.012).
 #' 
 #' De \enc{Cáceres}{Caceres} M, Mencuccini M, Martin-StPaul N, Limousin JM, Coll L, Poyatos R, Cabon A, Granda V, Forner A, Valladares F, \enc{Martínez}{Martinez}-Vilalta J (2021) Unravelling the effect of species mixing on water use and drought stress in holm oak forests: a modelling approach. Agricultural and Forest Meteorology 296 (doi:10.1016/j.agrformet.2020.108233).
 #' 
-#' @author Miquel De \enc{Cáceres}{Caceres} Ainsa, CREAF
+#' Granier A, \enc{Bréda}{Breda} N, Biron P, Villette S (1999) A lumped water balance model to evaluate duration and intensity of drought constraints in forest stands. Ecol Modell 116:269–283. https://doi.org/10.1016/S0304-3800(98)00205-1.
+#' 
+#' Ruffault J, Pimont F, Cochard H, Dupuy JL, Martin-StPaul N (2022) 
+#' SurEau-Ecos v2.0: a trait-based plant hydraulics model for simulations of plant water status and drought-induced mortality at the ecosystem level.
+#' Geoscientific Model Development 15, 5593-5626 (doi:10.5194/gmd-15-5593-2022).
+#' 
+#' Sperry, J. S., M. D. Venturas, W. R. L. Anderegg, M. Mencuccini, D. S. Mackay, Y. Wang, and D. M. Love. 2017. Predicting stomatal responses to the environment from the optimization of photosynthetic gain and hydraulic cost. Plant Cell and Environment 40, 816-830 (doi: 10.1111/pce.12852).
+#' 
+#' @author
+#' \itemize{
+#'   \item{Miquel De \enc{Cáceres}{Caceres} Ainsa, CREAF}
+#'   \item{Nicolas Martin-StPaul, URFM-INRAE}
+#' }
 #' 
 #' @seealso
 #' \code{\link{spwbInput}}, \code{\link{spwb}},  \code{\link{plot.spwb_day}},  
@@ -2751,42 +2990,40 @@ soil_temperatureChange <- function(dVec, Temp, sand, clay, W, Theta_FC, Gdown) {
 #' 
 #' # Day to be simulated
 #' d <- 100
+#' meteovec <- unlist(examplemeteo[d,])
+#' date <- rownames(examplemeteo)[d]
 #' 
-#' #Simulate water balance one day only (Granier)
+#' #Simulate water balance one day only (Granier mode)
 #' examplesoil <- soil(defaultSoilParams(4))
 #' x1 <- forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
-#' sd1 <- spwb_day(x1, rownames(examplemeteo)[d],  
-#'                 examplemeteo$MinTemperature[d], examplemeteo$MaxTemperature[d], 
-#'                 examplemeteo$MinRelativeHumidity[d], examplemeteo$MaxRelativeHumidity[d], 
-#'                 examplemeteo$Radiation[d], examplemeteo$WindSpeed[d], 
-#'                 latitude = 41.82592, elevation = 100, slope=0, aspect=0,
-#'                 prec = examplemeteo$Precipitation[d]) 
+#' sd1 <- spwb_day(x1, date, meteovec,  
+#'                 latitude = 41.82592, elevation = 100, slope=0, aspect=0) 
 #' 
 #' #Simulate water balance for one day only (Sperry mode)
 #' control <- defaultControl("Sperry")
 #' x2 <- forest2spwbInput(exampleforestMED, examplesoil, SpParamsMED, control)
-#' sd2 <-spwb_day(x2, rownames(examplemeteo)[d],
-#'               examplemeteo$MinTemperature[d], examplemeteo$MaxTemperature[d], 
-#'               examplemeteo$MinRelativeHumidity[d], examplemeteo$MaxRelativeHumidity[d], 
-#'               examplemeteo$Radiation[d], examplemeteo$WindSpeed[d], 
-#'               latitude = 41.82592, elevation = 100, slope=0, aspect=0,
-#'               prec = examplemeteo$Precipitation[d])
+#' sd2 <-spwb_day(x2, date, meteovec,
+#'               latitude = 41.82592, elevation = 100, slope=0, aspect=0)
 #' 
 #' #Plot plant transpiration (see function 'plot.swb.day()')
 #' plot(sd2)
 #' 
-#' #Simulate water and carbon balance for one day only
-#' x3  <- forest2growthInput(exampleforestMED,examplesoil, SpParamsMED, control)
-#' sd3 <- growth_day(x3, rownames(examplemeteo)[d],
-#'                 examplemeteo$MinTemperature[d], examplemeteo$MaxTemperature[d], 
-#'                 examplemeteo$MinRelativeHumidity[d], examplemeteo$MaxRelativeHumidity[d], 
-#'                 examplemeteo$Radiation[d], examplemeteo$WindSpeed[d], 
-#'                 latitude = 41.82592, elevation = 100, slope=0, aspect=0,
-#'                 prec = examplemeteo$Precipitation[d])
+#' #Simulate water balance for one day only (Cochard mode)
+#' control <- defaultControl("Cochard")
+#' x3 <- forest2spwbInput(exampleforestMED, examplesoil, SpParamsMED, control)
+#' sd3 <-spwb_day(x3, date, meteovec,
+#'               latitude = 41.82592, elevation = 100, slope=0, aspect=0)
+#' 
+#' 
+#' #Simulate water and carbon balance for one day only (Granier mode)
+#' control <- defaultControl("Granier")
+#' x4  <- forest2growthInput(exampleforestMED,examplesoil, SpParamsMED, control)
+#' sd4 <- growth_day(x4, date, meteovec,
+#'                 latitude = 41.82592, elevation = 100, slope=0, aspect=0)
 #' 
 #' @name spwb_day
-spwb_day <- function(x, date, tmin, tmax, rhmin, rhmax, rad, wind, latitude, elevation, slope, aspect, prec, CO2 = NA_real_, runon = 0.0, modifyInput = TRUE) {
-    .Call(`_medfate_spwbDay`, x, date, tmin, tmax, rhmin, rhmax, rad, wind, latitude, elevation, slope, aspect, prec, CO2, runon, modifyInput)
+spwb_day <- function(x, date, meteovec, latitude, elevation, slope, aspect, runon = 0.0, modifyInput = TRUE) {
+    .Call(`_medfate_spwbDay`, x, date, meteovec, latitude, elevation, slope, aspect, runon, modifyInput)
 }
 
 #' Soil-plant water balance
@@ -2799,28 +3036,44 @@ spwb_day <- function(x, date, tmin, tmax, rhmin, rhmax, rad, wind, latitude, ele
 #' and photosynthesis processes are conducted with different level of detail depending on the transpiration mode.
 #' 
 #' @param x An object of class \code{\link{spwbInput}}.
-#' @param meteo A data frame with daily meteorological data series. Row names of the data frame should correspond to date strings with format "yyyy-mm-dd" (see \code{\link{Date}}). 
-#' The following columns are required:
+#' @param meteo A data frame with daily meteorological data series. 
+#' Row names of the data frame should correspond to date strings with format "yyyy-mm-dd" (see \code{\link{Date}}). Alternatively,
+#' a column \code{dates} can contain \code{\link{Date}} or \code{\link{POSIXct}} classes.
+#' The following columns are required and cannot have missing values:
 #'   \itemize{
 #'     \item{\code{MinTemperature}: Minimum temperature (in degrees Celsius).}
 #'     \item{\code{MaxTemperature}: Maximum temperature (in degrees Celsius).}
+#'     \item{\code{Precipitation}: Precipitation (in mm).}
+#'   }
+#' The following columns are required but can contain missing values (NOTE: missing values will raise warnings):
+#'   \itemize{
 #'     \item{\code{MinRelativeHumidity}: Minimum relative humidity (in percent).}
 #'     \item{\code{MaxRelativeHumidity}: Maximum relative humidity (in percent).}
-#'     \item{\code{Precipitation}: Precipitation (in mm).}
-#'     \item{\code{Radiation}: Solar radiation (in MJ/m2/day), required only if \code{snowpack = TRUE}.}
-#'     \item{\code{WindSpeed}: Wind speed (in m/s). If not available, this column can be left with \code{NA} values.}
-#'     \item{\code{CO2}: Atmospheric (abovecanopy) CO2 concentration (in ppm). This column may not exist, or can be left with \code{NA} values. In both cases simulations will assume a constant value specified in \code{\link{defaultControl}}.}
+#'     \item{\code{Radiation}: Solar radiation (in MJ/m2/day).}
+#'   }
+#' The following columns are optional:
+#'   \itemize{
+#'     \item{\code{WindSpeed}: Above-canopy wind speed (in m/s). This column may not exist, or can be left with \code{NA} values. In both cases simulations will assume a constant value specified in \code{\link{defaultControl}}.}
+#'     \item{\code{CO2}: Atmospheric (above-canopy) CO2 concentration (in ppm). This column may not exist, or can be left with \code{NA} values. In both cases simulations will assume a constant value specified in \code{\link{defaultControl}}.}
+#'     \item{\code{Patm}: Atmospheric pressure (in kPa). This column may not exist, or can be left with \code{NA} values. In both cases, a value is estimated from elevation.}
 #'   }
 #' @param latitude Latitude (in degrees).
-#' @param elevation,slope,aspect Elevation above sea level (in m), slope (in degrees) and aspect (in degrees from North). Required when using the 'Sperry' transpiration mode. Elevation is also required for 'Granier' if snowpack dynamics are simulated.
+#' @param elevation,slope,aspect Elevation above sea level (in m), slope (in degrees) and aspect (in degrees from North).
 #' @param CO2ByYear A named numeric vector with years as names and atmospheric CO2 concentration (in ppm) as values. Used to specify annual changes in CO2 concentration along the simulation (as an alternative to specifying daily values in \code{meteo}).
 #' 
 #' @details 
-#' The model using 'Granier' transpiration mode is illustrated by function \code{\link{transp_transpirationGranier}} and described in De Caceres et al. (2015). 
-#' Simulations using the 'Sperry' transpiration mode are computationally much more expensive, are described in De Cáceres et al. (2021) and are illustrated by function \code{\link{transp_transpirationSperry}}. 
+#' The simulation functions allow using three different sub-models of transpiration and photosynthesis:
+#' \itemize{
+#'   \item{The sub-model corresponding to 'Granier' transpiration mode is illustrated by function \code{\link{transp_transpirationGranier}} and was described in De Caceres et al. (2015),
+#'   and implements an approach originally described in Granier et al. (1999).} 
+#'   \item{The sub-model corresponding to 'Sperry' transpiration mode is illustrated by function \code{\link{transp_transpirationSperry}} and was described in De Caceres et al. (2021), and
+#'   implements a modelling approach originally described in Sperry et al. (2017).}  
+#'   \item{The sub-model corresponding to 'Cochard' transpiration mode is illustrated by function \code{\link{transp_transpirationCochard}} and was described for model SurEau-Ecos v2.0 in Ruffault et al. (2022).} 
+#' }
+#' Simulations using the 'Sperry' or 'Cochard' transpiration mode are computationally much more expensive than 'Granier'.
 #' 
 #' @return
-#' Function \code{spwb} returns a list of class 'spwb' whereas Function \code{pwb} returns a list of class 'pwb'. 
+#' Function \code{spwb} returns a list of class 'spwb' whereas function \code{pwb} returns a list of class 'pwb'. 
 #' There are many elements in common in these lists, so they are listed here together:
 #' \itemize{
 #'   \item{\code{"latitude"}: Latitude (in degrees) given as input.} 
@@ -2840,13 +3093,13 @@ spwb_day <- function(x, date, tmin, tmax, rhmin, rhmax, rad, wind, latitude, ele
 #'     \item{\code{"DeepDrainage"}: The amount of water exported via deep drainage (in mm).}
 #'     \item{\code{"Evapotranspiration"}: Evapotranspiration (in mm).}
 #'     \item{\code{"SoilEvaporation"}: Bare soil evaporation (in mm).}
-#'     \item{\code{"PlantExtraction"}: Amount of water extracted from soil by plants (in mm) (can only be different from transpiration for \code{transpirationMode = "Sperry"} when capacitance is considered).}
-#'     \item{\code{"Transpiration"}: Plant transpiration (considering all soil layers) (in mm).}
-#'     \item{\code{"HydraulicRedistribution"}: Water redistributed among soil layers, transported through the plant hydraulic network (only for \code{transpirationMode = "Sperry"}).}
-#'     
+#'     \item{\code{"HerbTranspiration"}: Transpiration due to the herbaceous layer (in mm).}
+#'     \item{\code{"PlantExtraction"}: Amount of water extracted from soil by woody plants (in mm).}
+#'     \item{\code{"Transpiration"}: Woody plant transpiration (in mm).}
+#'     \item{\code{"HydraulicRedistribution"}: Water redistributed among soil layers, transported through the plant hydraulic network.}
 #'   }
-#'   \item{\code{"EnergyBalance"}: A data frame with the daily values of energy balance components for the soil and the canopy (only for \code{transpirationMode = "Sperry"}).}
-#'   \item{\code{"Temperature"}: A data frame with the daily values of minimum/mean/maximum temperatures for the atmosphere (input), canopy and soil (only for \code{transpirationMode = "Sperry"}).}
+#'   \item{\code{"EnergyBalance"}: A data frame with the daily values of energy balance components for the soil and the canopy (only for \code{transpirationMode = "Sperry"} or \code{transpirationMode = "Cochard"}).}
+#'   \item{\code{"Temperature"}: A data frame with the daily values of minimum/mean/maximum temperatures for the atmosphere (input), canopy and soil (only for \code{transpirationMode = "Sperry"} or \code{transpirationMode = "Cochard"}).}
 #'   \item{\code{"Soil"}: A data frame where different variables (in columns) are given for each simulated day (in rows):}
 #'   \itemize{
 #'     \item{\code{"W.1"}, \code{...}, \code{"W.k"}: Relative soil moisture content (relative to field capacity) in each soil layer.}
@@ -2854,15 +3107,16 @@ spwb_day <- function(x, date, tmin, tmax, rhmin, rhmax, rad, wind, latitude, ele
 #'     \item{\code{"MLTot"}: Total soil water volume (in L/m2).}
 #'     \item{\code{"SWE"}: Snow water equivalent (mm) of the snow pack.}
 #'     \item{\code{"PlantExt.1"}, \code{...}, \code{"PlantExt.k"}: Plant extraction from each soil layer (in mm).}
-#'     \item{\code{"HydraulicInput.1"}, \code{...}, \code{"HydraulicInput.k"}: Water that entered the layer coming from other layers and transported via the plant hydraulic network (in mm) (only for \code{transpirationMode = "Sperry"}).}
+#'     \item{\code{"HydraulicInput.1"}, \code{...}, \code{"HydraulicInput.k"}: Water that entered the layer coming from other layers and transported via the plant hydraulic network (in mm).}
 #'     \item{\code{"psi.1"}, \code{...}, \code{"psi.k"}: Soil water potential in each soil layer (in MPa).}
 #'   }
 #'   \item{\code{"Stand"}: A data frame where different variables (in columns) are given for each simulated day (in rows):}
 #'   \itemize{
-#'     \item{\code{"LAI"}: LAI of the stand (including live and dead leaves) (in m2/m2).}
-#'     \item{\code{"LAIlive"}: LAI of the stand assuming all leaves are unfolded (in m2/m2).}
-#'     \item{\code{"LAIexpanded"}: LAI of the stand of leaves actually unfolded (in m2/m2).}
-#'     \item{\code{"LAIdead"}: LAI of the stand corresponding to dead leaves (in m2/m2).}
+#'     \item{\code{"LAI"}: LAI of the stand (including the herbaceous layer and live + dead leaves of woody plants) (in m2/m2).}
+#'     \item{\code{"LAIherb"}: LAI of the herbaceous layer (in m2/m2).}
+#'     \item{\code{"LAIlive"}: LAI of the woody plants assuming all leaves are unfolded (in m2/m2).}
+#'     \item{\code{"LAIexpanded"}: LAI of the woody plants with leaves actually unfolded (in m2/m2).}
+#'     \item{\code{"LAIdead"}: LAI of the woody plants corresponding to dead leaves (in m2/m2).}
 #'     \item{\code{"Cm"}: Water retention capacity of the canopy (in mm) (accounting for leaf phenology).}
 #'     \item{\code{"LgroundPAR"}: The percentage of PAR that reaches the ground (accounting for leaf phenology).}
 #'     \item{\code{"LgroundSWR"}: The percentage of SWR that reaches the ground (accounting for leaf phenology).}
@@ -2887,7 +3141,7 @@ spwb_day <- function(x, date, tmin, tmax, rhmin, rhmax, rad, wind, latitude, ele
 #'     \item{\code{"LFMC"}: A data frame with the daily live fuel moisture content (in percent of dry weight).}
 #'     \item{\code{"PlantStress"}: A data frame with the amount of daily stress [0-1] suffered by each plant cohort (relative whole-plant conductance).}
 #'   }
-#' If \code{transpirationMode="Sperry"}, element \code{"Plants"} is a list with the following subelements:
+#' If \code{transpirationMode="Sperry"} or \code{transpirationMode="Cochard"}, element \code{"Plants"} is a list with the following subelements:
 #'   \itemize{
 #'     \item{\code{"LAI"}: A data frame with the daily leaf area index for each plant cohort.}
 #'     \item{\code{"AbsorbedSWR"}: A data frame with the daily SWR absorbed by each plant cohort.}
@@ -2920,11 +3174,23 @@ spwb_day <- function(x, date, tmin, tmax, rhmin, rhmax, rad, wind, latitude, ele
 #' 
 #' De \enc{Cáceres}{Caceres} M, Mencuccini M, Martin-StPaul N, Limousin JM, Coll L, Poyatos R, Cabon A, Granda V, Forner A, Valladares F, \enc{Martínez}{Martinez}-Vilalta J (2021) Unravelling the effect of species mixing on water use and drought stress in holm oak forests: a modelling approach. Agricultural and Forest Meteorology 296 (doi:10.1016/j.agrformet.2020.108233).
 #' 
-#' @author Miquel De \enc{Cáceres}{Caceres} Ainsa, CREAF
+#' Granier A, \enc{Bréda}{Breda} N, Biron P, Villette S (1999) A lumped water balance model to evaluate duration and intensity of drought constraints in forest stands. Ecol Modell 116:269–283. https://doi.org/10.1016/S0304-3800(98)00205-1.
+#' 
+#' Ruffault J, Pimont F, Cochard H, Dupuy JL, Martin-StPaul N (2022) 
+#' SurEau-Ecos v2.0: a trait-based plant hydraulics model for simulations of plant water status and drought-induced mortality at the ecosystem level.
+#' Geoscientific Model Development 15, 5593-5626 (doi:10.5194/gmd-15-5593-2022).
+#' 
+#' Sperry, J. S., M. D. Venturas, W. R. L. Anderegg, M. Mencuccini, D. S. Mackay, Y. Wang, and D. M. Love. 2017. Predicting stomatal responses to the environment from the optimization of photosynthetic gain and hydraulic cost. Plant Cell and Environment 40, 816-830 (doi: 10.1111/pce.12852).
+#' 
+#' @author
+#' \itemize{
+#'   \item{Miquel De \enc{Cáceres}{Caceres} Ainsa, CREAF}
+#'   \item{Nicolas Martin-StPaul, URFM-INRAE}
+#' }
 #' 
 #' @seealso 
 #' \code{\link{spwbInput}}, \code{\link{spwb_day}}, \code{\link{plot.spwb}}, 
-#' \code{\link{spwb_ldrOptimization}}, \code{\link{forest}}
+#' \code{\link{forest}}
 #' 
 #' @examples
 #' #Load example daily meteorological data
@@ -2937,16 +3203,16 @@ spwb_day <- function(x, date, tmin, tmax, rhmin, rhmax, rad, wind, latitude, ele
 #' data(SpParamsMED)
 #' 
 #' #Initialize soil with default soil params (4 layers)
-#' examplesoil = soil(defaultSoilParams(4))
+#' examplesoil <- soil(defaultSoilParams(4))
 #' 
 #' #Initialize control parameters
-#' control = defaultControl("Granier")
+#' control <- defaultControl("Granier")
 #' 
 #' #Initialize input
-#' x1 = forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
+#' x1 <- forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
 #' 
 #' #Call simulation function
-#' S1<-spwb(x1, examplemeteo, latitude = 41.82592, elevation = 100)
+#' S1 <- spwb(x1, examplemeteo, latitude = 41.82592, elevation = 100)
 #' 
 #' #Plot results
 #' plot(S1)
@@ -2956,22 +3222,22 @@ spwb_day <- function(x, date, tmin, tmax, rhmin, rhmax, rad, wind, latitude, ele
 #'                   
 #' \donttest{
 #' #Switch to 'Sperry' transpiration mode
-#' control = defaultControl("Sperry")
+#' control <- defaultControl("Sperry")
 #' 
 #' #Initialize input
-#' x2 = forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
+#' x2 <- forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
 #' 
 #' #Call simulation function
-#' S2<-spwb(x2, examplemeteo, latitude = 41.82592, elevation = 100)
+#' S2 <- spwb(x2, examplemeteo, latitude = 41.82592, elevation = 100)
 #' 
-#' # Run the model with 'Sperry' transpiration mode using the water balance of 
-#' # simulated with the 'Granier' model
-#' WS = as.matrix(S1$Soil[, c("W.1", "W.2", "W.3", "W.4")])
-#' P2<-pwb(x2, examplemeteo, latitude = 41.82592, elevation = 100, 
-#'         W = WS,
-#'         canopyEvaporation = S1$WaterBalance$Interception,
-#'         snowMelt = S1$WaterBalance$Snowmelt,
-#'         soilEvaporation = S1$WaterBalance$SoilEvaporation)
+#' #Switch to 'Cochard' transpiration mode
+#' control <- defaultControl("Cochard")
+#' 
+#' #Initialize input
+#' x3 <- forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
+#' 
+#' #Call simulation function
+#' S3 <- spwb(x3, examplemeteo, latitude = 41.82592, elevation = 100)
 #' }
 #'                 
 #' @name spwb
@@ -2983,11 +3249,12 @@ spwb <- function(x, meteo, latitude, elevation = NA_real_, slope = NA_real_, asp
 #' 
 #' @param W A matrix with the same number of rows as \code{meteo} and as many columns as soil layers, containing the soil moisture of each layer as proportion of field capacity.
 #' @param canopyEvaporation A vector of daily canopy evaporation (from interception) values (mm). The length should match the number of rows in \code{meteo}.
-#' @param soilEvaporation A vector of daily bare soil evaporation values (mm). The length should match the number of rows in \code{meteo}.
 #' @param snowMelt A vector of daily snow melt values (mm). The length should match the number of rows in \code{meteo}.
+#' @param soilEvaporation A vector of daily bare soil evaporation values (mm). The length should match the number of rows in \code{meteo}.
+#' @param herbTranspiration A vector of daily herbaceous transpiration values (mm). The length should match the number of rows in \code{meteo}.
 #' 
-pwb <- function(x, meteo, W, latitude, elevation = NA_real_, slope = NA_real_, aspect = NA_real_, canopyEvaporation = numeric(0), snowMelt = numeric(0), soilEvaporation = numeric(0), CO2ByYear = numeric(0)) {
-    .Call(`_medfate_pwb`, x, meteo, W, latitude, elevation, slope, aspect, canopyEvaporation, snowMelt, soilEvaporation, CO2ByYear)
+pwb <- function(x, meteo, W, latitude, elevation = NA_real_, slope = NA_real_, aspect = NA_real_, canopyEvaporation = numeric(0), snowMelt = numeric(0), soilEvaporation = numeric(0), herbTranspiration = numeric(0), CO2ByYear = numeric(0)) {
+    .Call(`_medfate_pwb`, x, meteo, W, latitude, elevation, slope, aspect, canopyEvaporation, snowMelt, soilEvaporation, herbTranspiration, CO2ByYear)
 }
 
 #' Tissue moisture functions
@@ -3000,7 +3267,6 @@ pwb <- function(x, meteo, W, latitude, elevation = NA_real_, slope = NA_real_, a
 #' @param epsilon Bulk modulus of elasticity (MPa).
 #' @param c,d Parameters of the xylem vulnerability curve.
 #' @param af Apoplastic fraction (proportion) in the segment (e.g. leaf or stem).
-#' @param femb Fraction of embolized conduits.
 #' @param L Vector with the length of coarse roots (mm) for each soil layer.
 #' @param V Vector with the proportion [0-1] of fine roots within each soil layer.
 #' @param Al2As Leaf area to sapwood area (in m2·m-2).
@@ -3018,6 +3284,7 @@ pwb <- function(x, meteo, W, latitude, elevation = NA_real_, slope = NA_real_, a
 #'   \item{\code{moisture_apoplasticWaterPotential}: Water potential (in MPa) of the apoplastic fraction.}
 #'   \item{\code{moisture_turgorLossPoint}: Water potential (in MPa) corresponding to turgor loss point.}
 #'   \item{\code{moisture_segmentRWC}: Segment relative water content [0-1].}
+#'   \item{\code{water_plant}: A vector of water content (mm) per plant cohort.}
 #' }
 #' 
 #' @references
@@ -3074,103 +3341,56 @@ moisture_apoplasticPsi <- function(RWC, c, d) {
 }
 
 #' @rdname moisture
-moisture_tissueRWC <- function(psiSym, pi0, epsilon, psiApo, c, d, af, femb = 0.0) {
-    .Call(`_medfate_tissueRelativeWaterContent`, psiSym, pi0, epsilon, psiApo, c, d, af, femb)
+moisture_tissueRWC <- function(psiSym, pi0, epsilon, psiApo, c, d, af) {
+    .Call(`_medfate_tissueRelativeWaterContent`, psiSym, pi0, epsilon, psiApo, c, d, af)
 }
 
-#' Stomatal regulation
-#' 
-#' Set of high-level functions used in the calculation of stomatal conductance and transpiration. 
-#' Function \code{transp_profitMaximization} calculates gain and cost functions, 
-#' as well as profit maximization from supply and photosynthesis input functions. 
-#' Function \code{transp_stomatalRegulationPlot} produces a plot with the cohort supply functions against water potential 
-#' and a plot with the cohort photosynthesis functions against water potential, both with the maximum profit values indicated.
-#' 
-#' @param supplyFunction Water supply function (see \code{\link{hydraulics_supplyFunctionNetwork}}).
-#' @param photosynthesisFunction Function returned by \code{photo_photosynthesisFunction()}.
-#' @param Gswmin,Gswmax Minimum and maximum stomatal conductance to water vapour (mol·m-2·s-1).
-#' 
-#' @return
-#' Function \code{transp_profitMaximization} returns a list with the following elements:
-#' \itemize{
-#'   \item{\code{Cost}: Cost function [0-1].}
-#'   \item{\code{Gain}: Gain function [0-1].}
-#'   \item{\code{Profit}: Profit function [0-1].}
-#'   \item{\code{iMaxProfit}: Index corresponding to maximum profit (starting from 0).}
-#' }
-#' 
-#' @references
-#' Sperry, J. S., M. D. Venturas, W. R. L. Anderegg, M. Mencuccini, D. S. Mackay, Y. Wang, and D. M. Love. 2017. Predicting stomatal responses to the environment from the optimization of photosynthetic gain and hydraulic cost. Plant Cell and Environment 40, 816-830 (doi: 10.1111/pce.12852).
-#' 
-#' @author Miquel De \enc{Cáceres}{Caceres} Ainsa, CREAF
-#' 
-#' @seealso
-#' \code{\link{transp_transpirationSperry}}, \code{\link{hydraulics_supplyFunctionNetwork}}, \code{\link{biophysics_leafTemperature}}, \code{\link{photo_photosynthesis}}, \code{\link{spwb_day}}, \code{\link{plot.spwb_day}}
-#' 
-#' @examples
-#' #Load example daily meteorological data
-#' data(examplemeteo)
-#' 
-#' #Load example plot plant data
-#' data(exampleforestMED)
-#' 
-#' #Default species parameterization
-#' data(SpParamsMED)
-#' 
-#' #Initialize soil with default soil params (4 layers)
-#' examplesoil = soil(defaultSoilParams(4))
-#' 
-#' #Initialize control parameters
-#' control = defaultControl(transpirationMode="Sperry")
-#' 
-#' #Initialize input
-#' x2 = forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
-#' 
-#' # Stomatal VPD curve and chosen value for the 12th time step at day 100
-#' transp_stomatalRegulationPlot(x2, examplemeteo, day=100, timestep = 12,
-#'                               latitude = 41.82592, elevation = 100, type="VPD")
-#'  
-#' @name transp_stomatalregulation
-transp_profitMaximization <- function(supplyFunction, photosynthesisFunction, Gswmin, Gswmax) {
-    .Call(`_medfate_profitMaximization`, supplyFunction, photosynthesisFunction, Gswmin, Gswmax)
+#' @rdname moisture
+plant_water <- function(x) {
+    .Call(`_medfate_plantWaterContent`, x)
 }
 
 #' @rdname transp_modes
 #' 
 #' @param canopyEvaporation Canopy evaporation (from interception) for \code{day} (mm).
-#' @param soilEvaporation Bare soil evaporation for \code{day} (mm).
 #' @param snowMelt Snow melt values  for \code{day} (mm).
+#' @param soilEvaporation Bare soil evaporation for \code{day} (mm).
+#' @param herbTranspiration Transpiration of herbaceous plants for \code{day} (mm).
 #' @param stepFunctions An integer to indicate a simulation step for which photosynthesis and profit maximization functions are desired.
 #' 
-transp_transpirationSperry <- function(x, meteo, day, latitude, elevation, slope, aspect, canopyEvaporation = 0.0, snowMelt = 0.0, soilEvaporation = 0.0, stepFunctions = NA_integer_, modifyInput = TRUE) {
-    .Call(`_medfate_transpirationSperry`, x, meteo, day, latitude, elevation, slope, aspect, canopyEvaporation, snowMelt, soilEvaporation, stepFunctions, modifyInput)
+#' 
+transp_transpirationSperry <- function(x, meteo, day, latitude, elevation, slope, aspect, canopyEvaporation = 0.0, snowMelt = 0.0, soilEvaporation = 0.0, herbTranspiration = 0.0, stepFunctions = NA_integer_, modifyInput = TRUE) {
+    .Call(`_medfate_transpirationSperry`, x, meteo, day, latitude, elevation, slope, aspect, canopyEvaporation, snowMelt, soilEvaporation, herbTranspiration, stepFunctions, modifyInput)
+}
+
+#' @rdname transp_modes
+transp_transpirationCochard <- function(x, meteo, day, latitude, elevation, slope, aspect, canopyEvaporation = 0.0, snowMelt = 0.0, soilEvaporation = 0.0, herbTranspiration = 0.0, modifyInput = TRUE) {
+    .Call(`_medfate_transpirationCochard`, x, meteo, day, latitude, elevation, slope, aspect, canopyEvaporation, snowMelt, soilEvaporation, herbTranspiration, modifyInput)
 }
 
 #' Transpiration modes
 #' 
-#' High-level sub-models to represent transpiration, plant hydraulics and water relations 
-#' within plants. The two submodels represent a very different degree of complexity, 
-#' and correspond to Granier et al. (1999) or Sperry et al. (2017).
+#' High-level sub-models representing transpiration, plant hydraulics, photosynthesis and water relations 
+#' within plants. 
 #' 
-#' @param x An object of class \code{\link{spwbInput}} or \code{\link{growthInput}}, built using the 'Granier' or 'Sperry' transpiration modes, depending on the function to be called.
-#' @param meteo A data frame with daily meteorological data series:
-#'   \itemize{
-#'     \item{\code{DOY}: Day of the year (Julian day).}
-#'     \item{\code{Precipitation}: Precipitation (in mm).}
-#'     \item{\code{MinTemperature}: Minimum temperature (in degrees Celsius).}
-#'     \item{\code{MaxTemperature}: Maximum temperature (in degrees Celsius).}
-#'     \item{\code{MinRelativeHumidity}: Minimum relative humidity (in percent).}
-#'     \item{\code{MaxRelativeHumidity}: Maximum relative humidity (in percent).}
-#'     \item{\code{Radiation}: Solar radiation (in MJ/m2/day).}
-#'     \item{\code{WindSpeed}: Wind speed (in m/s). If not available, this column can be left with \code{NA} values.}
-#'   }
-#' @param day An integer to identify a day within \code{meteo}.
+#' Three sub-models are available: 
+#' \itemize{
+#'   \item{Sub-model in function \code{transp_transpirationGranier} was described in De \enc{Cáceres}{Caceres} et al. (2015), 
+#'   and implements an approach originally described in Granier et al. (1999).} 
+#'   \item{Sub-model in function \code{transp_transpirationSperry} was described in De \enc{Cáceres}{Caceres} et al. (2021), and
+#'   implements a modelling approach originally described in Sperry et al. (2017).} 
+#'   \item{Sub-model in function \code{transp_transpirationCochard} was described for SurEau-Ecos v2.0 model in Ruffault et al. (2022).} 
+#' }
+#' 
+#' @param x An object of class \code{\link{spwbInput}} or \code{\link{growthInput}}, built using the 'Granier', 'Sperry' or 'Cochard' transpiration modes.
+#' @param meteo A data frame with daily meteorological data series (see \code{\link{spwb}}).
+#' @param day An integer to identify a day (row) within the \code{meteo} data frame.
 #' @param latitude Latitude (in degrees).
 #' @param elevation,slope,aspect Elevation above sea level (in m), slope (in degrees) and aspect (in degrees from North).
 #' @param modifyInput Boolean flag to indicate that the input \code{x} object is allowed to be modified during the simulation.
 #' 
 #' @return
-#' Function \code{transp_transpirationGranier} and \code{transp_transpirationSperry} return a list with the following elements:
+#' A list with the following elements:
 #' \itemize{
 #'   \item{\code{"cohorts"}: A data frame with cohort information, copied from \code{\link{spwbInput}}.}
 #'   \item{\code{"Stand"}: A vector of stand-level variables.}
@@ -3184,7 +3404,7 @@ transp_transpirationSperry <- function(x, meteo, day, latitude, elevation, slope
 #'       \item{\code{"psi"}: Water potential (in MPa) of the plant cohort (average over soil layers).}
 #'       \item{\code{"DDS"}: Daily drought stress [0-1] (relative whole-plant conductance).}
 #'     }
-#'   When using \code{transp_transpirationSperry}, element \code{"Plants"} includes:
+#'   When using \code{transp_transpirationSperry} or \code{transp_transpirationCochard}, element \code{"Plants"} includes:
 #'     \itemize{
 #'       \item{\code{"LAI"}: Leaf area index of the plant cohort.}
 #'       \item{\code{"LAIlive"}: Leaf area index of the plant cohort, assuming all leaves are unfolded.}
@@ -3211,8 +3431,8 @@ transp_transpirationSperry <- function(x, meteo, day, latitude, elevation, slope
 #'   }
 #'   \item{\code{"Extraction"}: A data frame with mm of water extracted from each soil layer (in columns) by each cohort (in rows).}
 #' 
-#'   The remaining items are only given by \code{transp_transpirationSperry}:
-#'   \item{\code{"EnergyBalance"}: When using the 'Sperry' transpiration mode, the model performs energy balance of the stand and 'EnergyBalance' is a list with the following:
+#'   The remaining items are only given by \code{transp_transpirationSperry} or \code{transp_transpirationCochard}:
+#'   \item{\code{"EnergyBalance"}: A list with the following elements:
 #'     \itemize{
 #'       \item{\code{"Temperature"}: A data frame with the temperature of the atmosphere ('Tatm'), canopy ('Tcan') and soil ('Tsoil.1', 'Tsoil.2', ...) for each time step.}
 #'       \item{\code{"CanopyEnergyBalance"}: A data frame with the components of the canopy energy balance (in W/m2) for each time step.}
@@ -3263,11 +3483,23 @@ transp_transpirationSperry <- function(x, meteo, day, latitude, elevation, slope
 #' }
 #' 
 #' @references
+#' De \enc{Cáceres}{Caceres} M, \enc{Martínez}{Martinez}-Vilalta J, Coll L, Llorens P, Casals P, Poyatos R, Pausas JG, Brotons L. (2015) Coupling a water balance model with forest inventory data to predict drought stress: the role of forest structural changes vs. climate changes. Agricultural and Forest Meteorology 213: 77-90 (doi:10.1016/j.agrformet.2015.06.012).
+#' 
+#' De \enc{Cáceres}{Caceres} M, Mencuccini M, Martin-StPaul N, Limousin JM, Coll L, Poyatos R, Cabon A, Granda V, Forner A, Valladares F, \enc{Martínez}{Martinez}-Vilalta J (2021) Unravelling the effect of species mixing on water use and drought stress in holm oak forests: a modelling approach. Agricultural and Forest Meteorology 296 (doi:10.1016/j.agrformet.2020.108233).
+#' 
 #' Granier A, \enc{Bréda}{Breda} N, Biron P, Villette S (1999) A lumped water balance model to evaluate duration and intensity of drought constraints in forest stands. Ecol Modell 116:269–283. https://doi.org/10.1016/S0304-3800(98)00205-1.
+#' 
+#' Ruffault J, Pimont F, Cochard H, Dupuy JL, Martin-StPaul N (2022) 
+#' SurEau-Ecos v2.0: a trait-based plant hydraulics model for simulations of plant water status and drought-induced mortality at the ecosystem level.
+#' Geoscientific Model Development 15, 5593-5626 (doi:10.5194/gmd-15-5593-2022).
 #' 
 #' Sperry, J. S., M. D. Venturas, W. R. L. Anderegg, M. Mencuccini, D. S. Mackay, Y. Wang, and D. M. Love. 2017. Predicting stomatal responses to the environment from the optimization of photosynthetic gain and hydraulic cost. Plant Cell and Environment 40, 816-830 (doi: 10.1111/pce.12852).
 #' 
-#' @author Miquel De \enc{Cáceres}{Caceres} Ainsa, CREAF
+#' @author 
+#' \itemize{
+#'   \item{Miquel De \enc{Cáceres}{Caceres} Ainsa, CREAF}
+#'   \item{Nicolas Martin-StPaul, URFM-INRAE}
+#' }
 #' 
 #' @seealso \code{\link{spwb_day}}, \code{\link{plot.spwb_day}}
 #' 
@@ -3282,30 +3514,41 @@ transp_transpirationSperry <- function(x, meteo, day, latitude, elevation, slope
 #' data(SpParamsMED)
 #' 
 #' #Initialize soil with default soil params (4 layers)
-#' examplesoil = soil(defaultSoilParams(4))
+#' examplesoil <- soil(defaultSoilParams(4))
 #' 
 #' #Initialize control parameters
-#' control = defaultControl("Granier")
+#' control <- defaultControl("Granier")
 #' 
 #' #Initialize input
-#' x1 = forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
+#' x1 <- forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
 #' 
 #' # Transpiration according to Granier's model, plant water potential 
 #' # and plant stress for a given day
-#' t1 = transp_transpirationGranier(x1, examplemeteo, 1, 
+#' t1 <- transp_transpirationGranier(x1, examplemeteo, 1, 
 #'                                  latitude = 41.82592, elevation = 100, slope = 0, aspect = 0, 
 #'                                  modifyInput = FALSE)
 #' 
 #' #Switch to 'Sperry' transpiration mode
-#' control = defaultControl("Sperry")
+#' control <- defaultControl("Sperry")
 #' 
 #' #Initialize input
-#' x2 = forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
+#' x2 <- forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
 #' 
 #' # Transpiration according to Sperry's model
-#' t2 = transp_transpirationSperry(x2, examplemeteo, 1, 
+#' t2 <- transp_transpirationSperry(x2, examplemeteo, 1, 
 #'                                 latitude = 41.82592, elevation = 100, slope = 0, aspect = 0,
 #'                                 modifyInput = FALSE)
+#'                                 
+#' #Switch to 'Cochard' transpiration mode
+#' control <- defaultControl("Cochard")
+#' 
+#' #Initialize input
+#' x3 <- forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
+#' 
+#' # Transpiration according to Cochard's model
+#' t3 <- transp_transpirationCochard(x3, examplemeteo, 1, 
+#'                                   latitude = 41.82592, elevation = 100, slope = 0, aspect = 0,
+#'                                   modifyInput = FALSE)
 #'                                 
 #' @name transp_modes
 transp_transpirationGranier <- function(x, meteo, day, latitude, elevation, slope, aspect, modifyInput = TRUE) {
@@ -3500,5 +3743,5 @@ woodformation_growRing <- function(ring, psi, Tc, Nc = 8.85, phi0 = 0.13, pi0 = 
 
 # Register entry points for exported C++ functions
 methods::setLoadAction(function(ns) {
-    .Call('_medfate_RcppExport_registerCCallable', PACKAGE = 'medfate')
+    .Call(`_medfate_RcppExport_registerCCallable`)
 })

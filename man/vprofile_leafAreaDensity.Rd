@@ -14,9 +14,9 @@ vprofile_leafAreaDensity(
   SpParams = NULL,
   z = NULL,
   gdd = NA,
-  mode = "MED",
   byCohorts = FALSE,
   bySpecies = FALSE,
+  includeHerbs = FALSE,
   draw = TRUE,
   xlim = NULL
 )
@@ -35,7 +35,6 @@ vprofile_fuelBulkDensity(
   SpParams,
   z = NULL,
   gdd = NA,
-  mode = "MED",
   draw = TRUE,
   xlim = NULL
 )
@@ -45,7 +44,7 @@ vprofile_PARExtinction(
   SpParams,
   z = NULL,
   gdd = NA,
-  mode = "MED",
+  includeHerbs = FALSE,
   draw = TRUE,
   xlim = c(0, 100)
 )
@@ -55,7 +54,7 @@ vprofile_SWRExtinction(
   SpParams,
   z = NULL,
   gdd = NA,
-  mode = "MED",
+  includeHerbs = FALSE,
   draw = TRUE,
   xlim = c(0, 100)
 )
@@ -69,7 +68,7 @@ vprofile_windExtinction(
   target = "windspeed",
   z = NULL,
   gdd = NA,
-  mode = "MED",
+  includeHerbs = FALSE,
   draw = TRUE,
   xlim = NULL
 )
@@ -83,11 +82,11 @@ vprofile_windExtinction(
 
 \item{gdd}{Growth degree days.}
 
-\item{mode}{Calculation mode, either "MED" or "US".}
-
 \item{byCohorts}{Separate profiles for each cohort.}
 
 \item{bySpecies}{Aggregate cohort profiles by species.}
+
+\item{includeHerbs}{Include herbaceous layer in the profile.}
 
 \item{draw}{Logical flag to indicate that a plot is desired.}
 

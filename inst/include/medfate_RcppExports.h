@@ -24,17 +24,17 @@ namespace medfate {
         }
     }
 
-    inline double mortality_dailyProbability(double basalMortalityRate, double stressValue, double stressThreshold, double minValue = 0.0, double exponent = 10.0) {
-        typedef SEXP(*Ptr_mortality_dailyProbability)(SEXP,SEXP,SEXP,SEXP,SEXP);
+    inline double mortality_dailyProbability(double stressValue, double stressThreshold) {
+        typedef SEXP(*Ptr_mortality_dailyProbability)(SEXP,SEXP);
         static Ptr_mortality_dailyProbability p_mortality_dailyProbability = NULL;
         if (p_mortality_dailyProbability == NULL) {
-            validateSignature("double(*mortality_dailyProbability)(double,double,double,double,double)");
+            validateSignature("double(*mortality_dailyProbability)(double,double)");
             p_mortality_dailyProbability = (Ptr_mortality_dailyProbability)R_GetCCallable("medfate", "_medfate_mortality_dailyProbability");
         }
         RObject rcpp_result_gen;
         {
             RNGScope RCPP_rngScope_gen;
-            rcpp_result_gen = p_mortality_dailyProbability(Shield<SEXP>(Rcpp::wrap(basalMortalityRate)), Shield<SEXP>(Rcpp::wrap(stressValue)), Shield<SEXP>(Rcpp::wrap(stressThreshold)), Shield<SEXP>(Rcpp::wrap(minValue)), Shield<SEXP>(Rcpp::wrap(exponent)));
+            rcpp_result_gen = p_mortality_dailyProbability(Shield<SEXP>(Rcpp::wrap(stressValue)), Shield<SEXP>(Rcpp::wrap(stressThreshold)));
         }
         if (rcpp_result_gen.inherits("interrupted-error"))
             throw Rcpp::internal::InterruptedException();
@@ -45,17 +45,17 @@ namespace medfate {
         return Rcpp::as<double >(rcpp_result_gen);
     }
 
-    inline List growth_day(List x, CharacterVector date, double tmin, double tmax, double rhmin, double rhmax, double rad, double wind, double latitude, double elevation, double slope, double aspect, double prec, double CO2 = NA_REAL, double runon = 0.0, bool modifyInput = true) {
-        typedef SEXP(*Ptr_growth_day)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
+    inline List growth_day(List x, CharacterVector date, NumericVector meteovec, double latitude, double elevation, double slope, double aspect, double runon = 0.0, bool modifyInput = true) {
+        typedef SEXP(*Ptr_growth_day)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
         static Ptr_growth_day p_growth_day = NULL;
         if (p_growth_day == NULL) {
-            validateSignature("List(*growth_day)(List,CharacterVector,double,double,double,double,double,double,double,double,double,double,double,double,double,bool)");
+            validateSignature("List(*growth_day)(List,CharacterVector,NumericVector,double,double,double,double,double,bool)");
             p_growth_day = (Ptr_growth_day)R_GetCCallable("medfate", "_medfate_growth_day");
         }
         RObject rcpp_result_gen;
         {
             RNGScope RCPP_rngScope_gen;
-            rcpp_result_gen = p_growth_day(Shield<SEXP>(Rcpp::wrap(x)), Shield<SEXP>(Rcpp::wrap(date)), Shield<SEXP>(Rcpp::wrap(tmin)), Shield<SEXP>(Rcpp::wrap(tmax)), Shield<SEXP>(Rcpp::wrap(rhmin)), Shield<SEXP>(Rcpp::wrap(rhmax)), Shield<SEXP>(Rcpp::wrap(rad)), Shield<SEXP>(Rcpp::wrap(wind)), Shield<SEXP>(Rcpp::wrap(latitude)), Shield<SEXP>(Rcpp::wrap(elevation)), Shield<SEXP>(Rcpp::wrap(slope)), Shield<SEXP>(Rcpp::wrap(aspect)), Shield<SEXP>(Rcpp::wrap(prec)), Shield<SEXP>(Rcpp::wrap(CO2)), Shield<SEXP>(Rcpp::wrap(runon)), Shield<SEXP>(Rcpp::wrap(modifyInput)));
+            rcpp_result_gen = p_growth_day(Shield<SEXP>(Rcpp::wrap(x)), Shield<SEXP>(Rcpp::wrap(date)), Shield<SEXP>(Rcpp::wrap(meteovec)), Shield<SEXP>(Rcpp::wrap(latitude)), Shield<SEXP>(Rcpp::wrap(elevation)), Shield<SEXP>(Rcpp::wrap(slope)), Shield<SEXP>(Rcpp::wrap(aspect)), Shield<SEXP>(Rcpp::wrap(runon)), Shield<SEXP>(Rcpp::wrap(modifyInput)));
         }
         if (rcpp_result_gen.inherits("interrupted-error"))
             throw Rcpp::internal::InterruptedException();
@@ -169,6 +169,27 @@ namespace medfate {
         if (rcpp_result_gen.inherits("try-error"))
             throw Rcpp::exception(Rcpp::as<std::string>(rcpp_result_gen).c_str());
         return Rcpp::as<NumericVector >(rcpp_result_gen);
+    }
+
+    inline double hydrology_herbaceousTranspiration(double pet, double LherbSWR, double herbLAI, List soil, String soilFunctions, bool modifySoil = true) {
+        typedef SEXP(*Ptr_hydrology_herbaceousTranspiration)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
+        static Ptr_hydrology_herbaceousTranspiration p_hydrology_herbaceousTranspiration = NULL;
+        if (p_hydrology_herbaceousTranspiration == NULL) {
+            validateSignature("double(*hydrology_herbaceousTranspiration)(double,double,double,List,String,bool)");
+            p_hydrology_herbaceousTranspiration = (Ptr_hydrology_herbaceousTranspiration)R_GetCCallable("medfate", "_medfate_hydrology_herbaceousTranspiration");
+        }
+        RObject rcpp_result_gen;
+        {
+            RNGScope RCPP_rngScope_gen;
+            rcpp_result_gen = p_hydrology_herbaceousTranspiration(Shield<SEXP>(Rcpp::wrap(pet)), Shield<SEXP>(Rcpp::wrap(LherbSWR)), Shield<SEXP>(Rcpp::wrap(herbLAI)), Shield<SEXP>(Rcpp::wrap(soil)), Shield<SEXP>(Rcpp::wrap(soilFunctions)), Shield<SEXP>(Rcpp::wrap(modifySoil)));
+        }
+        if (rcpp_result_gen.inherits("interrupted-error"))
+            throw Rcpp::internal::InterruptedException();
+        if (Rcpp::internal::isLongjumpSentinel(rcpp_result_gen))
+            throw Rcpp::LongjumpException(rcpp_result_gen);
+        if (rcpp_result_gen.inherits("try-error"))
+            throw Rcpp::exception(Rcpp::as<std::string>(rcpp_result_gen).c_str());
+        return Rcpp::as<double >(rcpp_result_gen);
     }
 
     inline double _hydrology_infiltrationAmount(double input, double Ssoil) {
@@ -884,17 +905,17 @@ namespace medfate {
         return Rcpp::as<NumericVector >(rcpp_result_gen);
     }
 
-    inline List spwb_day(List x, CharacterVector date, double tmin, double tmax, double rhmin, double rhmax, double rad, double wind, double latitude, double elevation, double slope, double aspect, double prec, double CO2 = NA_REAL, double runon = 0.0, bool modifyInput = true) {
-        typedef SEXP(*Ptr_spwb_day)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
+    inline List spwb_day(List x, CharacterVector date, NumericVector meteovec, double latitude, double elevation, double slope, double aspect, double runon = 0.0, bool modifyInput = true) {
+        typedef SEXP(*Ptr_spwb_day)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
         static Ptr_spwb_day p_spwb_day = NULL;
         if (p_spwb_day == NULL) {
-            validateSignature("List(*spwb_day)(List,CharacterVector,double,double,double,double,double,double,double,double,double,double,double,double,double,bool)");
+            validateSignature("List(*spwb_day)(List,CharacterVector,NumericVector,double,double,double,double,double,bool)");
             p_spwb_day = (Ptr_spwb_day)R_GetCCallable("medfate", "_medfate_spwb_day");
         }
         RObject rcpp_result_gen;
         {
             RNGScope RCPP_rngScope_gen;
-            rcpp_result_gen = p_spwb_day(Shield<SEXP>(Rcpp::wrap(x)), Shield<SEXP>(Rcpp::wrap(date)), Shield<SEXP>(Rcpp::wrap(tmin)), Shield<SEXP>(Rcpp::wrap(tmax)), Shield<SEXP>(Rcpp::wrap(rhmin)), Shield<SEXP>(Rcpp::wrap(rhmax)), Shield<SEXP>(Rcpp::wrap(rad)), Shield<SEXP>(Rcpp::wrap(wind)), Shield<SEXP>(Rcpp::wrap(latitude)), Shield<SEXP>(Rcpp::wrap(elevation)), Shield<SEXP>(Rcpp::wrap(slope)), Shield<SEXP>(Rcpp::wrap(aspect)), Shield<SEXP>(Rcpp::wrap(prec)), Shield<SEXP>(Rcpp::wrap(CO2)), Shield<SEXP>(Rcpp::wrap(runon)), Shield<SEXP>(Rcpp::wrap(modifyInput)));
+            rcpp_result_gen = p_spwb_day(Shield<SEXP>(Rcpp::wrap(x)), Shield<SEXP>(Rcpp::wrap(date)), Shield<SEXP>(Rcpp::wrap(meteovec)), Shield<SEXP>(Rcpp::wrap(latitude)), Shield<SEXP>(Rcpp::wrap(elevation)), Shield<SEXP>(Rcpp::wrap(slope)), Shield<SEXP>(Rcpp::wrap(aspect)), Shield<SEXP>(Rcpp::wrap(runon)), Shield<SEXP>(Rcpp::wrap(modifyInput)));
         }
         if (rcpp_result_gen.inherits("interrupted-error"))
             throw Rcpp::internal::InterruptedException();
@@ -926,17 +947,17 @@ namespace medfate {
         return Rcpp::as<List >(rcpp_result_gen);
     }
 
-    inline List pwb(List x, DataFrame meteo, NumericMatrix W, double latitude, double elevation = NA_REAL, double slope = NA_REAL, double aspect = NA_REAL, NumericVector canopyEvaporation = NumericVector(0), NumericVector snowMelt = NumericVector(0), NumericVector soilEvaporation = NumericVector(0), NumericVector CO2ByYear = NumericVector(0)) {
-        typedef SEXP(*Ptr_pwb)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
+    inline List pwb(List x, DataFrame meteo, NumericMatrix W, double latitude, double elevation = NA_REAL, double slope = NA_REAL, double aspect = NA_REAL, NumericVector canopyEvaporation = NumericVector(0), NumericVector snowMelt = NumericVector(0), NumericVector soilEvaporation = NumericVector(0), NumericVector herbTranspiration = NumericVector(0), NumericVector CO2ByYear = NumericVector(0)) {
+        typedef SEXP(*Ptr_pwb)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
         static Ptr_pwb p_pwb = NULL;
         if (p_pwb == NULL) {
-            validateSignature("List(*pwb)(List,DataFrame,NumericMatrix,double,double,double,double,NumericVector,NumericVector,NumericVector,NumericVector)");
+            validateSignature("List(*pwb)(List,DataFrame,NumericMatrix,double,double,double,double,NumericVector,NumericVector,NumericVector,NumericVector,NumericVector)");
             p_pwb = (Ptr_pwb)R_GetCCallable("medfate", "_medfate_pwb");
         }
         RObject rcpp_result_gen;
         {
             RNGScope RCPP_rngScope_gen;
-            rcpp_result_gen = p_pwb(Shield<SEXP>(Rcpp::wrap(x)), Shield<SEXP>(Rcpp::wrap(meteo)), Shield<SEXP>(Rcpp::wrap(W)), Shield<SEXP>(Rcpp::wrap(latitude)), Shield<SEXP>(Rcpp::wrap(elevation)), Shield<SEXP>(Rcpp::wrap(slope)), Shield<SEXP>(Rcpp::wrap(aspect)), Shield<SEXP>(Rcpp::wrap(canopyEvaporation)), Shield<SEXP>(Rcpp::wrap(snowMelt)), Shield<SEXP>(Rcpp::wrap(soilEvaporation)), Shield<SEXP>(Rcpp::wrap(CO2ByYear)));
+            rcpp_result_gen = p_pwb(Shield<SEXP>(Rcpp::wrap(x)), Shield<SEXP>(Rcpp::wrap(meteo)), Shield<SEXP>(Rcpp::wrap(W)), Shield<SEXP>(Rcpp::wrap(latitude)), Shield<SEXP>(Rcpp::wrap(elevation)), Shield<SEXP>(Rcpp::wrap(slope)), Shield<SEXP>(Rcpp::wrap(aspect)), Shield<SEXP>(Rcpp::wrap(canopyEvaporation)), Shield<SEXP>(Rcpp::wrap(snowMelt)), Shield<SEXP>(Rcpp::wrap(soilEvaporation)), Shield<SEXP>(Rcpp::wrap(herbTranspiration)), Shield<SEXP>(Rcpp::wrap(CO2ByYear)));
         }
         if (rcpp_result_gen.inherits("interrupted-error"))
             throw Rcpp::internal::InterruptedException();

@@ -467,10 +467,10 @@ double ECapacitance(double psi, double psiPrev, double PLCprev,
   double m3tommol = 55555556.0;
   double RWCprev = tissueRelativeWaterContent(psiPrev, pi0, eps,
                                               psiPrev, c, d,
-                                              fapo, PLCprev);
+                                              fapo);
   double RWC = tissueRelativeWaterContent(psi, pi0, eps,
                                           psi, c, d,
-                                          fapo, PLCprev);
+                                          fapo);
   return(((m3tommol*V)/timestep)*(RWCprev-RWC));
 }
 
@@ -2483,6 +2483,9 @@ double averageRhizosphereResistancePercent(double krhizomax, double n, double al
   }
   return(sum/cnt);
 }
+
+
+
 
 //' @rdname hydraulics_scalingconductance
 // [[Rcpp::export("hydraulics_findRhizosphereMaximumConductance")]]

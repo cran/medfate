@@ -11,6 +11,7 @@
 \alias{moisture_apoplasticRWC}
 \alias{moisture_apoplasticPsi}
 \alias{moisture_tissueRWC}
+\alias{plant_water}
 \alias{moisture_pressureVolumeCurvePlot}
 \title{Tissue moisture functions}
 \usage{
@@ -28,11 +29,13 @@ moisture_apoplasticRWC(psiApo, c, d)
 
 moisture_apoplasticPsi(RWC, c, d)
 
-moisture_tissueRWC(psiSym, pi0, epsilon, psiApo, c, d, af, femb = 0)
+moisture_tissueRWC(psiSym, pi0, epsilon, psiApo, c, d, af)
+
+plant_water(x)
 
 moisture_pressureVolumeCurvePlot(
   x,
-  segment = "leaf",
+  segment = "stem",
   fraction = "all",
   psiVec = seq(-0.1, -8, by = -0.01),
   speciesNames = FALSE
@@ -65,11 +68,10 @@ moisture_pressureVolumeCurvePlot(
 
 \item{af}{Apoplastic fraction (proportion) in the segment (e.g. leaf or stem).}
 
-\item{femb}{Fraction of embolized conduits.}
+\item{x}{An object of class \code{\link{spwbInput}} or \code{\link{growthInput}}.}
 
-\item{x}{An object of class \code{\link{spwbInput}}.}
-
-\item{segment}{Segment whose relative water content curve to plot, either \code{"stem"} or \code{"leaf"}.}
+\item{segment}{Segment whose relative water content curve to plot, either \code{"stem"} or \code{"leaf"}
+(the latter only available if \code{transpirationMode = "Sperry"} or \code{transpirationMode = "Cochard"}).}
 
 \item{fraction}{Tissue fraction, either \code{"symplastic"}, \code{"apoplastic"} or \code{"all"}.}
 
@@ -86,6 +88,7 @@ Values returned for each function are:
   \item{\code{moisture_apoplasticWaterPotential}: Water potential (in MPa) of the apoplastic fraction.}
   \item{\code{moisture_turgorLossPoint}: Water potential (in MPa) corresponding to turgor loss point.}
   \item{\code{moisture_segmentRWC}: Segment relative water content [0-1].}
+  \item{\code{water_plant}: A vector of water content (mm) per plant cohort.}
 }
 }
 \description{

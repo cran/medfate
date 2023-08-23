@@ -71,7 +71,6 @@ NumericVector parcohort(IntegerVector SP, NumericVector H, NumericVector CR, Num
 //' @param SpParams A data frame with species parameters (see \code{\link{SpParamsMED}}).
 //' @param z A numeric vector with height values.
 //' @param gdd Growth degree days.
-//' @param mode Calculation mode, either "MED" or "US".
 //' 
 //' @details
 //' Functions for short-wave radiation are adapted from Anten & Bastiaans (2016), 
@@ -157,9 +156,8 @@ NumericVector parcohort(IntegerVector SP, NumericVector H, NumericVector CR, Num
 //'   
 //' @name light
 // [[Rcpp::export("light_PARcohort")]]
-NumericVector PARcohort(List x, DataFrame SpParams, double gdd = NA_REAL,
-                        String mode = "MED") {
-  DataFrame above = forest2aboveground(x, SpParams, gdd, mode);
+NumericVector PARcohort(List x, DataFrame SpParams, double gdd = NA_REAL) {
+  DataFrame above = forest2aboveground(x, SpParams, gdd, false);
   IntegerVector SP = above["SP"];
   NumericVector H = above["H"];
   NumericVector LAI = above["LAI_expanded"];
@@ -191,9 +189,8 @@ NumericVector swrheight(NumericVector heights, IntegerVector SP, NumericVector H
 }
 
 // [[Rcpp::export(".parheight")]]
-NumericVector parheight(NumericVector z, List x, DataFrame SpParams, double gdd = NA_REAL,
-                                   String mode = "MED") {
-  DataFrame above = forest2aboveground(x, SpParams, gdd, mode);
+NumericVector parheight(NumericVector z, List x, DataFrame SpParams, double gdd = NA_REAL) {
+  DataFrame above = forest2aboveground(x, SpParams, gdd, false);
   IntegerVector SP = above["SP"];
   NumericVector H = above["H"];
   NumericVector LAI = above["LAI_expanded"];
@@ -203,14 +200,29 @@ NumericVector parheight(NumericVector z, List x, DataFrame SpParams, double gdd 
 
 //' @rdname light
 // [[Rcpp::export("light_PARground")]]
-NumericVector PARground(List x, DataFrame SpParams, double gdd = NA_REAL,
-                        String mode = "MED") {
-  return(parheight(NumericVector::create(0.0), x, SpParams, gdd, mode));
+double PARground(List x, DataFrame SpParams, double gdd = NA_REAL) {
+  DataFrame above = forest2aboveground(x, SpParams, gdd, false);
+  NumericVector LAIlive = above["LAI_live"];
+  double woodyLAI = sum(LAIlive); //For herb LAI correction
+  NumericVector LAIphe = above["LAI_expanded"];
+  NumericVector LAIdead = above["LAI_dead"];
+  IntegerVector SP = above["SP"];
+  NumericVector kPAR = speciesNumericParameterWithImputation(SP, SpParams, "kPAR", true);
+  int numCohorts = LAIphe.size();
+  double s = 0.0;
+  for(int c=0;c<numCohorts;c++) {
+    s += (kPAR[c]*(LAIphe[c]+LAIdead[c]));
+  }
+  //Herb layer effects on light extinction and interception
+  s += 0.5*herbLAIAllometric(x["herbCover"], x["herbHeight"], woodyLAI);
+  //Percentage of irradiance reaching the ground
+  double LgroundPAR = 100.0*exp((-1.0)*s);
+  return(LgroundPAR);
 }
+
 // [[Rcpp::export(".swrheight")]]
-NumericVector swrheight(NumericVector z, List x, DataFrame SpParams, double gdd = NA_REAL,
-                        String mode = "MED") {
-  DataFrame above = forest2aboveground(x, SpParams, gdd, mode);
+NumericVector swrheight(NumericVector z, List x, DataFrame SpParams, double gdd = NA_REAL) {
+  DataFrame above = forest2aboveground(x, SpParams, gdd, false);
   IntegerVector SP = above["SP"];
   NumericVector H = above["H"];
   NumericVector LAI = above["LAI_expanded"];
@@ -220,31 +232,60 @@ NumericVector swrheight(NumericVector z, List x, DataFrame SpParams, double gdd 
 
 //' @rdname light
 // [[Rcpp::export("light_SWRground")]]
-NumericVector SWRground(List x, DataFrame SpParams, double gdd = NA_REAL,
-                        String mode = "MED") {
-  return(swrheight(NumericVector::create(0.0), x, SpParams, gdd, mode));
+double SWRground(List x, DataFrame SpParams, double gdd = NA_REAL) {
+  DataFrame above = forest2aboveground(x, SpParams, gdd, false);
+  NumericVector LAIphe = above["LAI_expanded"];
+  NumericVector LAIlive = above["LAI_live"];
+  double woodyLAI = sum(LAIlive);
+  NumericVector LAIdead = above["LAI_dead"];
+  IntegerVector SP = above["SP"];
+  NumericVector kPAR = speciesNumericParameterWithImputation(SP, SpParams, "kPAR", true);
+  int numCohorts = LAIphe.size();
+  double s = 0.0;
+  for(int c=0;c<numCohorts;c++) {
+    s += (kPAR[c]*(LAIphe[c]+LAIdead[c]));
+  }
+  //Herb layer effects on light extinction and interception
+  s += 0.5*herbLAIAllometric(x["herbCover"], x["herbHeight"], woodyLAI);
+  //Percentage of irradiance reaching the ground
+  double LgroundSWR = 100.0*exp((-1.0)*s/1.35);
+  return(LgroundSWR);
 }
 
 
 // [[Rcpp::export(".parExtinctionProfile")]]
-NumericVector parExtinctionProfile(NumericVector z, List x, DataFrame SpParams, double gdd = NA_REAL,
-                                   String mode = "MED") {
-  DataFrame above = forest2aboveground(x, SpParams, gdd, mode);
+NumericVector parExtinctionProfile(NumericVector z, List x, DataFrame SpParams, double gdd = NA_REAL, bool includeHerbs = false) {
+  DataFrame above = forest2aboveground(x, SpParams, gdd, false);
   IntegerVector SP = above["SP"];
   NumericVector H = above["H"];
   NumericVector LAI = above["LAI_expanded"];
+  NumericVector LAIlive = above["LAI_live"];
+  double woodyLAI = sum(LAIlive);
   NumericVector CR = above["CR"];
+  if(includeHerbs) {
+    SP.push_back(0);
+    H.push_back(x["herbHeight"]);
+    LAI.push_back(herbLAIAllometric(x["herbCover"], x["herbHeight"], woodyLAI));
+    CR.push_back(1.0);
+  }
   return(parheight(z, SP, H, CR, LAI, SpParams));
 }
 
 // [[Rcpp::export(".swrExtinctionProfile")]]
-NumericVector swrExtinctionProfile(NumericVector z, List x, DataFrame SpParams, double gdd = NA_REAL,
-                                   String mode = "MED") {
-  DataFrame above = forest2aboveground(x, SpParams,  gdd, mode);
+NumericVector swrExtinctionProfile(NumericVector z, List x, DataFrame SpParams, double gdd = NA_REAL, bool includeHerbs = false) {
+  DataFrame above = forest2aboveground(x, SpParams,  gdd, false);
   IntegerVector SP = above["SP"];
   NumericVector H = above["H"];
   NumericVector LAI = above["LAI_expanded"];
+  NumericVector LAIlive = above["LAI_live"];
+  double woodyLAI = sum(LAIlive);
   NumericVector CR = above["CR"];
+  if(includeHerbs) {
+    SP.push_back(0);
+    H.push_back(x["herbHeight"]);
+    LAI.push_back(herbLAIAllometric(x["herbCover"], x["herbHeight"], woodyLAI));
+    CR.push_back(1.0);
+  }
   return(swrheight(z, SP, H, CR, LAI, SpParams));
 }
 

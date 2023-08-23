@@ -26,28 +26,38 @@ pwb(
   canopyEvaporation = numeric(0),
   snowMelt = numeric(0),
   soilEvaporation = numeric(0),
+  herbTranspiration = numeric(0),
   CO2ByYear = numeric(0)
 )
 }
 \arguments{
 \item{x}{An object of class \code{\link{spwbInput}}.}
 
-\item{meteo}{A data frame with daily meteorological data series. Row names of the data frame should correspond to date strings with format "yyyy-mm-dd" (see \code{\link{Date}}). 
-The following columns are required:
+\item{meteo}{A data frame with daily meteorological data series. 
+Row names of the data frame should correspond to date strings with format "yyyy-mm-dd" (see \code{\link{Date}}). Alternatively,
+a column \code{dates} can contain \code{\link{Date}} or \code{\link{POSIXct}} classes.
+The following columns are required and cannot have missing values:
   \itemize{
     \item{\code{MinTemperature}: Minimum temperature (in degrees Celsius).}
     \item{\code{MaxTemperature}: Maximum temperature (in degrees Celsius).}
+    \item{\code{Precipitation}: Precipitation (in mm).}
+  }
+The following columns are required but can contain missing values (NOTE: missing values will raise warnings):
+  \itemize{
     \item{\code{MinRelativeHumidity}: Minimum relative humidity (in percent).}
     \item{\code{MaxRelativeHumidity}: Maximum relative humidity (in percent).}
-    \item{\code{Precipitation}: Precipitation (in mm).}
-    \item{\code{Radiation}: Solar radiation (in MJ/m2/day), required only if \code{snowpack = TRUE}.}
-    \item{\code{WindSpeed}: Wind speed (in m/s). If not available, this column can be left with \code{NA} values.}
-    \item{\code{CO2}: Atmospheric (abovecanopy) CO2 concentration (in ppm). This column may not exist, or can be left with \code{NA} values. In both cases simulations will assume a constant value specified in \code{\link{defaultControl}}.}
+    \item{\code{Radiation}: Solar radiation (in MJ/m2/day).}
+  }
+The following columns are optional:
+  \itemize{
+    \item{\code{WindSpeed}: Above-canopy wind speed (in m/s). This column may not exist, or can be left with \code{NA} values. In both cases simulations will assume a constant value specified in \code{\link{defaultControl}}.}
+    \item{\code{CO2}: Atmospheric (above-canopy) CO2 concentration (in ppm). This column may not exist, or can be left with \code{NA} values. In both cases simulations will assume a constant value specified in \code{\link{defaultControl}}.}
+    \item{\code{Patm}: Atmospheric pressure (in kPa). This column may not exist, or can be left with \code{NA} values. In both cases, a value is estimated from elevation.}
   }}
 
 \item{latitude}{Latitude (in degrees).}
 
-\item{elevation, slope, aspect}{Elevation above sea level (in m), slope (in degrees) and aspect (in degrees from North). Required when using the 'Sperry' transpiration mode. Elevation is also required for 'Granier' if snowpack dynamics are simulated.}
+\item{elevation, slope, aspect}{Elevation above sea level (in m), slope (in degrees) and aspect (in degrees from North).}
 
 \item{CO2ByYear}{A named numeric vector with years as names and atmospheric CO2 concentration (in ppm) as values. Used to specify annual changes in CO2 concentration along the simulation (as an alternative to specifying daily values in \code{meteo}).}
 
@@ -58,9 +68,11 @@ The following columns are required:
 \item{snowMelt}{A vector of daily snow melt values (mm). The length should match the number of rows in \code{meteo}.}
 
 \item{soilEvaporation}{A vector of daily bare soil evaporation values (mm). The length should match the number of rows in \code{meteo}.}
+
+\item{herbTranspiration}{A vector of daily herbaceous transpiration values (mm). The length should match the number of rows in \code{meteo}.}
 }
 \value{
-Function \code{spwb} returns a list of class 'spwb' whereas Function \code{pwb} returns a list of class 'pwb'. 
+Function \code{spwb} returns a list of class 'spwb' whereas function \code{pwb} returns a list of class 'pwb'. 
 There are many elements in common in these lists, so they are listed here together:
 \itemize{
   \item{\code{"latitude"}: Latitude (in degrees) given as input.} 
@@ -80,13 +92,13 @@ There are many elements in common in these lists, so they are listed here togeth
     \item{\code{"DeepDrainage"}: The amount of water exported via deep drainage (in mm).}
     \item{\code{"Evapotranspiration"}: Evapotranspiration (in mm).}
     \item{\code{"SoilEvaporation"}: Bare soil evaporation (in mm).}
-    \item{\code{"PlantExtraction"}: Amount of water extracted from soil by plants (in mm) (can only be different from transpiration for \code{transpirationMode = "Sperry"} when capacitance is considered).}
-    \item{\code{"Transpiration"}: Plant transpiration (considering all soil layers) (in mm).}
-    \item{\code{"HydraulicRedistribution"}: Water redistributed among soil layers, transported through the plant hydraulic network (only for \code{transpirationMode = "Sperry"}).}
-    
+    \item{\code{"HerbTranspiration"}: Transpiration due to the herbaceous layer (in mm).}
+    \item{\code{"PlantExtraction"}: Amount of water extracted from soil by woody plants (in mm).}
+    \item{\code{"Transpiration"}: Woody plant transpiration (in mm).}
+    \item{\code{"HydraulicRedistribution"}: Water redistributed among soil layers, transported through the plant hydraulic network.}
   }
-  \item{\code{"EnergyBalance"}: A data frame with the daily values of energy balance components for the soil and the canopy (only for \code{transpirationMode = "Sperry"}).}
-  \item{\code{"Temperature"}: A data frame with the daily values of minimum/mean/maximum temperatures for the atmosphere (input), canopy and soil (only for \code{transpirationMode = "Sperry"}).}
+  \item{\code{"EnergyBalance"}: A data frame with the daily values of energy balance components for the soil and the canopy (only for \code{transpirationMode = "Sperry"} or \code{transpirationMode = "Cochard"}).}
+  \item{\code{"Temperature"}: A data frame with the daily values of minimum/mean/maximum temperatures for the atmosphere (input), canopy and soil (only for \code{transpirationMode = "Sperry"} or \code{transpirationMode = "Cochard"}).}
   \item{\code{"Soil"}: A data frame where different variables (in columns) are given for each simulated day (in rows):}
   \itemize{
     \item{\code{"W.1"}, \code{...}, \code{"W.k"}: Relative soil moisture content (relative to field capacity) in each soil layer.}
@@ -94,15 +106,16 @@ There are many elements in common in these lists, so they are listed here togeth
     \item{\code{"MLTot"}: Total soil water volume (in L/m2).}
     \item{\code{"SWE"}: Snow water equivalent (mm) of the snow pack.}
     \item{\code{"PlantExt.1"}, \code{...}, \code{"PlantExt.k"}: Plant extraction from each soil layer (in mm).}
-    \item{\code{"HydraulicInput.1"}, \code{...}, \code{"HydraulicInput.k"}: Water that entered the layer coming from other layers and transported via the plant hydraulic network (in mm) (only for \code{transpirationMode = "Sperry"}).}
+    \item{\code{"HydraulicInput.1"}, \code{...}, \code{"HydraulicInput.k"}: Water that entered the layer coming from other layers and transported via the plant hydraulic network (in mm).}
     \item{\code{"psi.1"}, \code{...}, \code{"psi.k"}: Soil water potential in each soil layer (in MPa).}
   }
   \item{\code{"Stand"}: A data frame where different variables (in columns) are given for each simulated day (in rows):}
   \itemize{
-    \item{\code{"LAI"}: LAI of the stand (including live and dead leaves) (in m2/m2).}
-    \item{\code{"LAIlive"}: LAI of the stand assuming all leaves are unfolded (in m2/m2).}
-    \item{\code{"LAIexpanded"}: LAI of the stand of leaves actually unfolded (in m2/m2).}
-    \item{\code{"LAIdead"}: LAI of the stand corresponding to dead leaves (in m2/m2).}
+    \item{\code{"LAI"}: LAI of the stand (including the herbaceous layer and live + dead leaves of woody plants) (in m2/m2).}
+    \item{\code{"LAIherb"}: LAI of the herbaceous layer (in m2/m2).}
+    \item{\code{"LAIlive"}: LAI of the woody plants assuming all leaves are unfolded (in m2/m2).}
+    \item{\code{"LAIexpanded"}: LAI of the woody plants with leaves actually unfolded (in m2/m2).}
+    \item{\code{"LAIdead"}: LAI of the woody plants corresponding to dead leaves (in m2/m2).}
     \item{\code{"Cm"}: Water retention capacity of the canopy (in mm) (accounting for leaf phenology).}
     \item{\code{"LgroundPAR"}: The percentage of PAR that reaches the ground (accounting for leaf phenology).}
     \item{\code{"LgroundSWR"}: The percentage of SWR that reaches the ground (accounting for leaf phenology).}
@@ -127,7 +140,7 @@ When \code{transpirationMode = "Granier"}, element \code{"Plants"} is a list wit
     \item{\code{"LFMC"}: A data frame with the daily live fuel moisture content (in percent of dry weight).}
     \item{\code{"PlantStress"}: A data frame with the amount of daily stress [0-1] suffered by each plant cohort (relative whole-plant conductance).}
   }
-If \code{transpirationMode="Sperry"}, element \code{"Plants"} is a list with the following subelements:
+If \code{transpirationMode="Sperry"} or \code{transpirationMode="Cochard"}, element \code{"Plants"} is a list with the following subelements:
   \itemize{
     \item{\code{"LAI"}: A data frame with the daily leaf area index for each plant cohort.}
     \item{\code{"AbsorbedSWR"}: A data frame with the daily SWR absorbed by each plant cohort.}
@@ -164,8 +177,15 @@ during a period specified in the input climatic data. On both simulation functio
 and photosynthesis processes are conducted with different level of detail depending on the transpiration mode.
 }
 \details{
-The model using 'Granier' transpiration mode is illustrated by function \code{\link{transp_transpirationGranier}} and described in De Caceres et al. (2015). 
-Simulations using the 'Sperry' transpiration mode are computationally much more expensive, are described in De Cáceres et al. (2021) and are illustrated by function \code{\link{transp_transpirationSperry}}.
+The simulation functions allow using three different sub-models of transpiration and photosynthesis:
+\itemize{
+  \item{The sub-model corresponding to 'Granier' transpiration mode is illustrated by function \code{\link{transp_transpirationGranier}} and was described in De Caceres et al. (2015),
+  and implements an approach originally described in Granier et al. (1999).} 
+  \item{The sub-model corresponding to 'Sperry' transpiration mode is illustrated by function \code{\link{transp_transpirationSperry}} and was described in De Caceres et al. (2021), and
+  implements a modelling approach originally described in Sperry et al. (2017).}  
+  \item{The sub-model corresponding to 'Cochard' transpiration mode is illustrated by function \code{\link{transp_transpirationCochard}} and was described for model SurEau-Ecos v2.0 in Ruffault et al. (2022).} 
+}
+Simulations using the 'Sperry' or 'Cochard' transpiration mode are computationally much more expensive than 'Granier'.
 }
 \examples{
 #Load example daily meteorological data
@@ -178,16 +198,16 @@ data(exampleforestMED)
 data(SpParamsMED)
 
 #Initialize soil with default soil params (4 layers)
-examplesoil = soil(defaultSoilParams(4))
+examplesoil <- soil(defaultSoilParams(4))
 
 #Initialize control parameters
-control = defaultControl("Granier")
+control <- defaultControl("Granier")
 
 #Initialize input
-x1 = forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
+x1 <- forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
 
 #Call simulation function
-S1<-spwb(x1, examplemeteo, latitude = 41.82592, elevation = 100)
+S1 <- spwb(x1, examplemeteo, latitude = 41.82592, elevation = 100)
 
 #Plot results
 plot(S1)
@@ -197,22 +217,22 @@ summary(S1, freq="months",FUN=mean, output="Soil")
                   
 \donttest{
 #Switch to 'Sperry' transpiration mode
-control = defaultControl("Sperry")
+control <- defaultControl("Sperry")
 
 #Initialize input
-x2 = forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
+x2 <- forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
 
 #Call simulation function
-S2<-spwb(x2, examplemeteo, latitude = 41.82592, elevation = 100)
+S2 <- spwb(x2, examplemeteo, latitude = 41.82592, elevation = 100)
 
-# Run the model with 'Sperry' transpiration mode using the water balance of 
-# simulated with the 'Granier' model
-WS = as.matrix(S1$Soil[, c("W.1", "W.2", "W.3", "W.4")])
-P2<-pwb(x2, examplemeteo, latitude = 41.82592, elevation = 100, 
-        W = WS,
-        canopyEvaporation = S1$WaterBalance$Interception,
-        snowMelt = S1$WaterBalance$Snowmelt,
-        soilEvaporation = S1$WaterBalance$SoilEvaporation)
+#Switch to 'Cochard' transpiration mode
+control <- defaultControl("Cochard")
+
+#Initialize input
+x3 <- forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
+
+#Call simulation function
+S3 <- spwb(x3, examplemeteo, latitude = 41.82592, elevation = 100)
 }
                 
 }
@@ -220,11 +240,22 @@ P2<-pwb(x2, examplemeteo, latitude = 41.82592, elevation = 100,
 De \enc{Cáceres}{Caceres} M, \enc{Martínez}{Martinez}-Vilalta J, Coll L, Llorens P, Casals P, Poyatos R, Pausas JG, Brotons L. (2015) Coupling a water balance model with forest inventory data to predict drought stress: the role of forest structural changes vs. climate changes. Agricultural and Forest Meteorology 213: 77-90 (doi:10.1016/j.agrformet.2015.06.012).
 
 De \enc{Cáceres}{Caceres} M, Mencuccini M, Martin-StPaul N, Limousin JM, Coll L, Poyatos R, Cabon A, Granda V, Forner A, Valladares F, \enc{Martínez}{Martinez}-Vilalta J (2021) Unravelling the effect of species mixing on water use and drought stress in holm oak forests: a modelling approach. Agricultural and Forest Meteorology 296 (doi:10.1016/j.agrformet.2020.108233).
+
+Granier A, \enc{Bréda}{Breda} N, Biron P, Villette S (1999) A lumped water balance model to evaluate duration and intensity of drought constraints in forest stands. Ecol Modell 116:269–283. https://doi.org/10.1016/S0304-3800(98)00205-1.
+
+Ruffault J, Pimont F, Cochard H, Dupuy JL, Martin-StPaul N (2022) 
+SurEau-Ecos v2.0: a trait-based plant hydraulics model for simulations of plant water status and drought-induced mortality at the ecosystem level.
+Geoscientific Model Development 15, 5593-5626 (doi:10.5194/gmd-15-5593-2022).
+
+Sperry, J. S., M. D. Venturas, W. R. L. Anderegg, M. Mencuccini, D. S. Mackay, Y. Wang, and D. M. Love. 2017. Predicting stomatal responses to the environment from the optimization of photosynthetic gain and hydraulic cost. Plant Cell and Environment 40, 816-830 (doi: 10.1111/pce.12852).
 }
 \seealso{
 \code{\link{spwbInput}}, \code{\link{spwb_day}}, \code{\link{plot.spwb}}, 
-\code{\link{spwb_ldrOptimization}}, \code{\link{forest}}
+\code{\link{forest}}
 }
 \author{
-Miquel De \enc{Cáceres}{Caceres} Ainsa, CREAF
+\itemize{
+  \item{Miquel De \enc{Cáceres}{Caceres} Ainsa, CREAF}
+  \item{Nicolas Martin-StPaul, URFM-INRAE}
+}
 }

@@ -1,16 +1,19 @@
 Package: medfate
 Type: Package
 Title: Mediterranean Forest Simulation
-Version: 2.9.3
-Date: 2023-03-10
+Version: 3.1.3
+Date: 2023-08-23
 Authors@R: c(
 	person('Miquel', 'De Cáceres', role=c('aut','cre', 'cph'),
 	email='miquelcaceres@gmail.com', comment = c(ORCID = "0000-0001-7132-2080")),
+	person('Nicolas', 'Martin-StPaul', role=c('aut'), comment = c(ORCID = "0000-0001-7574-0108")),
 	person('Víctor', 'Granda', role='aut', comment = c(ORCID = "0000-0002-0469-1991")),
 	person('Antoine', 'Cabon', role='aut', comment = c(ORCID = "0000-0001-6426-1726")),
 	person('Jordi', 'Martínez-Vilalta', role='ctb', comment = c(ORCID = "0000-0002-2332-7298")),
 	person('Maurizio', 'Mencuccini', role='ctb', comment = c(ORCID = "0000-0003-0840-1477")),
-	person('Nicolas', 'Martin-StPaul', role='ctb', comment = c(ORCID = "0000-0001-7574-0108")),
+	person('Julien', 'Ruffault', role='ctb'),
+	person('François', 'Pimont', role='ctb', comment = c(ORCID = "0000-0002-9842-6207")),
+	person('Hervé', 'Cochard', role='ctb', comment = c(ORCID = "0000-0002-2727-7072")),
 	person('Aitor', 'Améztegui', role='ctb', comment = c(ORCID = "0000-0003-2006-1559")),
 	person('Shengli', 'Huang', role='ctb', comment = c(ORCID = "0000-0003-3927-7042")),
 	person('John', 'Burkardt', role='cph', comment = c("Copyright holder of C++ code in 'incgamma.cpp'"))
@@ -20,7 +23,7 @@ License: GPL (>= 2) | LGPL (>= 3)
 URL: https://emf-creaf.github.io/medfate/
 LazyLoad: yes
 Depends: R (>= 3.5.0)
-Imports: ggplot2 (>= 3.0.0), meteoland (>= 0.8.1), Rcpp (>= 1.0.6),
+Imports: ggplot2 (>= 3.0.0), meteoland (>= 2.0.0), Rcpp (>= 1.0.6),
         shiny
 Suggests: testthat (>= 3.0.0), knitr, rmarkdown
 LinkingTo: Rcpp, meteoland
@@ -30,17 +33,20 @@ RoxygenNote: 7.2.3
 BugReports: https://github.com/emf-creaf/medfate/issues
 Config/testthat/edition: 3
 LazyData: true
-Packaged: 2023-03-10 13:28:51 UTC; miquel
+Packaged: 2023-08-23 13:01:45 UTC; miquel
 Author: Miquel De Cáceres [aut, cre, cph]
     (<https://orcid.org/0000-0001-7132-2080>),
+  Nicolas Martin-StPaul [aut] (<https://orcid.org/0000-0001-7574-0108>),
   Víctor Granda [aut] (<https://orcid.org/0000-0002-0469-1991>),
   Antoine Cabon [aut] (<https://orcid.org/0000-0001-6426-1726>),
   Jordi Martínez-Vilalta [ctb] (<https://orcid.org/0000-0002-2332-7298>),
   Maurizio Mencuccini [ctb] (<https://orcid.org/0000-0003-0840-1477>),
-  Nicolas Martin-StPaul [ctb] (<https://orcid.org/0000-0001-7574-0108>),
+  Julien Ruffault [ctb],
+  François Pimont [ctb] (<https://orcid.org/0000-0002-9842-6207>),
+  Hervé Cochard [ctb] (<https://orcid.org/0000-0002-2727-7072>),
   Aitor Améztegui [ctb] (<https://orcid.org/0000-0003-2006-1559>),
   Shengli Huang [ctb] (<https://orcid.org/0000-0003-3927-7042>),
   John Burkardt [cph] (Copyright holder of C++ code in 'incgamma.cpp')
 Maintainer: Miquel De Cáceres <miquelcaceres@gmail.com>
 Repository: CRAN
-Date/Publication: 2023-03-11 09:40:09 UTC
+Date/Publication: 2023-08-23 15:20:06 UTC
