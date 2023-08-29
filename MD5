@@ -1,4 +1,4 @@
-b9e8a76ddc650d7d12020c7e98ad8b0d *DESCRIPTION
+28f5e7a9b7c9dcce205053216d91fc7c *DESCRIPTION
 88b81e677bb5505c6248690180c7e7c2 *LICENSE.note
 bd8c1a417cc2b328d90bb61df00679ef *NAMESPACE
 cd84b16866c234867a4ad34a799b2a3f *R/RcppExports.R
@@ -127,9 +127,9 @@ f7f7b5990a14311c459ca8ffbde16aa1 *src/firebehaviour.cpp
 1dfcc1548b56265a3357f1717e5fee7e *src/forestutils.h
 df15457022b083ac598bb3c69fa7ab00 *src/fuelmoisture.cpp
 64c0d856eeee9c4c510a0bbcf63db74e *src/fuelmoisture.h
-322f32533961ae44e02b7a977113b44f *src/fuelstructure.cpp
+13d0503c4872d517e1d6bd1ab02442c7 *src/fuelstructure.cpp
 b45e4702add08fd9dbd9381aa83ddc8f *src/fuelstructure.h
-f4c98941d1208a8c22610eaf707a7cd3 *src/growth.cpp
+f16771cfcacc32507171b008b65fbb95 *src/growth.cpp
 c928860fdd3942b15087bd1fbecbda65 *src/growth.h
 a4dd4899e0bbabc0eabcc38f61fcbcc9 *src/hydraulics.cpp
 4f51e7b3477f8f27ccb99e5a2ebdc269 *src/hydraulics.h
@@ -155,12 +155,12 @@ bf5128037ba14f2d46abeb4ef5d8cedd *src/root.cpp
 66af5447e4ee2f73c478a50286ff2746 *src/root.h
 c05d359e43809037c2a83368ccd9eb24 *src/soil.cpp
 08c0398bcf3ee05eb9bf2b10ae3a037a *src/soil.h
-5cb6f652bbe1d7df40747c115678cb18 *src/spwb.cpp
+05bfb76cc77aa03767effb283cd2212b *src/spwb.cpp
 a9e53d67efba6d8446817b062da4096a *src/spwb.h
 6ab7abcafc41cac9cfc0b4245879b9c4 *src/tissuemoisture.cpp
 e3dee6637a013f9e3e2a68e69189a13d *src/tissuemoisture.h
 51110580a1332326d0e44b9cdc580d30 *src/transpiration.h
-73536c4a8acefde99dca131cb3c8bc8e *src/transpiration_advanced.cpp
+1197029955e3fa59d36f91ee1ff55391 *src/transpiration_advanced.cpp
 98cf8beb1688d23dbbdc719b9a844bf3 *src/transpiration_basic.cpp
 d0a76dc039f94c65acdb43838388c36a *src/windKatul.cpp
 076cb7a79f548db0d36d6ee9e6f07908 *src/windKatul.h
@@ -169,7 +169,6 @@ afc51bc82449f090206ee31845b2f7c7 *src/windextinction.h
 2130422845389c391e836216ec34f4e7 *src/woodformation.cpp
 3b79339bc1d08ea1591c258b344debf4 *src/woodformation.h
 68239081b818c1b3b7c839e6911005f2 *tests/testthat.R
-a07e4be051f7114eb3a6d327a6674c72 *tests/testthat/Rplots.pdf
 16d0685a1f5489681c2316830808ab46 *tests/testthat/test_fordyn.R
 7b8a8f0c82a6f0b57db355f75dd28805 *tests/testthat/test_forest.R
 cab2bab91a7338102a6cac3eb8616232 *tests/testthat/test_growth.R
