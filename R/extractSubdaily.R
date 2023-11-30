@@ -9,7 +9,7 @@
 #' @details This function only works when simulations have been carried using control option 'subdailyResults = TRUE' (see \code{\link{defaultControl}}). Subdaily simulation results will then be stored as elements of the a list called 'subdaily' in the simulation output. Function \code{extractSubdaily} will assemble subdaily results from this list and return them as a data frame. Options for parameter 'output' are the following:
 #' \itemize{
 #'   \item{Functions pwb() and spwb(): "E","Ag","An","dEdP","RootPsi","StemPsi","LeafPsi","StemPLC","StemRWC","LeafRWC","StemSympRWC","LeafSympRWC","PWB", "Temperature", "ExtractionInst".}
-#'   \item{Additional options for shade and sunlit leaves in pwb() and spbw(): Either "SunlitLeaves$x" or "ShadeLeaves$x" where 'x' is one of the following: "Abs_SWR","Net_LWR","E","Ag","An","Ci","Gsw","VPD","Temp","Psi","iWUE".}
+#'   \item{Additional options for shade and sunlit leaves in pwb() and spbw(): Either "SunlitLeaves$x" or "ShadeLeaves$x" where 'x' is one of the following: "Abs_SWR","Abs_PAR","Net_LWR","E","Ag","An","Ci","Gsw","VPD","Temp","Psi","iWUE".}
 #'   \item{Additional options for function growth(): "GrossPhotosynthesis", "MaintenanceRespiration", "GrowthCosts", "LabileCarbonBalance","SugarLeaf", "SugarSapwood", "StarchLeaf", "StarchSapwood","SugarTransport".}
 #' }
 #' 
@@ -19,7 +19,7 @@
 #' 
 #' @seealso \code{\link{summary.spwb}}
 extractSubdaily<-function(x, output = "E", dates = NULL)  {
-  leafTypes= c("Abs_SWR","Net_LWR","E","Ag","An","Ci","Gsw","VPD","Temp","Psi","iWUE")  
+  leafTypes= c("Abs_PAR", "Abs_SWR","Net_LWR","E","Ag","An","Ci","Gsw","VPD","Temp","Psi","iWUE")  
   sunlitTypes = paste("SunlitLeaves",leafTypes, sep="$")
   shadeTypes = paste("ShadeLeaves",leafTypes, sep="$")
   plantTypes = c("E","Ag","An","dEdP","RootPsi",
@@ -89,11 +89,7 @@ extractSubdaily<-function(x, output = "E", dates = NULL)  {
     leafType = strsplit(output,"[$]")[[1]][2]
     m<-data.frame(matrix(nrow = numDates*numSteps, ncol = numCohorts+1))
     for(i in 1:numDates) {
-      if(leafType=="E") {
-        ori1 = x$subdaily[[as.character(dates[i])]]$SunlitLeavesInst$Gsw
-        ori2 = x$subdaily[[as.character(dates[i])]]$SunlitLeavesInst$VPD
-        m[((i-1)*numSteps+1):(i*numSteps), 2:(numCohorts+1)] = t(ori1*ori2) 
-      } else if(leafType=="iWUE") {
+      if(leafType=="iWUE") {
           ori1 = x$subdaily[[as.character(dates[i])]]$SunlitLeavesInst$An
           ori2 = x$subdaily[[as.character(dates[i])]]$SunlitLeavesInst$Gsw
           m[((i-1)*numSteps+1):(i*numSteps), 2:(numCohorts+1)] = t(ori1/ori2) 
@@ -107,11 +103,7 @@ extractSubdaily<-function(x, output = "E", dates = NULL)  {
     leafType = strsplit(output,"[$]")[[1]][2]
     m<-data.frame(matrix(nrow = numDates*numSteps, ncol = numCohorts+1))
     for(i in 1:numDates) {
-      if(leafType=="E") {
-        ori1 = x$subdaily[[as.character(dates[i])]]$ShadeLeavesInst$Gsw
-        ori2 = x$subdaily[[as.character(dates[i])]]$ShadeLeavesInst$VPD
-        m[((i-1)*numSteps+1):(i*numSteps), 2:(numCohorts+1)] = t(ori1*ori2) 
-      } else if(leafType=="iWUE") {
+      if(leafType=="iWUE") {
         ori1 = x$subdaily[[as.character(dates[i])]]$ShadeLeavesInst$An
         ori2 = x$subdaily[[as.character(dates[i])]]$ShadeLeavesInst$Gsw
         m[((i-1)*numSteps+1):(i*numSteps), 2:(numCohorts+1)] = t(ori1/ori2) 
@@ -131,6 +123,6 @@ extractSubdaily<-function(x, output = "E", dates = NULL)  {
     }
     colnames(m) = c("datetime", row.names(ori1))
   }
-  m$datetime = as.character(as.POSIXct(paste(dates[gl(n=numDates, k=numSteps)], times)))
+  m$datetime = as.POSIXct(paste(dates[gl(n=numDates, k=numSteps)], times))
   return(m)
 }

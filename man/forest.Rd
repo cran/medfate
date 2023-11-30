@@ -7,7 +7,7 @@
 \alias{print.summary.forest}
 \title{Forest description}
 \usage{
-emptyforest(ntree = 0, nshrub = 0)
+emptyforest(ntree = 0, nshrub = 0, nseed = 0)
 
 \method{summary}{forest}(object, SpParams, ...)
 
@@ -15,6 +15,8 @@ emptyforest(ntree = 0, nshrub = 0)
 }
 \arguments{
 \item{ntree, nshrub}{Number of tree and shrub cohorts, respectively.}
+
+\item{nseed}{Number of species in the seed bank.}
 
 \item{object}{An object of class \code{forest} has the following structure (see details):
 \itemize{
@@ -37,8 +39,8 @@ emptyforest(ntree = 0, nshrub = 0)
         \item{\code{Z95}: Depth (in mm) corresponding to 95\% of fine roots.}
       }
   }
-  \item{\code{herbCover}: Percent cover of the herb layer.}
-  \item{\code{herbHeight}: Mean height (in cm) of the herb layer.}
+  \item{\code{herbCover}: Percent cover of the herb layer (optional).}
+  \item{\code{herbHeight}: Mean height (in cm) of the herb layer (optional).}
 }}
 
 \item{SpParams}{A data frame with species parameters (see \code{\link{SpParamsMED}}).}

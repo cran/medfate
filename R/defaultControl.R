@@ -114,14 +114,15 @@
 #'    }
 #'   \bold{Forest dynamics} (function \code{\link{fordyn}}):
 #'    \itemize{
+#'      \item{\code{allowSeedBankDynamics [= TRUE]}: Boolean flag to indicate that seed production and seed bank dynamics is simulated.}
 #'      \item{\code{allowRecruitment [= TRUE]}: Boolean flag to indicate that recruitment from seeds is allowed.}
-#'      \item{\code{recruitmentMode [= "stochastic"]}: String describing how recruitment from seeds is applied. Current accepted values are "deterministic" or "stochastic".}
 #'      \item{\code{allowResprouting [= TRUE]}: Boolean flag to indicate that resprouting is allowed.}
+#'      \item{\code{recruitmentMode [= "stochastic"]}: String describing how recruitment from seeds is applied. Current accepted values are "deterministic" or "stochastic".}
 #'      \item{\code{removeEmptyCohorts [= TRUE]}: Boolean flag to indicate the removal of cohorts whose density is too low.}
 #'      \item{\code{minimumTreeCohortDensity [= 1]}: Threshold of tree density resulting in cohort removal.}
 #'      \item{\code{minimumShrubCohortCover [= 0.01]}: Threshold of shrub cover resulting in cohort removal.}
 #'      \item{\code{dynamicallyMergeCohorts [= FALSE]}: Boolean flag to indicate that cohorts should be merged when possible. This option speeds up calculations but results in a loss of cohort identity and reinitialization of many state variables.}
-#'      \item{\code{seedRain [= NULL]}: Vector of species codes whose seed rain is to be simulated. If \code{NULL} the species identity of seed rain is taken from species currently present in the forest stand and with minimum size (see below).}
+#'      \item{\code{seedRain [= NULL]}: Vector of species names whose seed rain is to be added to seed bank, regardless of local seed production.}
 #'      \item{\code{seedProductionTreeHeight [= 300]}: Default minimum tree height for producing seeds (when species parameter \code{SeedProductionHeight} is missing).}
 #'      \item{\code{seedProductionShrubHeight [= 30]}: Default minimum shrub height for producing seeds (when species parameter \code{SeedProductionHeight} is missing).}
 #'      \item{\code{probRecr [= 0.05]}: Default annual probability of seed-recruitment (when species parameter \code{ProbRecr} is missing).}
@@ -226,9 +227,10 @@ defaultControl<-function(transpirationMode = "Granier") {
     ingrowthTreeDensity = 127,
     
     #dynamics
+    allowSeedBankDynamics = TRUE,
     allowRecruitment = TRUE,
-    recruitmentMode = "stochastic",
     allowResprouting = TRUE,
+    recruitmentMode = "stochastic",
     removeEmptyCohorts=TRUE,
     minimumTreeCohortDensity = 1,
     minimumShrubCohortCover = 0.01,

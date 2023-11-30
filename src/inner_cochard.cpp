@@ -272,7 +272,7 @@ List initCochardNetwork(int c, NumericVector LAIphe,
   params.push_back(StemEPS[c], "epsilonSym_Stem"); 
   params.push_back(2e-05, "C_SApoInit"); //Maximum capacitance of the stem apoplasm
   params.push_back(1e-05, "C_LApoInit"); //Maximum capacitance of the leaf apoplasm
-  
+
   network.push_back(params, "params");
   
   //LAI
@@ -451,8 +451,15 @@ void calculateRhizoPsi(int c,
 //' @param network A hydraulic network element of the list returned by \code{initCochardNetworks}
 //' @param dt Smallest time step (seconds)
 //' @param opt Option flag vector
+//' @param cavitationRefill A string indicating how refilling of embolized conduits is done:
+//'           \itemize{
+//'             \item{"none" - no refilling.}
+//'             \item{"annual" - every first day of the year.}
+//'             \item{"rate" - following a rate of new sapwood formation.}
+//'             \item{"total" - instantaneous complete refilling.}
+//'           }
 // [[Rcpp::export("semi_implicit_integration")]]
-void semi_implicit_integration(List network, double dt, NumericVector opt) {
+void semi_implicit_integration(List network, double dt, NumericVector opt, String cavitationRefill = "annual") {
   
   List params = as<Rcpp::List>(network["params"]);
   NumericVector PsiSoil = network["PsiSoil"];
@@ -540,7 +547,7 @@ void semi_implicit_integration(List network, double dt, NumericVector opt) {
   NumericVector k_SoilToStem = network["k_SoilToStem"];
 
   double alpha, Psi_td, Psi_LApo_np1, Psi_SApo_np1, Psi_LSym_np1, Psi_SSym_np1;
-  double psiref;
+  double psirefL, psirefS;
 
   int nwhilecomp = 0; // # count the number of step in while loop (if more than 4 no solution and warning)
   while (((!LcavitWellComputed)||(!ScavitWellComputed)) && (nwhilecomp<delta_L_cavs.size())) {
@@ -585,16 +592,22 @@ void semi_implicit_integration(List network, double dt, NumericVector opt) {
   network["Psi_SSym"] = std::min(-0.00001,Psi_SSym_np1);
 
   //# Cavitation
-  psiref = network["Psi_LApo"];  //# the reference is at current time step for other modes  (implicit, explicit)
-  if(psiref < Psi_LApo_cav) {
-    network["Psi_LApo_cav"] = psiref;
-    network["PLC_Leaf"] = PLC(psiref, VCleaf_slope, VCleaf_P50);
-  }
-
-  psiref = network["Psi_SApo"];  //# The reference is at current time step for other modes (implicit, explicit)
-  if (psiref < Psi_SApo_cav) {
-    network["Psi_SApo_cav"] = psiref;
-    network["PLC_Stem"] = PLC(psiref, VCstem_slope, VCstem_P50);
+  psirefL = network["Psi_LApo"];  //# the reference is at current time step for other modes  (implicit, explicit)
+  psirefS = network["Psi_SApo"];  //# The reference is at current time step for other modes (implicit, explicit)
+  if(cavitationRefill!="total") {
+    if (psirefS < Psi_SApo_cav) {
+      network["Psi_SApo_cav"] = psirefS;
+      network["PLC_Stem"] = PLC(psirefS, VCstem_slope, VCstem_P50);
+    }
+    if(psirefL < Psi_LApo_cav) {
+      network["Psi_LApo_cav"] = psirefL;
+      network["PLC_Leaf"] = PLC(psirefL, VCleaf_slope, VCleaf_P50);
+    }
+  } else { //Immediate refilling
+    network["Psi_SApo_cav"] = psirefS;
+    network["Psi_LApo_cav"] = psirefL;
+    network["PLC_Stem"] = PLC(psirefS, VCstem_slope, VCstem_P50);
+    network["PLC_Leaf"] = PLC(psirefL, VCleaf_slope, VCleaf_P50);
   }
 }
 
@@ -619,7 +632,14 @@ void innerCochard(List x, List input, List output, int n, double tstep,
   String cavitationRefill = control["cavitationRefill"];
   String rhizosphereOverlap = control["rhizosphereOverlap"];
   bool plantWaterPools = (rhizosphereOverlap!="total");
-
+  // bool capacitance = control["capacitance"];
+  // if(!capacitance) {
+  //   opt["CLapo"] = 0.0;
+  //   opt["CTapo"] = 0.0;
+  //   opt["Lsym"] = 0.0;
+  //   opt["Ssym"] = 0.0;
+  // }
+  
   DataFrame cohorts = Rcpp::as<Rcpp::DataFrame>(x["cohorts"]);
   int numCohorts = cohorts.nrow();
   
@@ -864,14 +884,15 @@ void innerCochard(List x, List input, List output, int n, double tstep,
         double gs_SL = gsJarvis(params, PAR_SL(c,n), Temp_SL(c,n));
         double gs_SH = gsJarvis(params, PAR_SH(c,n), Temp_SH(c,n));
         //Rcout<< "  PAR_SL "<< PAR_SL(c,n)<<"  gs_SL "<< gs_SL<<"  PAR_SH "<< PAR_SH(c,n)<<" gs_SH "<< gs_SH<<"\n";
-        GSW_SL(c,n) = gs_SL * regul["regulFact"];
-        GSW_SH(c,n) = gs_SH * regul["regulFact"];
-        
+        gs_SL = gs_SL * regul["regulFact"];
+        gs_SH = gs_SH * regul["regulFact"];
+        GSW_SL(c,n) = gs_SL/1000.0; // From mmol to mol
+        GSW_SH(c,n) = gs_SH/1000.0; // From mmol to mol
         // Stomatal transpiration
-        Gwdiff_SL = 1.0/(1.0/gCR + 1.0/GSW_SL(c,n) + 1.0/gBL); 
-        Gwdiff_SH = 1.0/(1.0/gCR + 1.0/GSW_SH(c,n) + 1.0/gBL); 
+        Gwdiff_SL = 1.0/(1.0/gCR + 1.0/gs_SL + 1.0/gBL); 
+        Gwdiff_SH = 1.0/(1.0/gCR + 1.0/gs_SH + 1.0/gBL); 
         Elim_SL = Gwdiff_SL * VPD_SL(c,n)/Patm;
-        Elim_SH = Gwdiff_SH * VPD_SL(c,n)/Patm;
+        Elim_SH = Gwdiff_SH * VPD_SH(c,n)/Patm;
         network_n["Elim_SL"] = Elim_SL;
         network_n["Elim_SH"] = Elim_SH;
         Elim = ((Elim_SL*LAI_SL[c]) + (Elim_SH*LAI_SH[c]))/LAI; 
@@ -880,9 +901,11 @@ void innerCochard(List x, List input, List output, int n, double tstep,
         
         //Add transpiration sources
         network_n["Einst"] = Elim + Emin_S + Emin_L;
+        network_n["Einst_SL"] = Elim_SL + Emin_L_SL; //For sunlit photosynthesis/transpiration
+        network_n["Einst_SH"] = Elim_SH + Emin_L_SH; //For shade photosynthesis/transpiration
         
         //Effects on water potentials and flows
-        semi_implicit_integration(network_n, dt, opt);
+        semi_implicit_integration(network_n, dt, opt, cavitationRefill);
         update_conductances(network_n);
         update_capacitances(network_n);
 
@@ -932,13 +955,15 @@ void innerCochard(List x, List input, List output, int n, double tstep,
     
 
     //Store leaf values (final substep)
-    E_SL(c,n) = network["Elim_SL"];
-    E_SH(c,n) = network["Elim_SH"];
+    E_SL(c,n) = network["Einst_SL"];
+    E_SH(c,n) = network["Einst_SH"];
     Psi_SH(c,n) = network["Psi_LSym"];
     Psi_SL(c,n) = network["Psi_LSym"];
     dEdPInst(c,n) = network["k_Plant"];
     
     //Sunlit/shade photosynthesis
+    Gwdiff_SL = Patm*(((double) network_n["Einst_SL"])/1000.0)/VPD_SL(c,n); //From mmol to mol
+    Gwdiff_SH = Patm*(((double) network_n["Einst_SH"])/1000.0)/VPD_SH(c,n); //From mmol to mol
     NumericVector LP_SL = leafphotosynthesis(irradianceToPhotonFlux(PAR_SL(c,n))/LAI_SL[c], 
                                              Cair[iLayerSunlit[c]], Gwdiff_SL/1.6, 
                                              std::max(0.0,Temp_SL(c,n)), 
