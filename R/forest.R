@@ -25,6 +25,12 @@
 #'   }
 #'   \item{\code{herbCover}: Percent cover of the herb layer (optional).}
 #'   \item{\code{herbHeight}: Mean height (in cm) of the herb layer (optional).}
+#'   \item{\code{seedBank}: A data frame containing seed bank information with the following columns:
+#'       \itemize{
+#'         \item{\code{Species}: String with species (taxon) name or a non-negative integer for tree species identity (i.e., 0,1,2,...) matching SpParams.}
+#'         \item{\code{Percent}: Amount of seeds in relation to full seed bank (in \%).}
+#'      }
+#'   }
 #' }
 #' 
 #' @param SpParams A data frame with species parameters (see \code{\link{SpParamsMED}}).
@@ -58,17 +64,18 @@
 #' 
 #' @author Miquel De \enc{Cáceres}{Caceres} Ainsa, CREAF
 #' 
-#' @seealso \code{\link{exampleforestMED}}, \code{\link{forest_mergeTrees}},  \code{\link{plot.forest}}
+#' @seealso \code{\link{exampleforest}}, \code{\link{forest_mapWoodyTables}},  \code{\link{forest_mergeTrees}},  
+#' \code{\link{plot.forest}}, \code{\link{tree2forest}}
 #' 
 #' @examples 
-#' data(exampleforestMED)
+#' data(exampleforest)
 #' data(SpParamsMED)
 #' 
-#' # Example forest
-#' exampleforestMED
+#' # Prints forest as a list of data items
+#' exampleforest
 #' 
 #' # Summary of example forest
-#' summary(exampleforestMED, SpParamsMED)
+#' summary(exampleforest, SpParamsMED)
 #' 
 #' @name forest
 
@@ -149,8 +156,13 @@ summary.forest<-function(object, SpParams, ...) {
   s["Herb_fuel"] <- herb_fuelLoading(object, SpParams)
   s["Total_fuel"] <- s[["Tree_fuel"]] + s[["Shrub_fuel"]] + s[["Herb_fuel"]]
   
-  s["PARground"] <- light_PARground(object, SpParams)
-  s["SWRground"] <- light_SWRground(object, SpParams)
+  s["PARground"] <- NA
+  s["SWRground"] <- NA
+  
+  if(all(!is.na(object$treeData$Height)) && all(!is.na(object$shrubData$Height))) {
+    light_PARground(object, SpParams)
+    light_SWRground(object, SpParams)
+  }
   class(s)<-c("summary.forest","list")
   return(s)
 }

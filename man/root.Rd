@@ -147,23 +147,23 @@ Functions to calculate properties of fine/coarse roots within the soil, given ro
 }
 \examples{
 #Load example plot plant data
-data(exampleforestMED)
+data(exampleforest)
 
 #Default species parameterization
 data(SpParamsMED)
 
-ntree = nrow(exampleforestMED$treeData)
+ntree <- nrow(exampleforest$treeData)
 
 #Initialize soil with default soil params
-S = soil(defaultSoilParams())
+s <- defaultSoilParams(4)
 
 #Calculate conic root system for trees
-V1 = root_conicDistribution(Z=rep(2000,ntree), S$dVec)            
+V1 <- root_conicDistribution(Z=rep(2000,ntree), s$widths)            
 print(V1)
      
 #Calculate LDR root system for trees (Schenck & Jackson 2002)
-V2 = root_ldrDistribution(Z50 = rep(200,ntree), 
-                          Z95 = rep(1000,ntree), S$dVec)
+V2 <- root_ldrDistribution(Z50 = rep(200,ntree), 
+                          Z95 = rep(1000,ntree), s$widths)
 print(V2)     
 
 }
@@ -173,7 +173,7 @@ Schenk, H., Jackson, R., 2002. The global biogeography of roots. Ecol. Monogr. 7
 Sperry, J. S., Y. Wang, B. T. Wolfe, D. S. Mackay, W. R. L. Anderegg, N. G. Mcdowell, and W. T. Pockman. 2016. Pragmatic hydraulic theory predicts stomatal responses to climatic water deficits. New Phytologist 212, 577–589.
 }
 \seealso{
-\code{\link{spwb}},  \code{\link{forest2spwbInput}}, \code{\link{soil}}
+\code{\link{spwb}},  \code{\link{spwbInput}}, \code{\link{soil}}
 }
 \author{
 Miquel De \enc{Cáceres}{Caceres} Ainsa, CREAF

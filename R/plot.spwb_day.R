@@ -1,7 +1,7 @@
 #' Plots simulation results for one day
 #' 
 #' Functions to plot the sub-daily simulation results of \code{\link{spwb_day}}, \code{\link{growth_day}} 
-#' or the transpiration calculations of \code{\link{transp_transpirationSperry}} or \code{\link{transp_transpirationCochard}}.
+#' or the transpiration calculations of \code{\link{transp_transpirationSperry}} or \code{\link{transp_transpirationSureau}}.
 #'
 #' @param x An object of class \code{spwb_day}, \code{growth_day} or \code{pwb_day}.
 #' @param type The information to be plotted (see details).
@@ -62,7 +62,7 @@
 #'     \item{\code{"SugarTransport"}: Phloem sugar transport rate.}
 #'   }
 #'   
-#' @note Only for soil plant water balance simulations using \code{transpirationMode = "Sperry"} or \code{transpirationMode = "Cochard"}. This function can be used to display subdaily dynamics of corresponding to single days on \code{\link{spwb}} runs, if control option \code{subdailyResults} is set to \code{TRUE}. See also option \code{subdaily} in \code{\link{plot.spwb}}.
+#' @note Only for soil plant water balance simulations using \code{transpirationMode = "Sperry"} or \code{transpirationMode = "Sureau"}. This function can be used to display subdaily dynamics of corresponding to single days on \code{\link{spwb}} runs, if control option \code{subdailyResults} is set to \code{TRUE}. See also option \code{subdaily} in \code{\link{plot.spwb}}.
 #' 
 #' @author Miquel De \enc{Cáceres}{Caceres} Ainsa, CREAF
 #' 
@@ -74,21 +74,21 @@
 #' data(examplemeteo)
 #' 
 #' #Load example plot plant data
-#' data(exampleforestMED)
+#' data(exampleforest)
 #' 
 #' #Default species parameterization
 #' data(SpParamsMED)
 #' 
-#' #Initialize soil with default soil params (2 layers)
-#' examplesoil <- soil(defaultSoilParams(2), W=c(0.5,0.5))
+#' #Define soil with default soil params (2 layers)
+#' examplesoil <- defaultSoilParams(4)
 #' 
 #' #Switch to 'Sperry' transpiration mode
 #' control <- defaultControl("Sperry")
 #' 
 #' #Simulate one day only
-#' x2 <- forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
+#' x2 <- spwbInput(exampleforest,examplesoil, SpParamsMED, control)
 #' d <- 100
-#' date <- rownames(examplemeteo)[d]
+#' date <- examplemeteo$dates[d]
 #' meteovec <- unlist(examplemeteo[d,])
 #' sd2 <- spwb_day(x2, date, meteovec,
 #'               latitude = 41.82592, elevation = 100, slope= 0, aspect = 0)
@@ -177,6 +177,17 @@ plot.pwb_day<-function(x, type="PlantTranspiration", bySpecies = FALSE,
   }
   else if(type=="RootPsi") {
     OM = PlantsInst$RootPsi
+    if(bySpecies) {
+      lai1 = tapply(Plants$LAI, x$cohorts$Name, sum, na.rm=T)
+      OMlai = sweep(OM, 1, Plants$LAI, "*")
+      m1 = apply(OMlai,2, tapply, x$cohorts$Name, sum, na.rm=T)
+      OM = sweep(m1,1,lai1,"/")
+    } 
+    if(is.null(ylab)) ylab = .getYLab(type)
+    return(.multiple_subday_dynamics(t(OM), ylab = ylab, ylim = ylim))
+  }
+  else if(type=="LeafPLC") {
+    OM = PlantsInst$LeafPLC*100
     if(bySpecies) {
       lai1 = tapply(Plants$LAI, x$cohorts$Name, sum, na.rm=T)
       OMlai = sweep(OM, 1, Plants$LAI, "*")
@@ -338,6 +349,21 @@ plot.pwb_day<-function(x, type="PlantTranspiration", bySpecies = FALSE,
     if(is.null(ylab)) ylab = .getYLab(type)
     return(.multiple_subday_dynamics(t(OM), ylab = ylab, ylim = ylim))
   }
+  else if(type=="LeafLAI") {
+    OM_SL = SunlitLeavesInst$LAI
+    OM_SH = ShadeLeavesInst$LAI
+    if(bySpecies) {
+      lai1 = tapply(Plants$LAI, x$cohorts$Name, sum, na.rm=T)
+      OMlai = sweep(OM_SL, 1, Plants$LAI, "*")
+      m1 = apply(OMlai,2, tapply, x$cohorts$Name, sum, na.rm=T)
+      OM_SL = sweep(m1,1,lai1,"/")
+      OMlai = sweep(OM_SH, 1, Plants$LAI, "*")
+      m1 = apply(OMlai,2, tapply, x$cohorts$Name, sum, na.rm=T)
+      OM_SH = sweep(m1,1,lai1,"/")
+    } 
+    if(is.null(ylab)) ylab=.getYLab(type)
+    return(.multiple_subday_dynamics_sunlit_shade(t(OM_SL), t(OM_SH), ylab = ylab, ylim = ylim))
+  }
   else if(type=="LeafTranspiration") {
     OM_SL = SunlitLeavesInst$E
     OM_SH = ShadeLeavesInst$E
@@ -384,52 +410,56 @@ plot.pwb_day<-function(x, type="PlantTranspiration", bySpecies = FALSE,
     return(.multiple_subday_dynamics_sunlit_shade(t(OM_SL), t(OM_SH), ylab = ylab, ylim = ylim))
   }
   else if(type=="LeafAbsorbedSWR") {
-    OM_SL = SunlitLeavesInst$Abs_SWR
-    OM_SH = ShadeLeavesInst$Abs_SWR
+    OM_SL <- SunlitLeavesInst$Abs_SWR
+    OM_SH <- ShadeLeavesInst$Abs_SWR
     if(bySpecies) {
-      m1 = apply(OM_SL,2, tapply, x$cohorts$Name, sum, na.rm=T)
-      lai1 = apply(x$SunlitLeaves$LAI,2, tapply, x$cohorts$Name, sum, na.rm=T)
-      OM_SL = m1/lai1
-      m1 = apply(OM_SH,2, tapply, x$cohorts$Name, sum, na.rm=T)
-      lai1 = apply(x$ShadeLeaves$LAI,2, tapply, x$cohorts$Name, sum, na.rm=T)
-      OM_SH = m1/lai1
+      m1 <- apply(OM_SL,2, tapply, x$cohorts$Name, sum, na.rm=T)
+      lai1 <- apply(x$SunlitLeavesInst$LAI,2, tapply, x$cohorts$Name, sum, na.rm=T)
+      OM_SL <- m1/lai1
+      m1 <- apply(OM_SH,2, tapply, x$cohorts$Name, sum, na.rm=T)
+      lai1 <- apply(x$ShadeLeavesInst$LAI,2, tapply, x$cohorts$Name, sum, na.rm=T)
+      OM_SH <- m1/lai1
     } else {
-      OM_SL = OM_SL/x$SunlitLeaves$LAI
-      OM_SH = OM_SH/x$ShadeLeaves$LAI
+      OM_SL <- OM_SL/x$SunlitLeavesInst$LAI
+      OM_SH <- OM_SH/x$ShadeLeavesInst$LAI
     }
+    OM_SL[is.na(OM_SL)] <- 0.0
+    OM_SH[is.na(OM_SH)] <- 0.0
     if(is.null(ylab)) ylab=.getYLab(type)
     return(.multiple_subday_dynamics_sunlit_shade(t(OM_SL), t(OM_SH), ylab = ylab, ylim = ylim))
   }
   else if(type=="LeafAbsorbedPAR") {
-    OM_SL = SunlitLeavesInst$Abs_PAR
-    OM_SH = ShadeLeavesInst$Abs_PAR
+    OM_SL <- SunlitLeavesInst$Abs_PAR
+    OM_SH <- ShadeLeavesInst$Abs_PAR
     if(bySpecies) {
-      m1 = apply(OM_SL,2, tapply, x$cohorts$Name, sum, na.rm=T)
-      lai1 = apply(x$SunlitLeaves$LAI,2, tapply, x$cohorts$Name, sum, na.rm=T)
-      OM_SL = m1/lai1
-      m1 = apply(OM_SH,2, tapply, x$cohorts$Name, sum, na.rm=T)
-      lai1 = apply(x$ShadeLeaves$LAI,2, tapply, x$cohorts$Name, sum, na.rm=T)
-      OM_SH = m1/lai1
+      m1 <- apply(OM_SL,2, tapply, x$cohorts$Name, sum, na.rm=T)
+      lai1 <- apply(x$ShadeLeavesInst$LAI,2, tapply, x$cohorts$Name, sum, na.rm=T)
+      OM_SL <- m1/lai1
+      m1 <- apply(OM_SH,2, tapply, x$cohorts$Name, sum, na.rm=T)
+      lai1 <- apply(x$ShadeLeavesInst$LAI,2, tapply, x$cohorts$Name, sum, na.rm=T)
+      OM_SH <- m1/lai1
     } else {
-      OM_SL = OM_SL/x$SunlitLeaves$LAI
-      OM_SH = OM_SH/x$ShadeLeaves$LAI
+      OM_SL <- OM_SL/x$ShadeLeavesInst$LAI
+      OM_SH <- OM_SH/x$ShadeLeavesInst$LAI
     }
+    OM_SL[is.na(OM_SL)] <- 0.0
+    OM_SH[is.na(OM_SH)] <- 0.0
     if(is.null(ylab)) ylab=.getYLab(type)
     return(.multiple_subday_dynamics_sunlit_shade(t(OM_SL), t(OM_SH), ylab = ylab, ylim = ylim))
   }
   else if(type=="LeafNetLWR") {
-    OM_SL = SunlitLeavesInst$Net_LWR
-    OM_SH = ShadeLeavesInst$Net_LWR
+    OM_SL <- SunlitLeavesInst$Net_LWR
+    OM_SH <- ShadeLeavesInst$Net_LWR
     if(bySpecies) {
-      m1 = apply(OM_SL,2, tapply, x$cohorts$Name, sum, na.rm=T)
-      lai1 = apply(x$SunlitLeaves$LAI,2, tapply, x$cohorts$Name, sum, na.rm=T)
-      OM_SL = m1/lai1
-      m1 = apply(OM_SH,2, tapply, x$cohorts$Name, sum, na.rm=T)
-      lai1 = apply(x$ShadeLeaves$LAI,2, tapply, x$cohorts$Name, sum, na.rm=T)
-      OM_SH = m1/lai1
+      m1 <- apply(OM_SL,2, tapply, x$cohorts$Name, sum, na.rm=T)
+      lai1 <- apply(x$ShadeLeavesInst$LAI,2, tapply, x$cohorts$Name, sum, na.rm=T)
+      OM_SL <- m1/lai1
+      m1 <- apply(OM_SH,2, tapply, x$cohorts$Name, sum, na.rm=T)
+      lai1 <- apply(x$ShadeLeavesInst$LAI,2, tapply, x$cohorts$Name, sum, na.rm=T)
+      OM_SH <- m1/lai1
     } else {
-      OM_SL = OM_SL/x$SunlitLeaves$LAI
-      OM_SH = OM_SH/x$ShadeLeaves$LAI
+      OM_SL <- OM_SL/x$ShadeLeavesInst$LAI
+      OM_SH <- OM_SH/x$ShadeLeavesInst$LAI
     }
     if(is.null(ylab)) ylab=.getYLab(type)
     return(.multiple_subday_dynamics_sunlit_shade(t(OM_SL), t(OM_SH), ylab = ylab, ylim = ylim))
@@ -540,7 +570,8 @@ plot.pwb_day<-function(x, type="PlantTranspiration", bySpecies = FALSE,
     df[["Balance"]] = EB$CanopyEnergyBalance$Ebalcan
     df[["SWR abs."]] = EB$CanopyEnergyBalance$SWRcan 
     df[["LWR net"]] = EB$CanopyEnergyBalance$LWRcan
-    df[["Latent heat"]] = -EB$CanopyEnergyBalance$LEcan
+    df[["Latent heat vaporisation"]] = -EB$CanopyEnergyBalance$LEVcan
+    df[["Latent heat snow fusion"]] = -EB$CanopyEnergyBalance$LEFsnow
     df[["Convection can./atm."]] = -EB$CanopyEnergyBalance$Hcan
     df[["Convection soil/can."]] = -EB$SoilEnergyBalance$Hcansoil
     g<-.multiple_subday_dynamics(as.matrix(df), ylab=ylab, ylim = ylim)
@@ -556,7 +587,7 @@ plot.pwb_day<-function(x, type="PlantTranspiration", bySpecies = FALSE,
     df[["SWR abs."]] = EB$SoilEnergyBalance$SWRsoil
     df[["LWR net"]] = EB$SoilEnergyBalance$LWRsoil
     df[["Convection soil/can."]] = EB$SoilEnergyBalance$Hcansoil
-    df[["Latent heat"]] = -EB$SoilEnergyBalance$LEsoil
+    df[["Latent heat vaporisation"]] = -EB$SoilEnergyBalance$LEVsoil
     g<-.multiple_subday_dynamics(as.matrix(df), ylab=ylab, ylim = ylim)
     
     # legend("topright", bty="n", col=c("red","brown","orange", "blue", "gray", "black"), lty=1,

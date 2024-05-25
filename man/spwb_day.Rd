@@ -11,9 +11,11 @@ growth_day(
   meteovec,
   latitude,
   elevation,
-  slope,
-  aspect,
+  slope = NA_real_,
+  aspect = NA_real_,
   runon = 0,
+  lateralFlows = NULL,
+  waterTableDepth = NA_real_,
   modifyInput = TRUE
 )
 
@@ -23,9 +25,11 @@ spwb_day(
   meteovec,
   latitude,
   elevation,
-  slope,
-  aspect,
+  slope = NA_real_,
+  aspect = NA_real_,
   runon = 0,
+  lateralFlows = NULL,
+  waterTableDepth = NA_real_,
   modifyInput = TRUE
 )
 }
@@ -42,6 +46,10 @@ spwb_day(
 
 \item{runon}{Surface water amount running on the target area from upslope (in mm).}
 
+\item{lateralFlows}{Lateral source/sink terms for each soil layer (interflow/to from adjacent locations) as mm/day.}
+
+\item{waterTableDepth}{Water table depth (in mm). When not missing, capillarity rise will be allowed if lower than total soil depth.}
+
 \item{modifyInput}{Boolean flag to indicate that the input \code{x} object is allowed to be modified during the simulation.}
 }
 \value{
@@ -54,17 +62,17 @@ following elements:
   \item{\code{"WaterBalance"}: A vector of water balance components (rain, snow, net rain, infiltration, ...) for the simulated day, equivalent to one row of 'WaterBalance' object given in \code{\link{spwb}}.}
   \item{\code{"Soil"}: A data frame with results for each soil layer:
     \itemize{
-      \item{\code{"SoilEvaporation"}: Water evaporated from the soil surface (in mm).}
-      \item{\code{"HydraulicInput"}: Water entering each soil layer from other layers, transported via plant hydraulic network (in mm) (only for \code{transpirationMode = "Sperry"}).}
-      \item{\code{"HydraulicOutput"}: Water leaving each soil layer (going to other layers or the transpiration stream) (in mm) (only for \code{transpirationMode = "Sperry"}).}
-      \item{\code{"PlantExtraction"}: Water extracted by plants from each soil layer (in mm).}
-      \item{\code{"psi"}: Soil water potential (in MPa).}
+      \item{\code{"Psi"}: Soil water potential (in MPa) at the end of the day.}
+      \item{\code{"HerbTranspiration"}: Water extracted by herbaceous plants from each soil layer (in mm).}
+      \item{\code{"HydraulicInput"}: Water entering each soil layer from other layers, transported via plant roots (in mm).}
+      \item{\code{"HydraulicOutput"}: Water leaving each soil layer (going to other layers or the transpiration stream) (in mm).}
+      \item{\code{"PlantExtraction"}: Water extracted by woody plants from each soil layer (in mm).}
     }
   }
   \item{\code{"Stand"}: A named vector with with stand values for the simulated day, equivalent to one row of 'Stand' object returned by \code{\link{spwb}}.}
   \item{\code{"Plants"}: A data frame of results for each plant cohort (see \code{\link{transp_transpirationGranier}} or \code{\link{transp_transpirationSperry}}).}
 }
-The following items are only returned when \code{transpirationMode = "Sperry"} or  \code{transpirationMode = "Cochard"}:
+The following items are only returned when \code{transpirationMode = "Sperry"} or  \code{transpirationMode = "Sureau"}:
 \itemize{
   \item{\code{"EnergyBalance"}: Energy balance of the stand (see \code{\link{transp_transpirationSperry}}).}
   \item{\code{"RhizoPsi"}: Minimum water potential (in MPa) inside roots, after crossing rhizosphere, per cohort and soil layer.}
@@ -86,53 +94,54 @@ The simulation functions allow using three different sub-models of transpiration
   and implements an approach originally described in Granier et al. (1999).} 
   \item{The sub-model corresponding to 'Sperry' transpiration mode is illustrated by function \code{\link{transp_transpirationSperry}} and was described in De Caceres et al. (2021), and
   implements a modelling approach originally described in Sperry et al. (2017).}  
-  \item{The sub-model corresponding to 'Cochard' transpiration mode is illustrated by function \code{\link{transp_transpirationCochard}} and was described for model SurEau-Ecos v2.0 in Ruffault et al. (2022).} 
+  \item{The sub-model corresponding to 'Sureau' transpiration mode is illustrated by function \code{\link{transp_transpirationSureau}} and was described for model SurEau-Ecos v2.0 in Ruffault et al. (2022).} 
 }
-Simulations using the 'Sperry' or 'Cochard' transpiration mode are computationally much more expensive than 'Granier'.
+
+Simulations using the 'Sperry' or 'Sureau' transpiration mode are computationally much more expensive than 'Granier'.
 }
 \examples{
 #Load example daily meteorological data
 data(examplemeteo)
 
 #Load example plot plant data
-data(exampleforestMED)
+data(exampleforest)
 
 #Default species parameterization
 data(SpParamsMED)
 
-#Initialize control parameters
-control <- defaultControl("Granier")
+#Define soil parameters
+examplesoil <- defaultSoilParams(4)
 
 # Day to be simulated
 d <- 100
-meteovec <- unlist(examplemeteo[d,])
-date <- rownames(examplemeteo)[d]
+meteovec <- unlist(examplemeteo[d,-1])
+date <- as.character(examplemeteo$dates[d])
 
 #Simulate water balance one day only (Granier mode)
-examplesoil <- soil(defaultSoilParams(4))
-x1 <- forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
+control <- defaultControl("Granier")
+x1 <- spwbInput(exampleforest,examplesoil, SpParamsMED, control)
 sd1 <- spwb_day(x1, date, meteovec,  
                 latitude = 41.82592, elevation = 100, slope=0, aspect=0) 
 
 #Simulate water balance for one day only (Sperry mode)
 control <- defaultControl("Sperry")
-x2 <- forest2spwbInput(exampleforestMED, examplesoil, SpParamsMED, control)
+x2 <- spwbInput(exampleforest, examplesoil, SpParamsMED, control)
 sd2 <-spwb_day(x2, date, meteovec,
               latitude = 41.82592, elevation = 100, slope=0, aspect=0)
 
 #Plot plant transpiration (see function 'plot.swb.day()')
 plot(sd2)
 
-#Simulate water balance for one day only (Cochard mode)
-control <- defaultControl("Cochard")
-x3 <- forest2spwbInput(exampleforestMED, examplesoil, SpParamsMED, control)
+#Simulate water balance for one day only (Sureau mode)
+control <- defaultControl("Sureau")
+x3 <- spwbInput(exampleforest, examplesoil, SpParamsMED, control)
 sd3 <-spwb_day(x3, date, meteovec,
               latitude = 41.82592, elevation = 100, slope=0, aspect=0)
 
 
 #Simulate water and carbon balance for one day only (Granier mode)
 control <- defaultControl("Granier")
-x4  <- forest2growthInput(exampleforestMED,examplesoil, SpParamsMED, control)
+x4  <- growthInput(exampleforest,examplesoil, SpParamsMED, control)
 sd4 <- growth_day(x4, date, meteovec,
                 latitude = 41.82592, elevation = 100, slope=0, aspect=0)
 

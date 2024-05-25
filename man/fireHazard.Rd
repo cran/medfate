@@ -42,25 +42,25 @@ Dead fuel moisture is estimated following Resco-de-Dios et al. (2015).
 data(examplemeteo)
 
 #Load example plot plant data
-data(exampleforestMED)
+data(exampleforest)
 
 #Default species parameterization
 data(SpParamsMED)
 
-#Initialize soil with default soil params (4 layers)
-examplesoil <- soil(defaultSoilParams(4))
+#Define soil with default soil params (4 layers)
+examplesoil <- defaultSoilParams(4)
 
 #Initialize control parameters
 control <- defaultControl("Granier")
 
 #Initialize input
-x1 <- forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
+x1 <- spwbInput(exampleforest,examplesoil, SpParamsMED, control)
 
 #Call simulation function
 S1 <- spwb(x1, examplemeteo, latitude = 41.82592, elevation = 100)
 
 #Evaluate fire hazard
-F1 <- fireHazard(S1, SpParamsMED, exampleforestMED)
+F1 <- fireHazard(S1, SpParamsMED, exampleforest)
 }
 }
 \references{

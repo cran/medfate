@@ -19,6 +19,7 @@ hydraulics_supplyFunctionPlot<-function(x, draw = TRUE, type="E", speciesNames =
   VCroot_kmax = x$belowLayers$VCroot_kmax
   VGrhizo_kmax = x$belowLayers$VGrhizo_kmax
   StemPLC = x$internalWater$StemPLC
+  LeafPLC = x$internalWater$LeafPLC
   nlayer = length(psiSoil)
   col = rainbow(nlayer, start = 0.8, end = 0.1)
   
@@ -44,16 +45,17 @@ hydraulics_supplyFunctionPlot<-function(x, draw = TRUE, type="E", speciesNames =
     psic = psiSoil[VGrhizo_kmaxc>0]
     VGrhizo_kmaxc = VGrhizo_kmaxc[VGrhizo_kmaxc>0]
     VCroot_kmaxc = VCroot_kmaxc[VCroot_kmaxc>0]
-    hn = list("psisoil" = psiSoil,
+    hn = list("numericParams" = x$control$numericParams,
+              "stemCavitationEffects" = x$control$stemCavitationEffects,
+              "leafCavitationEffects" = x$control$leafCavitationEffects,
+              "psisoil" = psiSoil,
                "krhizomax" = VGrhizo_kmaxc, "nsoil" = VG_nc, "alphasoil" = VG_alphac,
                "krootmax" = VCroot_kmaxc, "rootc" = VCroot_c[i], "rootd" = VCroot_d[i],
                "kstemmax" = VCstem_kmax[i], "stemc" = VCstem_c[i], "stemd" = VCstem_d[i], 
                "kleafmax" = VCleaf_kmax[i], "leafc" = VCleaf_c[i], "leafd" = VCleaf_d[i],
-               "PLCstem" = c(StemPLC[i], StemPLC[i]))
-    l[[i]] = hydraulics_supplyFunctionNetwork(hn,
-                                          minFlow = 0.0, maxNsteps = numericParams$maxNsteps, 
-                                          ntrial = numericParams$ntrial,
-                                          psiTol = numericParams$psiTol, ETol = numericParams$ETol)
+               "PLCstem" = StemPLC[i],
+               "PLCleaf" = LeafPLC[i])
+    l[[i]] = hydraulics_supplyFunctionNetwork(hn)
   }
   if(draw) {
     minPsi = 0

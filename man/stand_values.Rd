@@ -4,9 +4,12 @@
 \alias{stand_basalArea}
 \alias{stand_foliarBiomass}
 \alias{stand_fuelLoading}
+\alias{stand_shrubVolume}
 \alias{stand_LAI}
 \alias{stand_values}
 \alias{stand_dominantTreeDiameter}
+\alias{stand_treeDensity}
+\alias{stand_meanTreeHeight}
 \alias{stand_dominantTreeHeight}
 \alias{stand_hartBeckingIndex}
 \alias{stand_quadraticMeanTreeDiameter}
@@ -19,9 +22,15 @@ stand_foliarBiomass(x, SpParams, gdd = NA_real_)
 
 stand_fuelLoading(x, SpParams, gdd = NA_real_, includeDead = TRUE)
 
+stand_shrubVolume(x, SpParams)
+
 stand_LAI(x, SpParams, gdd = NA_real_, bounded = TRUE)
 
 stand_dominantTreeDiameter(x, minDBH = 7.5)
+
+stand_treeDensity(x, minDBH = 7.5)
+
+stand_meanTreeHeight(x, minDBH = 7.5)
 
 stand_dominantTreeHeight(x, minDBH = 7.5)
 
@@ -47,14 +56,16 @@ stand_dominantTreeSpecies(x, SpParams)
 \value{
 \itemize{
 \item{\code{stand_basalArea}: Stand basal area (m2/ha).}
+\item{\code{stand_treeDensity}: Stand tree density (in ind/ha).}
 \item{\code{stand_dominantTreeDiameter}: Dominant tree diameter, i.e the average diameter of the 100 widest trees (in cm).}
 \item{\code{stand_quadraticMeanTreeDiameter}: Quadratic mean tree diameter, i.e. the diameter value corresponding to the current basal area and density.}
+\item{\code{stand_meanTreeHeight}: Mean tree height (in cm).}
 \item{\code{stand_dominantTreeHeight}: Dominant tree height, i.e the average height of the 100 tallest trees (in cm).}
 \item{\code{stand_hartBeckingIndex}: Hart-Becking index.}
 \item{\code{stand_foliarBiomass}: Standing biomass of leaves (in kg/m2).}
 \item{\code{stand_fuel}: Stand fine fuel load (in kg/m2).}
 \item{\code{stand_LAI}: Stand leaf area index (m2/m2).}
-\item{\code{stand_phytovolume}: Stand shrub phytovolume (m3/m2).}
+\item{\code{stand_shrubVolume}: Stand shrub phytovolume (m3/m2).}
 }
 }
 \description{
@@ -65,10 +76,10 @@ Functions to calculate stand attributes of a \code{\link{forest}} object.
 data(SpParamsMED)
   
 #Load example plot
-data(exampleforestMED)
+data(exampleforest)
     
 #A short way to obtain total basal area
-stand_basalArea(exampleforestMED)
+stand_basalArea(exampleforest)
     
 }
 \seealso{

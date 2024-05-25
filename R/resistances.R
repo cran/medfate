@@ -4,8 +4,8 @@
   } else {
     input = x$growthInput
   }
-  if(!(input$control$transpirationMode %in% c("Sperry", "Cochard"))) {
-    stop("Resistances can only be calculated when transpirationMode = 'Sperry' or 'Cochard'.")
+  if(!(input$control$transpirationMode %in% c("Sperry", "Sureau"))) {
+    stop("Resistances can only be calculated when transpirationMode = 'Sperry' or 'Sureau'.")
   }
   cn = row.names(input$cohorts)
   if(!(cohort %in% cn)) stop("'cohort' must be a string identifying a cohort name")
@@ -33,12 +33,8 @@
   RhizoPsi = x$Plants$RhizoPsi
   
   nlayers = length(VG_nc)
-  psiSoil = x$Soil$psi.1
-  if(nlayers>1) psiSoil = cbind(psiSoil, x$Soil$psi.2)
-  if(nlayers>2) psiSoil = cbind(psiSoil, x$Soil$psi.3)
-  if(nlayers>3) psiSoil = cbind(psiSoil, x$Soil$psi.4)
-  if(nlayers>4) psiSoil = cbind(psiSoil, x$Soil$psi.5)
-  
+  psiSoil = x$Soil$Psi[,1:nlayers]
+
   nsteps = nrow(psiSoil)
   resmat = matrix(0, nrow=nsteps, ncol = 4)
   rownames(resmat) = rownames(StemPsi)

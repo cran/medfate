@@ -62,7 +62,7 @@ An ggplot object
 }
 \description{
 Functions to plot the sub-daily simulation results of \code{\link{spwb_day}}, \code{\link{growth_day}} 
-or the transpiration calculations of \code{\link{transp_transpirationSperry}} or \code{\link{transp_transpirationCochard}}.
+or the transpiration calculations of \code{\link{transp_transpirationSperry}} or \code{\link{transp_transpirationSureau}}.
 }
 \details{
 The following plots are available for \code{spwb_day} and \code{pwb_day}:
@@ -115,28 +115,28 @@ And the following plots are additionally available for \code{growth_day}:
   }
 }
 \note{
-Only for soil plant water balance simulations using \code{transpirationMode = "Sperry"} or \code{transpirationMode = "Cochard"}. This function can be used to display subdaily dynamics of corresponding to single days on \code{\link{spwb}} runs, if control option \code{subdailyResults} is set to \code{TRUE}. See also option \code{subdaily} in \code{\link{plot.spwb}}.
+Only for soil plant water balance simulations using \code{transpirationMode = "Sperry"} or \code{transpirationMode = "Sureau"}. This function can be used to display subdaily dynamics of corresponding to single days on \code{\link{spwb}} runs, if control option \code{subdailyResults} is set to \code{TRUE}. See also option \code{subdaily} in \code{\link{plot.spwb}}.
 }
 \examples{
 #Load example daily meteorological data
 data(examplemeteo)
 
 #Load example plot plant data
-data(exampleforestMED)
+data(exampleforest)
 
 #Default species parameterization
 data(SpParamsMED)
 
-#Initialize soil with default soil params (2 layers)
-examplesoil <- soil(defaultSoilParams(2), W=c(0.5,0.5))
+#Define soil with default soil params (2 layers)
+examplesoil <- defaultSoilParams(4)
 
 #Switch to 'Sperry' transpiration mode
 control <- defaultControl("Sperry")
 
 #Simulate one day only
-x2 <- forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
+x2 <- spwbInput(exampleforest,examplesoil, SpParamsMED, control)
 d <- 100
-date <- rownames(examplemeteo)[d]
+date <- examplemeteo$dates[d]
 meteovec <- unlist(examplemeteo[d,])
 sd2 <- spwb_day(x2, date, meteovec,
               latitude = 41.82592, elevation = 100, slope= 0, aspect = 0)

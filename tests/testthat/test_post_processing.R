@@ -1,27 +1,27 @@
 library(medfate)
 
 data(examplemeteo)
-data(exampleforestMED)
+data(exampleforest)
 data(SpParamsMED)
 d = 100:105
-examplesoil = soil(defaultSoilParams(4))
+examplesoil = defaultSoilParams(4)
 
 
 test_that("Can produce all basic spwb plots and summaries",{
   control = defaultControl("Granier")
   control$verbose = FALSE
-  x1 = forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
+  x1 = spwbInput(exampleforest,examplesoil, SpParamsMED, control)
   expect_s3_class(x1, "spwbInput")
   S1<-spwb(x1, examplemeteo[d,], latitude = 41.82592, elevation = 100)
   expect_s3_class(S1, "spwb")
-  expect_type(fireHazard(S1, SpParamsMED, exampleforestMED), "double")
+  expect_type(fireHazard(S1, SpParamsMED, exampleforest), "double")
   expect_s3_class(plot(S1, "PET_Precipitation"), "ggplot")
   expect_s3_class(plot(S1, "PET_NetRain"), "ggplot")
   expect_s3_class(plot(S1, "Snow"), "ggplot")
   expect_s3_class(plot(S1, "Export"), "ggplot")
-  expect_s3_class(plot(S1, "WTD"), "ggplot")
   expect_s3_class(plot(S1, "Evapotranspiration"), "ggplot")
   expect_s3_class(plot(S1, "SoilPsi"), "ggplot")
+  expect_s3_class(plot(S1, "SoilREW"), "ggplot")
   expect_s3_class(plot(S1, "SoilRWC"), "ggplot")
   expect_s3_class(plot(S1, "SoilTheta"), "ggplot")
   expect_s3_class(plot(S1, "SoilVol"), "ggplot")
@@ -31,6 +31,7 @@ test_that("Can produce all basic spwb plots and summaries",{
   expect_s3_class(plot(S1, "PlantLAI"), "ggplot")
   expect_s3_class(plot(S1, "PlantLAIlive"), "ggplot")
   expect_s3_class(plot(S1, "PlantStress"), "ggplot")
+  expect_s3_class(plot(S1, "LeafPLC"), "ggplot")
   expect_s3_class(plot(S1, "StemPLC"), "ggplot")
   expect_s3_class(plot(S1, "PlantPsi"), "ggplot")
   expect_s3_class(plot(S1, "PlantTranspiration"), "ggplot")
@@ -38,30 +39,34 @@ test_that("Can produce all basic spwb plots and summaries",{
   expect_s3_class(plot(S1, "PlantGrossPhotosynthesis"), "ggplot")
   expect_s3_class(plot(S1, "GrossPhotosynthesisPerLeaf"), "ggplot")
   expect_type(summary(S1, output = "WaterBalance"), "double")
-  expect_type(summary(S1, output = "Soil"), "double")
+  expect_type(summary(S1, output = "RWC"), "double")
   expect_type(summary(S1, output = "Stand"), "double")
   expect_type(summary(S1, output = "Plants$LAI"), "double")
   expect_type(summary(S1, output = "AbsorbedSWRFraction"), "double")
   expect_type(summary(S1, output = "Transpiration"), "double")
   expect_type(summary(S1, output = "GrossPhotosynthesis"), "double")
   expect_type(summary(S1, output = "PlantPsi"), "double")
+  expect_type(summary(S1, output = "LeafPLC"), "double")
   expect_type(summary(S1, output = "StemPLC"), "double")
   expect_type(summary(S1, output = "PlantStress"), "double")
   expect_type(droughtStress(S1, index = "ADS", draw=FALSE), "double")
   expect_type(waterUseEfficiency(S1, type = "Plant Ag/E", draw=FALSE), "double")
   expect_type(waterUseEfficiency(S1, type = "Stand Ag/E", draw=FALSE), "double")
+  expect_s3_class(extract(S1, level = "forest"), "data.frame")
+  expect_s3_class(extract(S1, level = "soillayer"), "data.frame")
+  expect_s3_class(extract(S1, level = "cohort"), "data.frame")
 })
 
 test_that("Can produce all advanced spwb plots and summaries",{
-  for(transpirationMode in c("Sperry", "Cochard")) {
+  for(transpirationMode in c("Sperry", "Sureau")) {
     control = defaultControl(transpirationMode)
     control$verbose = FALSE
-    x2 = forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
+    x2 = spwbInput(exampleforest,examplesoil, SpParamsMED, control)
     coh_1 = row.names(x2$cohorts)[1]
     expect_s3_class(x2, "spwbInput")
     S2<-spwb(x2, examplemeteo[d,], latitude = 41.82592, elevation = 100)
     expect_s3_class(S2, "spwb")
-    expect_type(fireHazard(S2, SpParamsMED, exampleforestMED), "double")
+    expect_type(fireHazard(S2, SpParamsMED, exampleforest), "double")
     expect_s3_class(plot(S2, "SoilPlantConductance"), "ggplot")
     expect_s3_class(plot(S2, "LeafPsiMin"), "ggplot")
     expect_s3_class(plot(S2, "LeafPsiMax"), "ggplot")
@@ -125,15 +130,17 @@ test_that("Can produce all advanced spwb plots and summaries",{
     expect_type(waterUseEfficiency(S2, "Plant An/E", draw=FALSE), "double")
     expect_type(waterUseEfficiency(S2, "Stand An/E", draw=FALSE), "double")
     expect_type(resistances(S2, cohort = coh_1, draw=FALSE), "double")
+    expect_s3_class(extract(S2, level = "shadeleaf"), "data.frame")
+    expect_s3_class(extract(S2, level = "sunlitleaf"), "data.frame")
   }
 })
 
 test_that("Can produce all advanced subdaily spwb plots",{
-  for(transpirationMode in c("Sperry", "Cochard")) {
+  for(transpirationMode in c("Sperry", "Sureau")) {
     control = defaultControl(transpirationMode)
     control$verbose = FALSE
     control$subdailyResults = TRUE
-    x2 = forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
+    x2 <- spwbInput(exampleforest,examplesoil, SpParamsMED, control)
     expect_s3_class(x2, "spwbInput")
     S2<-spwb(x2, examplemeteo[d,], latitude = 41.82592, elevation = 100)
     expect_s3_class(S2, "spwb")
@@ -169,47 +176,47 @@ test_that("Can produce all advanced subdaily spwb plots",{
     expect_s3_class(plot(S2, "PlantWaterBalance", subdaily = TRUE), "ggplot")
     expect_type(waterUseEfficiency(S2, type = "Leaf Ci", draw=FALSE), "double")
     expect_type(waterUseEfficiency(S2, type = "Leaf iWUE", draw=FALSE), "double")
-    expect_s3_class(extractSubdaily(S2, output="E"), "data.frame")
-    expect_s3_class(extractSubdaily(S2, output="Ag"), "data.frame")
-    expect_s3_class(extractSubdaily(S2, output="An"), "data.frame")
-    expect_s3_class(extractSubdaily(S2, output="dEdP"), "data.frame")
-    expect_s3_class(extractSubdaily(S2, output="RootPsi"), "data.frame")
-    expect_s3_class(extractSubdaily(S2, output="StemPsi"), "data.frame")
-    expect_s3_class(extractSubdaily(S2, output="StemPLC"), "data.frame")
-    expect_s3_class(extractSubdaily(S2, output="StemRWC"), "data.frame")
-    expect_s3_class(extractSubdaily(S2, output="LeafRWC"), "data.frame")
-    expect_s3_class(extractSubdaily(S2, output="StemSympRWC"), "data.frame")
-    expect_s3_class(extractSubdaily(S2, output="LeafSympRWC"), "data.frame")
-    expect_s3_class(extractSubdaily(S2, output="PWB"), "data.frame")
-    expect_s3_class(extractSubdaily(S2, output="Temperature"), "data.frame")
-    expect_s3_class(extractSubdaily(S2, output="ExtractionInst"), "data.frame")
-    expect_s3_class(extractSubdaily(S2, output="SunlitLeaves$Abs_PAR"), "data.frame")
-    expect_s3_class(extractSubdaily(S2, output="SunlitLeaves$Abs_SWR"), "data.frame")
-    expect_s3_class(extractSubdaily(S2, output="SunlitLeaves$Net_LWR"), "data.frame")
-    expect_s3_class(extractSubdaily(S2, output="SunlitLeaves$E"), "data.frame")
-    expect_s3_class(extractSubdaily(S2, output="SunlitLeaves$Ag"), "data.frame")
-    expect_s3_class(extractSubdaily(S2, output="SunlitLeaves$An"), "data.frame")
-    expect_s3_class(extractSubdaily(S2, output="SunlitLeaves$Ci"), "data.frame")
-    expect_s3_class(extractSubdaily(S2, output="SunlitLeaves$Gsw"), "data.frame")
-    expect_s3_class(extractSubdaily(S2, output="SunlitLeaves$VPD"), "data.frame")
-    expect_s3_class(extractSubdaily(S2, output="SunlitLeaves$Temp"), "data.frame")
-    expect_s3_class(extractSubdaily(S2, output="SunlitLeaves$Psi"), "data.frame")
-    expect_s3_class(extractSubdaily(S2, output="SunlitLeaves$iWUE"), "data.frame")    
+    expect_s3_class(.extractSubdaily(S2, output="E"), "data.frame")
+    expect_s3_class(.extractSubdaily(S2, output="Ag"), "data.frame")
+    expect_s3_class(.extractSubdaily(S2, output="An"), "data.frame")
+    expect_s3_class(.extractSubdaily(S2, output="dEdP"), "data.frame")
+    expect_s3_class(.extractSubdaily(S2, output="RootPsi"), "data.frame")
+    expect_s3_class(.extractSubdaily(S2, output="StemPsi"), "data.frame")
+    expect_s3_class(.extractSubdaily(S2, output="StemPLC"), "data.frame")
+    expect_s3_class(.extractSubdaily(S2, output="StemRWC"), "data.frame")
+    expect_s3_class(.extractSubdaily(S2, output="LeafRWC"), "data.frame")
+    expect_s3_class(.extractSubdaily(S2, output="StemSympRWC"), "data.frame")
+    expect_s3_class(.extractSubdaily(S2, output="LeafSympRWC"), "data.frame")
+    expect_s3_class(.extractSubdaily(S2, output="PWB"), "data.frame")
+    expect_s3_class(.extractSubdaily(S2, output="Temperature"), "data.frame")
+    expect_s3_class(.extractSubdaily(S2, output="ExtractionInst"), "data.frame")
+    expect_s3_class(.extractSubdaily(S2, output="SunlitLeaves$Abs_PAR"), "data.frame")
+    expect_s3_class(.extractSubdaily(S2, output="SunlitLeaves$Abs_SWR"), "data.frame")
+    expect_s3_class(.extractSubdaily(S2, output="SunlitLeaves$Net_LWR"), "data.frame")
+    expect_s3_class(.extractSubdaily(S2, output="SunlitLeaves$E"), "data.frame")
+    expect_s3_class(.extractSubdaily(S2, output="SunlitLeaves$Ag"), "data.frame")
+    expect_s3_class(.extractSubdaily(S2, output="SunlitLeaves$An"), "data.frame")
+    expect_s3_class(.extractSubdaily(S2, output="SunlitLeaves$Ci"), "data.frame")
+    expect_s3_class(.extractSubdaily(S2, output="SunlitLeaves$Gsw"), "data.frame")
+    expect_s3_class(.extractSubdaily(S2, output="SunlitLeaves$VPD"), "data.frame")
+    expect_s3_class(.extractSubdaily(S2, output="SunlitLeaves$Temp"), "data.frame")
+    expect_s3_class(.extractSubdaily(S2, output="SunlitLeaves$Psi"), "data.frame")
+    expect_s3_class(.extractSubdaily(S2, output="SunlitLeaves$iWUE"), "data.frame")    
   }    
 })
 
 test_that("Can produce all advanced spwb_day plots",{
-  for(transpirationMode in c("Sperry", "Cochard")) {
+  for(transpirationMode in c("Sperry", "Sureau")) {
     control = defaultControl(transpirationMode)
     control$verbose = FALSE
-    x2 = forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
+    x2 = spwbInput(exampleforest,examplesoil, SpParamsMED, control)
     expect_s3_class(x2, "spwbInput")
     d1 = d[1]
-    sd2<-spwb_day(x2, rownames(examplemeteo)[d1],
+    sd2<-spwb_day(x2, examplemeteo$dates[d1],
                   unlist(examplemeteo[d1,]), 
                   latitude = 41.82592, elevation = 100, slope=0, aspect=0)
     expect_s3_class(sd2, "spwb_day")
-    expect_type(fireHazard(sd2, SpParamsMED, exampleforestMED), "double")
+    expect_type(fireHazard(sd2, SpParamsMED, exampleforest), "double")
     expect_s3_class(plot(sd2, "LeafPsi"), "ggplot")
     expect_s3_class(plot(sd2, "LeafPsiAverage"), "ggplot")
     expect_s3_class(plot(sd2, "RootPsi"), "ggplot")
@@ -246,15 +253,15 @@ test_that("Can produce all advanced spwb_day plots",{
 })
 
 test_that("Can produce all basic growth plots and summaries",{
-  examplesoil = soil(defaultSoilParams(2))
+  examplesoil = defaultSoilParams(4)
   control = defaultControl("Granier")
   control$verbose = FALSE
-  x1 = forest2growthInput(exampleforestMED,examplesoil, SpParamsMED, control)
+  x1 = growthInput(exampleforest,examplesoil, SpParamsMED, control)
   expect_s3_class(x1, "growthInput")
   G1<-growth(x1, examplemeteo[d,], latitude = 41.82592, elevation = 100)
   expect_s3_class(G1, "growth")
   
-  expect_type(fireHazard(G1, SpParamsMED, exampleforestMED), "double")
+  expect_type(fireHazard(G1, SpParamsMED, exampleforest), "double")
   expect_s3_class(plot(G1, "CarbonBalance"), "ggplot")
   expect_s3_class(plot(G1, "BiomassBalance"), "ggplot")
   expect_s3_class(plot(G1, "GrossPhotosynthesis"), "ggplot")
@@ -302,15 +309,15 @@ test_that("Can produce all basic growth plots and summaries",{
 })
 
 test_that("Can produce all advanced growth plots and summaries",{
-  for(transpirationMode in c("Sperry", "Cochard")) {
+  for(transpirationMode in c("Sperry", "Sureau")) {
     control = defaultControl(transpirationMode)
     control$verbose = FALSE
-    x2 = forest2growthInput(exampleforestMED,examplesoil, SpParamsMED, control)
+    x2 = growthInput(exampleforest,examplesoil, SpParamsMED, control)
     coh_1 = row.names(x2$cohorts)[1]
     expect_s3_class(x2, "growthInput")
     G2<-growth(x2, examplemeteo[d,], latitude = 41.82592, elevation = 100)
     expect_s3_class(G2, "growth")
-    expect_type(fireHazard(G2, SpParamsMED, exampleforestMED), "double")
+    expect_type(fireHazard(G2, SpParamsMED, exampleforest), "double")
     expect_s3_class(plot(G2, "FineRootArea"), "ggplot")
     expect_s3_class(plot(G2, "FRAgrowth"), "ggplot")
     expect_s3_class(plot(G2, "RootAreaLeafArea"), "ggplot")
@@ -324,12 +331,12 @@ test_that("Can produce all advanced growth plots and summaries",{
 })
 
 test_that("Can produce all advanced subdaily growth plots",{
-  for(transpirationMode in c("Sperry", "Cochard")) {
+  for(transpirationMode in c("Sperry", "Sureau")) {
     control = defaultControl(transpirationMode)
     control$verbose = FALSE
     control$subdailyResults = TRUE
     control$subdailyCarbonBalance = TRUE
-    x2 = forest2growthInput(exampleforestMED,examplesoil, SpParamsMED, control)
+    x2 = growthInput(exampleforest,examplesoil, SpParamsMED, control)
     expect_s3_class(x2, "growthInput")
     G2<-growth(x2, examplemeteo[d,], latitude = 41.82592, elevation = 100)
     expect_s3_class(G2, "growth")
@@ -346,32 +353,32 @@ test_that("Can produce all advanced subdaily growth plots",{
     expect_s3_class(plot(G2, "StarchSapwood", subdaily = TRUE), "ggplot")
     expect_type(waterUseEfficiency(G2, type = "Leaf Ci", draw=FALSE), "double")
     expect_type(waterUseEfficiency(G2, type = "Leaf iWUE", draw=FALSE), "double")
-    expect_s3_class(extractSubdaily(G2, output="GrossPhotosynthesis"), "data.frame")
-    expect_s3_class(extractSubdaily(G2, output="MaintenanceRespiration"), "data.frame")
-    expect_s3_class(extractSubdaily(G2, output="GrowthCosts"), "data.frame")
-    expect_s3_class(extractSubdaily(G2, output="RootExudation"), "data.frame")
-    expect_s3_class(extractSubdaily(G2, output="LabileCarbonBalance"), "data.frame")
-    expect_s3_class(extractSubdaily(G2, output="SugarLeaf"), "data.frame")
-    expect_s3_class(extractSubdaily(G2, output="SugarSapwood"), "data.frame")
-    expect_s3_class(extractSubdaily(G2, output="StarchLeaf"), "data.frame")
-    expect_s3_class(extractSubdaily(G2, output="StarchSapwood"), "data.frame")
-    expect_s3_class(extractSubdaily(G2, output="SugarTransport"), "data.frame")
+    expect_s3_class(.extractSubdaily(G2, output="GrossPhotosynthesis"), "data.frame")
+    expect_s3_class(.extractSubdaily(G2, output="MaintenanceRespiration"), "data.frame")
+    expect_s3_class(.extractSubdaily(G2, output="GrowthCosts"), "data.frame")
+    expect_s3_class(.extractSubdaily(G2, output="RootExudation"), "data.frame")
+    expect_s3_class(.extractSubdaily(G2, output="LabileCarbonBalance"), "data.frame")
+    expect_s3_class(.extractSubdaily(G2, output="SugarLeaf"), "data.frame")
+    expect_s3_class(.extractSubdaily(G2, output="SugarSapwood"), "data.frame")
+    expect_s3_class(.extractSubdaily(G2, output="StarchLeaf"), "data.frame")
+    expect_s3_class(.extractSubdaily(G2, output="StarchSapwood"), "data.frame")
+    expect_s3_class(.extractSubdaily(G2, output="SugarTransport"), "data.frame")
   }
 })
 
 test_that("Can produce all advanced growth_day plots",{
-  for(transpirationMode in c("Sperry", "Cochard")) {
+  for(transpirationMode in c("Sperry", "Sureau")) {
     control = defaultControl(transpirationMode)
     control$verbose <- FALSE
     control$subdailyCarbonBalance <- TRUE
-    x2 <- forest2growthInput(exampleforestMED,examplesoil, SpParamsMED, control)
+    x2 <- growthInput(exampleforest,examplesoil, SpParamsMED, control)
     expect_s3_class(x2, "growthInput")
     d1 <- d[1]
-    sd2<-growth_day(x2, rownames(examplemeteo)[d1],
+    sd2<-growth_day(x2, examplemeteo$dates[d1],
                     unlist(examplemeteo[d1,]), 
                     latitude = 41.82592, elevation = 100, slope=0, aspect=0)
     expect_s3_class(sd2, "growth_day")
-    expect_type(fireHazard(sd2, SpParamsMED, exampleforestMED), "double")
+    expect_type(fireHazard(sd2, SpParamsMED, exampleforest), "double")
     expect_s3_class(plot(sd2, "GrossPhotosynthesis"), "ggplot")
     expect_s3_class(plot(sd2, "MaintenanceRespiration"), "ggplot")
     expect_s3_class(plot(sd2, "RootExudation"), "ggplot")
@@ -387,9 +394,56 @@ test_that("Can produce all advanced growth_day plots",{
 test_that("Can produce all fordyn plots",{
   control <- defaultControl("Granier")
   control$verbose <- FALSE
-  fd<-fordyn(exampleforestMED, examplesoil, 
+  fd<-fordyn(exampleforest, examplesoil, 
              SpParamsMED, examplemeteo, control,
              latitude = 41.82592, elevation = 100)
+  expect_s3_class(plot(fd, "PET_Precipitation"), "ggplot")
+  expect_s3_class(plot(fd, "PET_NetRain"), "ggplot")
+  expect_s3_class(plot(fd, "Snow"), "ggplot")
+  expect_s3_class(plot(fd, "Export"), "ggplot")
+  expect_s3_class(plot(fd, "Evapotranspiration"), "ggplot")
+  expect_s3_class(plot(fd, "SoilPsi"), "ggplot")
+  expect_s3_class(plot(fd, "SoilREW"), "ggplot")
+  expect_s3_class(plot(fd, "SoilRWC"), "ggplot")
+  expect_s3_class(plot(fd, "SoilTheta"), "ggplot")
+  expect_s3_class(plot(fd, "SoilVol"), "ggplot")
+  expect_s3_class(plot(fd, "PlantExtraction"), "ggplot")
+  expect_s3_class(plot(fd, "HydraulicRedistribution"), "ggplot")
+  expect_s3_class(plot(fd, "LAI"), "ggplot")
+  expect_s3_class(plot(fd, "PlantLAI"), "ggplot")
+  expect_s3_class(plot(fd, "PlantLAIlive"), "ggplot")
+  expect_s3_class(plot(fd, "PlantStress"), "ggplot")
+  expect_s3_class(plot(fd, "LeafPLC"), "ggplot")
+  expect_s3_class(plot(fd, "StemPLC"), "ggplot")
+  expect_s3_class(plot(fd, "PlantPsi"), "ggplot")
+  expect_s3_class(plot(fd, "PlantTranspiration"), "ggplot")
+  expect_s3_class(plot(fd, "TranspirationPerLeaf"), "ggplot")
+  expect_s3_class(plot(fd, "PlantGrossPhotosynthesis"), "ggplot")
+  expect_s3_class(plot(fd, "GrossPhotosynthesisPerLeaf"), "ggplot")
+  expect_s3_class(plot(fd, "CarbonBalance"), "ggplot")
+  expect_s3_class(plot(fd, "BiomassBalance"), "ggplot")
+  expect_s3_class(plot(fd, "GrossPhotosynthesis"), "ggplot")
+  expect_s3_class(plot(fd, "MaintenanceRespiration"), "ggplot")
+  expect_s3_class(plot(fd, "LabileCarbonBalance"), "ggplot")
+  expect_s3_class(plot(fd, "SugarLeaf"), "ggplot")
+  expect_s3_class(plot(fd, "StarchLeaf"), "ggplot")
+  expect_s3_class(plot(fd, "SugarSapwood"), "ggplot")
+  expect_s3_class(plot(fd, "StarchSapwood"), "ggplot")
+  expect_s3_class(plot(fd, "SugarTransport"), "ggplot")
+  expect_s3_class(plot(fd, "RootExudation"), "ggplot")
+  expect_s3_class(plot(fd, "StructuralBiomassBalance"), "ggplot")
+  expect_s3_class(plot(fd, "LabileBiomassBalance"), "ggplot")
+  expect_s3_class(plot(fd, "PlantBiomassBalance"), "ggplot")
+  expect_s3_class(plot(fd, "MortalityBiomassLoss"), "ggplot")
+  expect_s3_class(plot(fd, "CohortBiomassBalance"), "ggplot")
+  expect_s3_class(plot(fd, "SapwoodArea"), "ggplot")
+  expect_s3_class(plot(fd, "LeafArea"), "ggplot")
+  expect_s3_class(plot(fd, "FineRootBiomass"), "ggplot")
+  expect_s3_class(plot(fd, "DBH"), "ggplot")
+  expect_s3_class(plot(fd, "Height"), "ggplot")
+  expect_s3_class(plot(fd, "SAgrowth"), "ggplot")
+  expect_s3_class(plot(fd, "LAgrowth"), "ggplot")
+  expect_s3_class(plot(fd, "HuberValue"), "ggplot")
   expect_s3_class(plot(fd, "NumTreeSpecies"), "ggplot")
   expect_s3_class(plot(fd, "NumTreeCohorts"), "ggplot")
   expect_s3_class(plot(fd, "NumShrubSpecies"), "ggplot")
@@ -408,4 +462,4 @@ test_that("Can produce all fordyn plots",{
   expect_s3_class(plot(fd, "QuadraticMeanTreeDiameter"), "ggplot")
   expect_s3_class(plot(fd, "HartBeckingIndex"), "ggplot")
 })
-  
+

@@ -43,7 +43,7 @@
     # Try to complete
     found = FALSE
     object_names_search = object_names
-    object_names_search = object_names_search[!(object_names_search %in% c("Soil", "Stand", "Temperature",
+    object_names_search = object_names_search[!(object_names_search %in% c("Snow", "Stand", "Temperature",
                                                                            "CarbonBalance", "WaterBalance", "EnergyBalance", "BiomassBalance",
                                                                            "FireHazard"))]
     for(nm in object_names_search) {
@@ -63,7 +63,7 @@
     output_vec = rep(output_vec, 2)
   }
   
-  if(output_vec[1] %in% c("Soil", "Stand", "Temperature", 
+  if(output_vec[1] %in% c("Snow", "Stand", "Temperature", 
                           "CarbonBalance", "WaterBalance", "EnergyBalance", "BiomassBalance",
                           "FireHazard")) {
     OM = object[[output_vec[1]]]
@@ -131,38 +131,42 @@
 #' 
 #' @note When applied to \code{\link{fordyn}} objects, the summary function can be used to gather the results of different yearly steps into a single table while keeping a daily resolution (i.e. using \code{freq = "days"}.
 #' 
-#' @seealso \code{\link{spwb}}, \code{\link{pwb}}, \code{\link{growth}}, \code{\link{fordyn}}, \code{\link{plot.spwb}}, \code{\link{extractSubdaily}}
+#' @seealso \code{\link{spwb}}, \code{\link{pwb}}, \code{\link{growth}}, \code{\link{fordyn}}, 
+#' \code{\link{plot.spwb}}, \code{\link{extract}}
 #' 
 #' @examples
 #' #Load example daily meteorological data
 #' data(examplemeteo)
 #' 
 #' #Load example plot plant data
-#' data(exampleforestMED)
+#' data(exampleforest)
 #' 
 #' #Default species parameterization
 #' data(SpParamsMED)
 #' 
-#' #Initialize soil with default soil params (2 layers)
-#' examplesoil = soil(defaultSoilParams(2))
+#' #Define soil with default soil params (4 layers)
+#' examplesoil <- defaultSoilParams(4)
 #' 
 #' #Initialize control parameters
-#' control = defaultControl("Granier")
+#' control <- defaultControl("Granier")
 #' 
 #' #Initialize input
-#' x = forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
+#' x <- spwbInput(exampleforest,examplesoil, SpParamsMED, control)
 #' 
 #' #Call simulation function
 #' S1<-spwb(x, examplemeteo, latitude = 41.82592, elevation = 100)
 #' 
-#' #Monthly summary (averages) of soil status
-#' summary(S1, freq="months",FUN=mean, output="Soil")
+#' #Queries the tables in 'Soil'
+#' names(S1$Soil)
+#' 
+#' #Monthly summary (averages) of soil relative water content
+#' summary(S1, freq="months",FUN=mean, output="RWC")
 #' 
 #' #Queries the tables in 'Plants'
 #' names(S1$Plants)
 #' 
 #' #Monthly summary (averages) of plant stress
-#' summary(S1, freq="months",FUN=mean, output="Plants$PlantStress", 
+#' summary(S1, freq="months",FUN=mean, output="PlantStress", 
 #'         bySpecies = TRUE)
 #' 
 #' 

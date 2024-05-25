@@ -35,22 +35,22 @@
 #' data(examplemeteo)
 #' 
 #' #Load example plot plant data
-#' data(exampleforestMED)
+#' data(exampleforest)
 #' 
 #' #Default species parameterization
 #' data(SpParamsMED)
 #' 
-#' #Initialize soil with default soil params (4 layers)
-#' examplesoil = soil(defaultSoilParams(4))
+#' #Define soil with default soil params (4 layers)
+#' examplesoil <- defaultSoilParams(4)
 #' 
 #' #Initialize control parameters
-#' control = defaultControl("Granier")
+#' control <- defaultControl("Granier")
 #' 
 #' #Initialize input
-#' x1 = forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
+#' x1 <- spwbInput(exampleforest,examplesoil, SpParamsMED, control)
 #' 
 #' # Cohort name for Pinus halepensis
-#' PH_coh = paste0("T1_", SpParamsMED$SpIndex[SpParamsMED$Name=="Pinus halepensis"])
+#' PH_coh <- paste0("T1_", SpParamsMED$SpIndex[SpParamsMED$Name=="Pinus halepensis"])
 #' PH_coh 
 #' 
 #' # Modify Z50 and Z95 of Pinus halepensis cohort 
@@ -74,7 +74,7 @@
 #' x1s$soil
 #' 
 #' # When modifying growth input objects dependencies increase
-#' x1 = forest2growthInput(exampleforestMED,examplesoil, SpParamsMED, control)
+#' x1 <- growthInput(exampleforest,examplesoil, SpParamsMED, control)
 #' customParams <- c(2000,2)
 #' names(customParams) <- paste0(PH_coh,c("/Al2As", "/LAI_live"))
 #' x1m <- modifyInputParams(x1, customParams)
@@ -91,9 +91,9 @@ modifySpParams<-function(SpParams, customParams, subsetSpecies = TRUE) {
   
   # get the names of the custom params and the SpParams
   target_par <- names(customParams)
-  if("SpIndex" %in% target_par) target_par = target_par[-which(target_par=="SpIndex")] # remove SpIndex from target_par
-  if("Species" %in% target_par) target_par = target_par[-which(target_par=="Species")] # remove Species from target_par
-  
+  fixed_cols <- c("Name", "SpIndex", "AcceptedName", "Species", "Genus", "Family", "Order","Group")
+  target_par <- target_par[!(target_par %in% fixed_cols)]
+
   sp_par <- names(SpParams)
   
   # iterate between the custom params existing in SpParams
@@ -101,18 +101,25 @@ modifySpParams<-function(SpParams, customParams, subsetSpecies = TRUE) {
     # check if the param exists in SpParams
     if (param %in% sp_par) {
       # iterate by species, in case same variable has different values by sp
-      if("SpIndex" %in% names(customParams)) {
-        for (sp in customParams[['SpIndex']]) {
-          val <- customParams[which(customParams[['SpIndex']] == sp), param][1]
+      if("Name" %in% names(customParams)) {
+        for (sp in customParams[['Name']]) {
+          val <- customParams[which(customParams[['Name']] == sp), param][1]
           if(!is.na(val)) {
-            SpParams[which(SpParams[['SpIndex']] == sp), param] <- val
+            SpParams[which(SpParams[['Name']] == sp), param] <- val
           }
         }
-      } else if ("Species" %in% names(customParams)) {
+      } else if("Species" %in% names(customParams)) {
         for (sp in customParams[['Species']]) {
           val <- customParams[which(customParams[['Species']] == sp), param][1]
           if(!is.na(val)) {
             SpParams[which(SpParams[['Name']] == sp), param] <- val
+          }
+        }
+      } else if ("SpIndex" %in% names(customParams)) {
+        for (sp in customParams[['SpIndex']]) {
+          val <- customParams[which(customParams[['SpIndex']] == sp), param][1]
+          if(!is.na(val)) {
+            SpParams[which(SpParams[['SpIndex']] == sp), param] <- val
           }
         }
       }
@@ -145,7 +152,7 @@ modifyCohortParams<-function(x, customParams, verbose = TRUE) {
   below_par <- c("Z50","Z95")
   pheno_par <- names(x[['paramsPhenology']])
   base_par <- names(x[['paramsInterception']])
-  transp_par <- names(x[['paramsTranspiration']])
+  transp_par <- c(names(x[['paramsTranspiration']]), "VC_P50", "VC_c", "VC_d", "Vmax298_Jmax298")
   anatomy_par <- names(x[['paramsAnatomy']])
   waterstorage_par <- names(x[['paramsWaterStorage']])
   growth_par <- names(x[['paramsGrowth']])
@@ -245,7 +252,7 @@ modifyInputParams<-function(x, customParams, verbose = TRUE) {
       val <- customSoilParams[[i]]
       param <- paramLayer[[1]]
       layer <- as.numeric(paramLayer[[2]])
-      if(!(layer %in% 1:length(x$soil$dVec))) stop(paste0("Soil layer '", layer,"' not found in 'x'"))
+      if(!(layer %in% 1:length(x$soil$widths))) stop(paste0("Soil layer '", layer,"' not found in 'x'"))
       .modifySoilLayerParam(x$soil, param, layer-1, val)
     }
     .updateBelow(x)

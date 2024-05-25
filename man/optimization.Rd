@@ -152,19 +152,19 @@ Then, only a vector of parameter names is supplied for \code{cohortParNames}.
 data(examplemeteo)
 
 #Load example plot plant data
-data(exampleforestMED)
+data(exampleforest)
 
 #Default species parameterization
 data(SpParamsMED)
 
-#Initialize soil with default soil params (4 layers)
-examplesoil <- soil(defaultSoilParams(4))
+#Define soil with default soil params (4 layers)
+examplesoil <- defaultSoilParams(4)
 
 #Initialize control parameters
 control <- defaultControl("Granier")
 
 #Initialize input
-x1 <- forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
+x1 <- spwbInput(exampleforest,examplesoil, SpParamsMED, control)
 
 # Cohort name for Pinus halepensis
 PH_coh <- paste0("T1_", SpParamsMED$SpIndex[SpParamsMED$Name=="Pinus halepensis"])

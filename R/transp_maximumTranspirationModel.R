@@ -39,19 +39,19 @@
 #' data(examplemeteo)
 #' 
 #' # Load example plot plant data
-#' data(exampleforestMED)
+#' data(exampleforest)
 #' 
 #' # Load default species parameters
 #' data(SpParamsMED)
 #'
-#' # Initialize soil with default soil params
-#' examplesoil <- soil(defaultSoilParams(4))
+#' # Define soil with default soil params
+#' examplesoil <- defaultSoilParams(4)
 #' 
 #' # Initialize control parameters for 'Sperry' transpiration mode
 #' control <- defaultControl(transpirationMode="Sperry")
 #' 
 #' # Initialize input
-#' x2 <- forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
+#' x2 <- spwbInput(exampleforest,examplesoil, SpParamsMED, control)
 #' 
 #' # Estimate maximum transpiration ratio models for each cohort
 #' # Weather is subset to speed-up results
@@ -68,6 +68,11 @@ transp_maximumTranspirationModel<-function(x, meteo, latitude, elevation, slope,
                                            draw = TRUE) {
   
   
+  if("dates" %in% names(meteo)) {
+    dates <- meteo$dates
+  } else {
+    dates <- row.names(meteo)
+  }
   #Calculate PET using penman
   if("PET" %in% names(meteo)) meteo$PET = NULL
   PET <- numeric(nrow(meteo))
@@ -78,7 +83,7 @@ transp_maximumTranspirationModel<-function(x, meteo, latitude, elevation, slope,
       elevation = elevation,
       slorad = slope*pi/180,
       asprad = aspect*pi/180,
-      J = meteoland::radiation_dateStringToJulianDays(row.names(meteo)[i]),
+      J = meteoland::radiation_dateStringToJulianDays(dates[i]),
       Tmin = meteo[['MinTemperature']][i],
       Tmax = meteo[['MaxTemperature']][i],
       RHmin = meteo[['MinRelativeHumidity']][i],
@@ -113,7 +118,8 @@ transp_maximumTranspirationModel<-function(x, meteo, latitude, elevation, slope,
   xIni = x
   xIni$control$modifyInput = FALSE
   xIni$control$unlimitedSoilWater = TRUE
-  xIni$control$cavitationRefill = "total"
+  xIni$control$stemCavitationRecovery = "total"
+  xIni$control$leafCavitationRecovery = "total"
   xIni$control$verbose = FALSE
   Tmax = matrix(NA, nrow=ndays, ncol = nlai)  
   colnames(Tmax) = LAI_seq

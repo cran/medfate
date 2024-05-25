@@ -32,7 +32,6 @@
 #'   \item{\code{"SoilVol"}: Soil water volumetric content (in mm).}
 #'   \item{\code{"PlantExtraction"}: Water extracted by plants from each soil layer.}
 #'   \item{\code{"HydraulicRedistribution"}: Water added to each soil layer coming from other soil layers, transported through the plant hydraulic network.}
-#'   \item{\code{"WTD"}: Water table depth.}
 #'   \item{\code{"LAI"}: Expanded and dead leaf area index of the whole stand.}
 #'   \item{\code{"PlantLAI"}: Plant cohort leaf area index (expanded leaves).}
 #'   \item{\code{"PlantLAIlive"}: Plant cohort leaf area index ("live" leaves).}
@@ -108,14 +107,14 @@
 #'     \item{\code{"FineRootBiomass"}: Fine root dry biomass per individual.}
 #'     \item{\code{"SapwoodArea"}:  Sapwood area per individual.}
 #'     \item{\code{"LeafArea"}:  Leaf area per individual.}
-#'     \item{\code{"FineRootArea"}: Fine root area per individual (only for \code{transpirationMode = "Sperry"} or \code{transpirationMode = "Cochard"}).}
+#'     \item{\code{"FineRootArea"}: Fine root area per individual (only for \code{transpirationMode = "Sperry"} or \code{transpirationMode = "Sureau"}).}
 #'     \item{\code{"DBH"}: Diameter at breast height (in cm) for an average individual of each plant cohort.}
 #'     \item{\code{"Height"}: Height (in cm) for an average individual of each plant cohort.}
 #'     \item{\code{"SAgrowth"}:  Sapwood area growth rate.}
 #'     \item{\code{"LAgrowth"}:  Leaf area growth rate.}
-#'     \item{\code{"FRAgrowth"}:  Fine root area growth rate (only for \code{transpirationMode = "Sperry"} or \code{transpirationMode = "Cochard"}).}
+#'     \item{\code{"FRAgrowth"}:  Fine root area growth rate (only for \code{transpirationMode = "Sperry"} or \code{transpirationMode = "Sureau"}).}
 #'     \item{\code{"HuberValue"}:  Ratio of leaf area to sapwood area.}
-#'     \item{\code{"RootAreaLeafArea"}:  Ratio of fine root area to leaf area (only for \code{transpirationMode = "Sperry"} or \code{transpirationMode = "Cochard"}).}
+#'     \item{\code{"RootAreaLeafArea"}:  Ratio of fine root area to leaf area (only for \code{transpirationMode = "Sperry"} or \code{transpirationMode = "Sureau"}).}
 #'   }
 #' Finally, the following plots are only available for \code{\link{fordyn}} simulation results:
 #'   \itemize{
@@ -137,22 +136,22 @@
 #' data(examplemeteo)
 #' 
 #' #Load example plot plant data
-#' data(exampleforestMED)
+#' data(exampleforest)
 #' 
 #' #Default species parameterization
 #' data(SpParamsMED)
 #' 
-#' #Initialize soil with default soil params (2 layers)
-#' examplesoil = soil(defaultSoilParams(2))
+#' #Define soil with default soil params (4 layers)
+#' examplesoil <- defaultSoilParams(4)
 #' 
 #' #Initialize control parameters
-#' control = defaultControl("Granier")
+#' control <- defaultControl("Granier")
 #' 
 #' #Initialize input
-#' x = forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
+#' x <- spwbInput(exampleforest,examplesoil, SpParamsMED, control)
 #' 
 #' #Call simulation function
-#' S1<-spwb(x, examplemeteo, latitude = 41.82592, elevation = 100)
+#' S1 <- spwb(x, examplemeteo, latitude = 41.82592, elevation = 100)
 #' 
 #' #Plot results
 #' plot(S1)
@@ -171,12 +170,11 @@ plot.spwb<-function(x, type="PET_Precipitation", cohorts = NULL, bySpecies = FAL
     input = x$growthInput
   }
   TYPES = .getDailySPWBPlotTypes(input$control$transpirationMode)  
-
+  
   type = match.arg(type,TYPES)  
   if(is.null(xlab)) xlab = ""
-  if(type %in% c("PET_Precipitation", "PET_NetRain", "Evapotranspiration", "Snow",
-                 "WTD", "Export", "SoilVol")) {
-    return(.plot_wb(WaterBalance = x$WaterBalance, Soil = x$Soil, input_soil = input$soil, 
+  if(type %in% c("PET_Precipitation", "PET_NetRain", "Evapotranspiration", "Snow", "Export")) {
+    return(.plot_wb(WaterBalance = x$WaterBalance, Soil = x$Soil, Snow = x$Snow, input_soil = input$soil, 
                     type = type, dates = dates, 
                     xlim = xlim, ylim=ylim, xlab=xlab, ylab=ylab, 
                     summary.freq = summary.freq, ...))
@@ -213,7 +211,7 @@ plot.pwb<-function(x, type="PlantTranspiration", cohorts = NULL, bySpecies = FAL
       cohorts = cohorts[substr(cohorts,1,1)=="S"]
     }
   }
-
+  
   spnames = as.character(input$cohorts[cohorts,"Name"])
   
   PlantsLAIlive = x$Plants$LAIlive[,cohorts, drop=FALSE]
@@ -223,17 +221,17 @@ plot.pwb<-function(x, type="PlantTranspiration", cohorts = NULL, bySpecies = FAL
   type = match.arg(type,TYPES)  
   if(is.null(xlab)) xlab = ""  
   
-  if(type %in% c("SoilPsi", "SoilTheta", "SoilRWC", "PlantExtraction", "HydraulicRedistribution")) {
+  if(type %in% c("SoilPsi", "SoilTheta", "SoilRWC", "SoilREW", "SoilVol","PlantExtraction", "HydraulicRedistribution")) {
     return(.plot_soil(Soil = x$Soil, input_soil = input$soil, input_control = input$control,
-                    type = type, dates = dates, 
-                    xlim = xlim, ylim=ylim, xlab=xlab, ylab=ylab, 
-                    summary.freq = summary.freq, ...))
-  }
-  else if(type %in% c("LAI", "GroundIrradiance")) {
-    return(.plot_stand(Stand = x$Stand,
                       type = type, dates = dates, 
                       xlim = xlim, ylim=ylim, xlab=xlab, ylab=ylab, 
                       summary.freq = summary.freq, ...))
+  }
+  else if(type %in% c("LAI", "GroundIrradiance")) {
+    return(.plot_stand(Stand = x$Stand,
+                       type = type, dates = dates, 
+                       xlim = xlim, ylim=ylim, xlab=xlab, ylab=ylab, 
+                       summary.freq = summary.freq, ...))
   }
   else if(type %in% c("FPAR", "AbsorbedSWRFraction")) {
     OM = x$Plants[[type]][,cohorts,drop=FALSE]
@@ -242,47 +240,47 @@ plot.pwb<-function(x, type="PlantTranspiration", cohorts = NULL, bySpecies = FAL
                           xlim = xlim, ylim=ylim, xlab=xlab, ylab=ylab, 
                           summary.freq = summary.freq, ...))
   } 
-  else if(type %in% c("LeafPLC","StemPLC", "StemRWC", "LeafRWC")) {
+  else if(type %in% c("PlantStress","LeafPLC","StemPLC", "StemRWC", "LeafRWC")) {
     OM = x$Plants[[type]][,cohorts,drop=FALSE]*100
     return(.plot_plant_om(OM, PlantsLAIlive, spnames,
-                   type, bySpecies = bySpecies, dates = dates, 
-                   xlim = xlim, ylim=ylim, xlab=xlab, ylab=ylab, 
-                   summary.freq = summary.freq, ...))
+                          type, bySpecies = bySpecies, dates = dates, 
+                          xlim = xlim, ylim=ylim, xlab=xlab, ylab=ylab, 
+                          summary.freq = summary.freq, ...))
   } 
   else if(type %in% c("PlantLAI","PlantLAIlive","PlantTranspiration","PlantNetPhotosynthesis", "PlantGrossPhotosynthesis",
                       "PlantAbsorbedSWR","PlantNetLWR")) {
     subtype = substr(type,6,nchar(type))
     OM = x$Plants[[subtype]][,cohorts,drop=FALSE]
     return(.plot_plant_om_sum(OM, spnames,
-                          type, bySpecies = bySpecies, dates = dates, 
-                          xlim = xlim, ylim=ylim, xlab=xlab, ylab=ylab, 
-                          summary.freq = summary.freq, ...))
+                              type, bySpecies = bySpecies, dates = dates, 
+                              xlim = xlim, ylim=ylim, xlab=xlab, ylab=ylab, 
+                              summary.freq = summary.freq, ...))
   } 
   else if(type %in% c("SoilPlantConductance","PlantPsi", "LeafPsiMin",
-                      "LeafPsiMax", "StemPsi", "RootPsi", "PlantStress",
+                      "LeafPsiMax", "StemPsi", "RootPsi", 
                       "PlantWaterBalance", "LFMC")) {
     if(type=="SoilPlantConductance") OM = x$Plants[["dEdP"]][,cohorts,drop=FALSE]
     else OM = x$Plants[[type]][,cohorts,drop=FALSE]
     return(.plot_plant_om(OM, PlantsLAIlive, spnames,
-                   type, bySpecies = bySpecies, dates = dates, 
-                   xlim = xlim, ylim=ylim, xlab=xlab, ylab=ylab, 
-                   summary.freq = summary.freq, ...))
+                          type, bySpecies = bySpecies, dates = dates, 
+                          xlim = xlim, ylim=ylim, xlab=xlab, ylab=ylab, 
+                          summary.freq = summary.freq, ...))
   } 
   else if(type %in% c("LeafPsiMin_SL", "LeafPsiMax_SL", "GSWMin_SL", "GSWMax_SL", "TempMin_SL", "TempMax_SL")) {
     subType = strsplit(type,"_")[[1]][1]
     OM = x$SunlitLeaves[[subType]][,cohorts,drop=FALSE]
     return(.plot_plant_om(OM, PlantsLAIlive, spnames,
-                   type, bySpecies = bySpecies, dates = dates, 
-                   xlim = xlim, ylim=ylim, xlab=xlab, ylab=ylab, 
-                   summary.freq = summary.freq, ...))
+                          type, bySpecies = bySpecies, dates = dates, 
+                          xlim = xlim, ylim=ylim, xlab=xlab, ylab=ylab, 
+                          summary.freq = summary.freq, ...))
   } 
   else if(type %in% c("LeafPsiMin_SH", "LeafPsiMax_SH", "GSWMin_SH", "GSWMax_SH", "TempMin_SH", "TempMax_SH")) {
     subType = strsplit(type,"_")[[1]][1]
     OM = x$ShadeLeaves[[subType]][,cohorts,drop=FALSE]
     return(.plot_plant_om(OM, PlantsLAIlive, spnames,
-                   type, bySpecies = bySpecies, dates = dates, 
-                   xlim = xlim, ylim=ylim, xlab=xlab, ylab=ylab, 
-                   summary.freq = summary.freq, ...))
+                          type, bySpecies = bySpecies, dates = dates, 
+                          xlim = xlim, ylim=ylim, xlab=xlab, ylab=ylab, 
+                          summary.freq = summary.freq, ...))
   } 
   else if(type %in% c("TranspirationPerLeaf","GrossPhotosynthesisPerLeaf", "NetPhotosynthesisPerLeaf",
                       "AbsorbedSWRPerLeaf", "NetLWRPerLeaf")) {
@@ -291,9 +289,9 @@ plot.pwb<-function(x, type="PlantTranspiration", cohorts = NULL, bySpecies = FAL
     df = df/PlantsLAI
     df[PlantsLAI==0] = NA
     return(.plot_plant_om(df, PlantsLAIlive, spnames,
-                   type, bySpecies = bySpecies, dates = dates, 
-                   xlim = xlim, ylim=ylim, xlab=xlab, ylab=ylab, 
-                   summary.freq = summary.freq, ...))
+                          type, bySpecies = bySpecies, dates = dates, 
+                          xlim = xlim, ylim=ylim, xlab=xlab, ylab=ylab, 
+                          summary.freq = summary.freq, ...))
   } 
   else if(type == "LeafPsiRange") {
     OM1 = x$Plants$LeafPsiMax[,cohorts,drop=FALSE]
@@ -324,9 +322,9 @@ plot.pwb<-function(x, type="PlantTranspiration", cohorts = NULL, bySpecies = FAL
   else if(type %in% c("Temperature","TemperatureRange", "AirTemperature",
                       "CanopyTemperature", "SoilTemperature")) {
     return(.plot_temperature(x$Temperature, type,  
-                                dates = dates, 
-                                xlim = xlim, ylim=ylim, xlab=xlab, ylab=ylab, 
-                                summary.freq = summary.freq, ...))
+                             dates = dates, 
+                             xlim = xlim, ylim=ylim, xlab=xlab, ylab=ylab, 
+                             summary.freq = summary.freq, ...))
   }
   else if(type %in% c("CanopyEnergyBalance", "SoilEnergyBalance")) {
     return(.plot_energybalance(x$EnergyBalance, type,  
@@ -352,7 +350,7 @@ plot.growth<-function(x, type="PET_Precipitation", cohorts = NULL, bySpecies = F
   
   TYPES_GROWTH = .getDailyGROWTHPlotTypes(transpMode)
   TYPES_SWB = .getDailySPWBPlotTypes(transpMode)  
-
+  
   type = match.arg(type,TYPES_GROWTH)  
   
   if(is.null(cohorts))  cohorts = row.names(input$cohorts)
@@ -365,31 +363,31 @@ plot.growth<-function(x, type="PET_Precipitation", cohorts = NULL, bySpecies = F
       cohorts = cohorts[substr(cohorts,1,1)=="S"]
     }
   }
-
+  
   spnames = as.character(input$cohorts[cohorts,"Name"])
   PlantsLAIlive = x$Plants$LAIlive[,cohorts, drop=FALSE]
   PlantsLAI = x$Plants$LAI[,cohorts, drop=FALSE]
   
   if(type %in% TYPES_SWB) {
     return(plot.spwb(x,type, cohorts, bySpecies, dates, subdaily, xlim, ylim, xlab, ylab, 
-              summary.freq, ...))
+                     summary.freq, ...))
   } 
   else if(type == "BiomassBalance") {
     return(.plot_biomass(BiomassBalance= x$BiomassBalance,
-                       type = type, dates = dates, 
-                       xlim = xlim, ylim=ylim, xlab=xlab, ylab=ylab, 
-                       summary.freq = summary.freq, ...))
-  }
-  else if(type == "CarbonBalance") {
-    return(.plot_carbon(CarbonBalance= x$CarbonBalance,
                          type = type, dates = dates, 
                          xlim = xlim, ylim=ylim, xlab=xlab, ylab=ylab, 
                          summary.freq = summary.freq, ...))
   }
+  else if(type == "CarbonBalance") {
+    return(.plot_carbon(CarbonBalance= x$CarbonBalance,
+                        type = type, dates = dates, 
+                        xlim = xlim, ylim=ylim, xlab=xlab, ylab=ylab, 
+                        summary.freq = summary.freq, ...))
+  }
   else if(type %in% c("GrossPhotosynthesis", "MaintenanceRespiration",  "GrowthCosts", 
                       "LabileCarbonBalance", 
                       "SugarLeaf","StarchLeaf","SugarSapwood","StarchSapwood", "SugarTransport", "RootExudation")) {
-      OM = x$LabileCarbonBalance[[type]][,cohorts,drop=FALSE]
+    OM = x$LabileCarbonBalance[[type]][,cohorts,drop=FALSE]
   } 
   else if(type == "PhotosynthesisMaintenanceRatio") {
     OM1 = x$LabileCarbonBalance[["GrossPhotosynthesis"]][,cohorts,drop=FALSE]
@@ -435,17 +433,39 @@ plot.fordyn<-function(x, type="StandBasalArea",
     spnames = as.character(x$GrowthResults[[1]]$growthInput$cohorts[cohorts,"Name"])
     input_soil = x$GrowthResults[[1]]$growthInput$soil
     
-    if(type %in% c("PET_Precipitation", "PET_NetRain", "Evapotranspiration" ,"Snow",
-                   "WTD", "Export", "SoilVol")) {
+    if(type %in% c("PET_Precipitation", "PET_NetRain", "Evapotranspiration" ,"Snow", "Export")) {
       input_soil = x$GrowthResults[[1]]$growthInput$soil
       WaterBalance = summary(x, freq = "days", output = "WaterBalance")
-      Soil = summary(x, freq = "days", output = "Soil")
-      return(.plot_wb(WaterBalance = WaterBalance, Soil = Soil, input_soil = input_soil,
+      Snow = summary(x, freq = "days", output = "Snow")
+      return(.plot_wb(WaterBalance = WaterBalance, Snow = Snow, 
                       type=type, dates = dates, ylim = ylim, xlab = xlab, ylab = ylab,
                       summary.freq = summary.freq,...))
     }
-    else if(type %in% c("SoilPsi", "SoilTheta", "SoilRWC", "PlantExtraction", "HydraulicRedistribution")) {
-      Soil = summary(x, freq = "days", output = "Soil")
+    else if(type %in% c("SoilPsi", "SoilTheta", "SoilRWC", "SoilREW", "SoilVol", "PlantExtraction", "HydraulicRedistribution")) {
+      if(type=="SoilTheta") {
+        output = "Soil$SWC"
+        var = "SWC"
+      } else if(type=="SoilPsi") {
+        output = "Soil$Psi"
+        var = "Psi"
+      } else if(type=="SoilRWC") {
+        output = "Soil$RWC"
+        var = "RWC"
+      } else if(type=="SoilREW") {
+        output = "Soil$REW"
+        var = "REW"
+      } else if(type=="SoilVol") {
+        output = "Soil$ML"
+        var = "ML"
+      } else if(type=="PlantExtraction") {
+        output = "Soil$PlantExt"
+        var = "PlantExt"
+      } else if(type=="HydraulicRedistribution") {
+        output = "Soil$HydraulicInput"
+        var = "HydraulicInput"
+      }
+      Soil <- list(var = summary(x, freq = "days", output = output))
+      names(Soil)<- var
       return(.plot_soil(Soil = Soil, input_soil = input_soil, input_control = input_control,
                         type=type, dates = dates, 
                         xlim = xlim, ylim = ylim, xlab = xlab, ylab = ylab,
@@ -458,7 +478,7 @@ plot.fordyn<-function(x, type="StandBasalArea",
                          xlim = xlim, ylim=ylim, xlab=xlab, ylab=ylab,
                          summary.freq = summary.freq,...))
     }
-    else if(type %in% c("StemPLC", "StemRWC", "LeafRWC", "StemSympRWC", "LeafSympRWC")) {
+    else if(type %in% c("LeafPLC","StemPLC", "StemRWC", "LeafRWC", "StemSympRWC", "LeafSympRWC")) {
       OM = summary(x, freq = "days", output = paste0("Plants$",type))[,cohorts,drop=FALSE]*100
       return(.plot_plant_om(OM, PlantsLAIlive, spnames,
                             type, bySpecies = bySpecies, dates = dates, 
@@ -548,9 +568,9 @@ plot.fordyn<-function(x, type="StandBasalArea",
       if(type=="CarbonBalance") {
         OM = summary(x, freq = "days", output = "CarbonBalance")
         return(.plot_carbon(OM, type,  
-                             dates = dates, 
-                             xlim = xlim, ylim=ylim, xlab=xlab, ylab=ylab, 
-                             summary.freq = summary.freq, ...))
+                            dates = dates, 
+                            xlim = xlim, ylim=ylim, xlab=xlab, ylab=ylab, 
+                            summary.freq = summary.freq, ...))
       }
       if(type %in% c("GrossPhotosynthesis", "MaintenanceRespiration",  "GrowthCosts", 
                      "LabileCarbonBalance", 
@@ -579,13 +599,13 @@ plot.fordyn<-function(x, type="StandBasalArea",
                             summary.freq = summary.freq, ...))
     }
   }
-
-
+  
+  
   ## FORDYN PLOT
-
+  
   if(is.null(ylab)) ylab = .getYLab(type)
   if(is.null(xlab)) xlab = "Step"
-
+  
   if(type %in% c("NumTreeSpecies", "NumTreeCohorts", "NumShrubSpecies", "NumShrubCohorts"))  {
     out = x$StandSummary
     var = type

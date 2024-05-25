@@ -12,16 +12,26 @@ soil_thermalCapacity(soil, model = "SX")
 
 soil_thermalConductivity(soil, model = "SX")
 
-soil_temperatureGradient(dVec, Temp)
+soil_temperatureGradient(widths, Temp)
 
-soil_temperatureChange(dVec, Temp, sand, clay, W, Theta_FC, Gdown)
+soil_temperatureChange(
+  widths,
+  Temp,
+  sand,
+  clay,
+  W,
+  Theta_SAT,
+  Theta_FC,
+  Gdown,
+  tstep
+)
 }
 \arguments{
 \item{soil}{Soil object (returned by function \code{\link{soil}}).}
 
 \item{model}{Either 'SX' or 'VG' for Saxton's or Van Genuchten's pedotransfer models.}
 
-\item{dVec}{Width of soil layers (in mm).}
+\item{widths}{Width of soil layers (in mm).}
 
 \item{Temp}{Temperature (in ºC) for each soil layer.}
 
@@ -31,9 +41,13 @@ soil_temperatureChange(dVec, Temp, sand, clay, W, Theta_FC, Gdown)
 
 \item{W}{Soil moisture (in percent of field capacity) for each layer.}
 
+\item{Theta_SAT}{Relative water content (in percent volume) at saturation for each layer.}
+
 \item{Theta_FC}{Relative water content (in percent volume) at field capacity for each layer.}
 
 \item{Gdown}{Downward heat flux from canopy to soil (in W·m-2).}
+
+\item{tstep}{Time step (interval) in seconds.}
 }
 \value{
 Function \code{soil_thermalConductivity} returns a vector with values of thermal conductivity (W/m/ºK) for each soil layer. 
@@ -51,7 +65,9 @@ are used to calculate soil temperature gradients (in ºC/m) and temporal tempera
 given soil layer texture and water content (and possibly including heat flux from above).
 }
 \examples{
-examplesoil = soil(defaultSoilParams())
+#Define soil and complete parameters
+examplesoil = soil(defaultSoilParams(4))
+
 soil_thermalConductivity(examplesoil)
 soil_thermalCapacity(examplesoil)
 

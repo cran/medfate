@@ -5,7 +5,7 @@
 #' during a period specified in the input climatic data.
 #' 
 #' @param forest An object of class \code{\link{forest}}. Alternatively, the output of a previous run, if continuing a previous simulation.
-#' @param soil An object of class \code{\link{soil}}.
+#' @param soil An object of class \code{\link{data.frame}} or \code{\link{soil}}.
 #' @param SpParams A data frame with species parameters (see \code{\link{SpParamsMED}} and \code{\link{SpParamsDefinition}}).
 #' @param meteo A data frame with daily weather data series (see \code{\link{spwb}}).
 #' @param control A list with default control parameters (see \code{\link{defaultControl}}).
@@ -78,12 +78,12 @@
 #' meteo2001 <- examplemeteo
 #' meteo2002 <- examplemeteo
 #' meteo2002$Precipitation <- meteo2002$Precipitation/2
-#' row.names(meteo2002) <- seq(as.Date("2002-01-01"), 
+#' meteo2002$dates <- seq(as.Date("2002-01-01"), 
 #'                            as.Date("2002-12-31"), by="day")
 #' meteo_01_02 <- rbind(meteo2001, meteo2002)
 #' 
 #' #Load example plot plant data
-#' data(exampleforestMED)
+#' data(exampleforest)
 #' 
 #' #Default species parameterization
 #' data(SpParamsMED)
@@ -91,11 +91,11 @@
 #' #Initialize control parameters
 #' control <- defaultControl("Granier")
 #' 
-#' #Initialize soil with default soil params (4 layers)
-#' examplesoil <- soil(defaultSoilParams(4))
+#' #Define soil with default soil params (4 layers)
+#' examplesoil <- defaultSoilParams(4)
 #' 
 #' #Call simulation function
-#' fd<-fordyn(exampleforestMED, examplesoil, 
+#' fd<-fordyn(exampleforest, examplesoil, 
 #'            SpParamsMED, meteo_01_02, control,
 #'            latitude = 41.82592, elevation = 100)
 #' 
@@ -167,7 +167,7 @@ fordyn<-function(forest, soil, SpParams,
       forest$shrubData$Z50[is.na(forest$shrubData$Z50)] <- shrubSPZ50[is.na(forest$shrubData$Z50)]
       forest$shrubData$Z95[is.na(forest$shrubData$Z95)] <- shrubSPZ95[is.na(forest$shrubData$Z95)]
     }
-    xi <- forest2growthInput(forest, soil, SpParams, control)
+    xi <- growthInput(forest, soil, SpParams, control)
   }
   forestStructures[[1]] <- forest
 
@@ -206,6 +206,7 @@ fordyn<-function(forest, soil, SpParams,
     # 1.3 Retrieve modified growth output
     xo <- Gi$growthOutput
 
+    # print(xo$above)
     # 2.2 Update dead tree/shrub tables
     deadTreeTableYear <- .createDeadTreeTable(iYear, year, xo)
     deadShrubTableYear <- .createDeadShrubTable(iYear, year, xo)
@@ -301,6 +302,9 @@ fordyn<-function(forest, soil, SpParams,
                            planted_forest, recr_forest, resp_forest)
 
     forest <- nyf$forest
+    if(verboseDyn) {
+      cat(paste0(" nT = ", nrow(forest$treeData), " nS = ", nrow(forest$shrubData)))
+    }
     xi <- nyf$xi
 
     # 6.1 Store current forest state (after recruitment/resprouting)

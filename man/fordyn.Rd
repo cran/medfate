@@ -22,7 +22,7 @@ fordyn(
 \arguments{
 \item{forest}{An object of class \code{\link{forest}}. Alternatively, the output of a previous run, if continuing a previous simulation.}
 
-\item{soil}{An object of class \code{\link{soil}}.}
+\item{soil}{An object of class \code{\link{data.frame}} or \code{\link{soil}}.}
 
 \item{SpParams}{A data frame with species parameters (see \code{\link{SpParamsMED}} and \code{\link{SpParamsDefinition}}).}
 
@@ -100,12 +100,12 @@ data(examplemeteo)
 meteo2001 <- examplemeteo
 meteo2002 <- examplemeteo
 meteo2002$Precipitation <- meteo2002$Precipitation/2
-row.names(meteo2002) <- seq(as.Date("2002-01-01"), 
+meteo2002$dates <- seq(as.Date("2002-01-01"), 
                            as.Date("2002-12-31"), by="day")
 meteo_01_02 <- rbind(meteo2001, meteo2002)
 
 #Load example plot plant data
-data(exampleforestMED)
+data(exampleforest)
 
 #Default species parameterization
 data(SpParamsMED)
@@ -113,11 +113,11 @@ data(SpParamsMED)
 #Initialize control parameters
 control <- defaultControl("Granier")
 
-#Initialize soil with default soil params (4 layers)
-examplesoil <- soil(defaultSoilParams(4))
+#Define soil with default soil params (4 layers)
+examplesoil <- defaultSoilParams(4)
 
 #Call simulation function
-fd<-fordyn(exampleforestMED, examplesoil, 
+fd<-fordyn(exampleforest, examplesoil, 
            SpParamsMED, meteo_01_02, control,
            latitude = 41.82592, elevation = 100)
 

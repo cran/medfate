@@ -8,21 +8,16 @@
 \alias{hydraulics_E2psiXylemUp}
 \alias{hydraulics_EVanGenuchten}
 \alias{hydraulics_ECrit}
-\alias{hydraulics_ECapacitance}
 \alias{hydraulics_E2psiVanGenuchten}
 \alias{hydraulics_E2psiTwoElements}
 \alias{hydraulics_E2psiBelowground}
 \alias{hydraulics_E2psiAboveground}
-\alias{hydraulics_E2psiFineRootLeaf}
-\alias{hydraulics_E2psiNetworkStem1}
 \alias{hydraulics_E2psiNetwork}
 \alias{hydraulics_supplyFunctionOneXylem}
 \alias{hydraulics_supplyFunctionTwoElements}
 \alias{hydraulics_supplyFunctionThreeElements}
 \alias{hydraulics_supplyFunctionBelowground}
 \alias{hydraulics_supplyFunctionAboveground}
-\alias{hydraulics_supplyFunctionFineRootLeaf}
-\alias{hydraulics_supplyFunctionNetworkStem1}
 \alias{hydraulics_supplyFunctionNetwork}
 \alias{hydraulics_regulatedPsiXylem}
 \alias{hydraulics_regulatedPsiTwoElements}
@@ -48,19 +43,6 @@ hydraulics_EVanGenuchten(psiRhizo, psiSoil, krhizomax, n, alpha, l = 0.5)
 
 hydraulics_ECrit(psiUpstream, kxylemmax, c, d, pCrit = 0.001)
 
-hydraulics_ECapacitance(
-  psi,
-  psiPrev,
-  PLCprev,
-  V,
-  fapo,
-  c,
-  d,
-  pi0,
-  eps,
-  timestep
-)
-
 hydraulics_E2psiVanGenuchten(
   E,
   psiSoil,
@@ -85,36 +67,11 @@ hydraulics_E2psiTwoElements(
   psiMax = -10
 )
 
-hydraulics_E2psiBelowground(
-  E,
-  hydraulicNetwork,
-  psiIni = as.numeric(c(0)),
-  ntrial = 10L,
-  psiTol = 1e-04,
-  ETol = 1e-04
-)
+hydraulics_E2psiBelowground(E, hydraulicNetwork, psiIni = as.numeric(c(0)))
 
 hydraulics_E2psiAboveground(E, psiRootCrown, hydraulicNetwork)
 
-hydraulics_E2psiFineRootLeaf(E, psiFineRoot, hydraulicNetwork)
-
-hydraulics_E2psiNetworkStem1(
-  E,
-  hydraulicNetwork,
-  psiIni = as.numeric(c(0)),
-  ntrial = 10L,
-  psiTol = 1e-04,
-  ETol = 1e-04
-)
-
-hydraulics_E2psiNetwork(
-  E,
-  hydraulicNetwork,
-  psiIni = as.numeric(c(0)),
-  ntrial = 10L,
-  psiTol = 1e-04,
-  ETol = 1e-04
-)
+hydraulics_E2psiNetwork(E, hydraulicNetwork, psiIni = as.numeric(c(0)))
 
 hydraulics_supplyFunctionOneXylem(
   psiSoil,
@@ -161,10 +118,6 @@ hydraulics_supplyFunctionThreeElements(
 hydraulics_supplyFunctionBelowground(
   hydraulicNetwork,
   minFlow = 0,
-  maxNsteps = 400L,
-  ntrial = 10L,
-  psiTol = 1e-04,
-  ETol = 1e-04,
   pCrit = 0.001
 )
 
@@ -174,34 +127,7 @@ hydraulics_supplyFunctionAboveground(
   hydraulicNetwork
 )
 
-hydraulics_supplyFunctionFineRootLeaf(
-  psiFineRoot,
-  hydraulicNetwork,
-  minFlow = 0,
-  maxNsteps = 400L,
-  ETol = 1e-04,
-  pCrit = 0.001
-)
-
-hydraulics_supplyFunctionNetworkStem1(
-  hydraulicNetwork,
-  minFlow = 0,
-  maxNsteps = 400L,
-  ntrial = 200L,
-  psiTol = 1e-04,
-  ETol = 1e-04,
-  pCrit = 0.001
-)
-
-hydraulics_supplyFunctionNetwork(
-  hydraulicNetwork,
-  minFlow = 0,
-  maxNsteps = 400L,
-  ntrial = 200L,
-  psiTol = 1e-04,
-  ETol = 1e-04,
-  pCrit = 0.001
-)
+hydraulics_supplyFunctionNetwork(hydraulicNetwork, minFlow = 0, pCrit = 0.001)
 
 hydraulics_regulatedPsiXylem(E, psiUpstream, kxylemmax, c, d, psiStep = -0.01)
 
@@ -237,7 +163,7 @@ hydraulics_supplyFunctionPlot(
 
 \item{c, d}{Parameters of the Weibull function (generic xylem vulnerability curve).}
 
-\item{allowNegativeFlux}{A boolean to indicate wether negative flux (i.e. from plant to soil) is allowed.}
+\item{allowNegativeFlux}{A boolean to indicate whether negative flux (i.e. from plant to soil) is allowed.}
 
 \item{psiCav}{Minimum water potential (in MPa) experienced (for irreversible cavitation).}
 
@@ -255,22 +181,6 @@ hydraulics_supplyFunctionPlot(
 
 \item{pCrit}{Critical water potential (in MPa).}
 
-\item{psi}{Water potential (in MPa).}
-
-\item{psiPrev}{Water potential (in MPa) in the previous time step.}
-
-\item{PLCprev}{Previous proportion of loss conductance [0-1].}
-
-\item{V}{Capacity of the compartment per leaf area (in L/m2).}
-
-\item{fapo}{Apoplastic fraction (proportion) in the segment.}
-
-\item{pi0}{Full turgor osmotic potential (MPa).}
-
-\item{eps}{Bulk modulus of elasticity (MPa).}
-
-\item{timestep}{Time step in seconds.}
-
 \item{psiStep}{Water potential precision (in MPa).}
 
 \item{psiMax}{Minimum (maximum in absolute value) water potential to be considered (in MPa).}
@@ -279,15 +189,7 @@ hydraulics_supplyFunctionPlot(
 
 \item{psiIni}{Vector of initial water potential values (in MPa).}
 
-\item{ntrial}{Maximum number of steps in Newton-Raphson optimization.}
-
-\item{psiTol}{Precision for water potential estimates (in MPa).}
-
-\item{ETol}{Precision for water flow per surface unit.}
-
 \item{psiRootCrown}{Soil water potential (in MPa) at the root crown.}
-
-\item{psiFineRoot}{Water potential (in MPa) inside fine roots.}
 
 \item{v}{Proportion of fine roots within each soil layer.}
 

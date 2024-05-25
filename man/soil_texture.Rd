@@ -7,6 +7,8 @@
 \alias{soil_thetaSATSX}
 \alias{soil_theta2psiSX}
 \alias{soil_psi2thetaSX}
+\alias{soil_psi2kVG}
+\alias{soil_psi2cVG}
 \alias{soil_psi2thetaVG}
 \alias{soil_theta2psiVG}
 \alias{soil_USDAType}
@@ -16,27 +18,41 @@
 \alias{soil_waterFC}
 \alias{soil_waterSAT}
 \alias{soil_waterWP}
+\alias{soil_waterPsi}
 \alias{soil_waterExtractable}
 \alias{soil_theta}
 \alias{soil_water}
 \alias{soil_rockWeight2Volume}
 \alias{soil_psi}
 \alias{soil_conductivity}
-\alias{soil_waterTableDepth}
+\alias{soil_capacitance}
+\alias{soil_saturatedWaterDepth}
 \alias{soil_vanGenuchtenParamsCarsel}
+\alias{soil_campbellParamsClappHornberger}
 \alias{soil_vanGenuchtenParamsToth}
 \alias{soil_retentionCurvePlot}
 \title{Soil texture and hydraulics}
 \usage{
-soil_saturatedConductivitySX(clay, sand, om = NA_real_, mmol = TRUE)
+soil_saturatedConductivitySX(clay, sand, bd, om = NA_real_, mmol = TRUE)
 
-soil_unsaturatedConductivitySX(theta, clay, sand, om = NA_real_, mmol = TRUE)
+soil_unsaturatedConductivitySX(
+  theta,
+  clay,
+  sand,
+  bd,
+  om = NA_real_,
+  mmol = TRUE
+)
 
 soil_thetaSATSX(clay, sand, om = NA_real_)
 
 soil_theta2psiSX(clay, sand, theta, om = NA_real_)
 
 soil_psi2thetaSX(clay, sand, psi, om = NA_real_)
+
+soil_psi2kVG(ksat, n, alpha, theta_res, theta_sat, psi)
+
+soil_psi2cVG(n, alpha, theta_res, theta_sat, psi)
 
 soil_psi2thetaVG(n, alpha, theta_res, theta_sat, psi)
 
@@ -56,6 +72,8 @@ soil_waterSAT(soil, model = "SX")
 
 soil_waterWP(soil, model = "SX")
 
+soil_waterPsi(soil, psi, model = "SX")
+
 soil_waterExtractable(soil, model = "SX", minPsi = -5)
 
 soil_theta(soil, model = "SX")
@@ -66,11 +84,15 @@ soil_rockWeight2Volume(pWeight, bulkDensity, rockDensity = 2.3)
 
 soil_psi(soil, model = "SX")
 
-soil_conductivity(soil)
+soil_conductivity(soil, model = "SX")
 
-soil_waterTableDepth(soil, model = "SX")
+soil_capacitance(soil, model = "SX")
+
+soil_saturatedWaterDepth(soil, model = "SX")
 
 soil_vanGenuchtenParamsCarsel(soilType)
+
+soil_campbellParamsClappHornberger(soilType)
 
 soil_vanGenuchtenParamsToth(clay, sand, om, bd, topsoil)
 
@@ -88,6 +110,8 @@ soil_retentionCurvePlot(
 
 \item{sand}{Percentage of sand (in percent weight).}
 
+\item{bd}{Bulk density (in g/cm3).}
+
 \item{om}{Percentage of organic matter (optional, in percent weight).}
 
 \item{mmol}{Boolean flag to indicate that saturated conductivity units should be returned in mmol/m/s/MPa. If \code{mmol = FALSE} then units are cm/day.}
@@ -96,9 +120,11 @@ soil_retentionCurvePlot(
 
 \item{psi}{Water potential (in MPa).}
 
+\item{ksat}{saturated hydraulic conductance}
+
 \item{n, alpha, theta_res, theta_sat}{Parameters of the Van Genuchten-Mualem model (m = 1 - 1/n).}
 
-\item{soil}{Soil object (returned by function \code{\link{soil}}).}
+\item{soil}{Initialized soil object (returned by function \code{\link{soil}}).}
 
 \item{model}{Either 'SX' or 'VG' for Saxton's or Van Genuchten's water retention models; or 'both' to plot both retention models.}
 
@@ -111,8 +137,6 @@ soil_retentionCurvePlot(
 \item{rockDensity}{Rock density (g/cm3).}
 
 \item{soilType}{A string indicating the soil type.}
-
-\item{bd}{Bulk density (in g/cm3).}
 
 \item{topsoil}{A boolean flag to indicate topsoil layer.}
 
@@ -145,7 +169,7 @@ Low-level functions relating soil texture with soil hydraulics and soil water co
 \item{\code{soil_waterFC()} and \code{soil_thetaFC()} calculate the water volume (in mm) and moisture content (as percent of soil volume) of each soil layer at field capacity, respectively.}
 \item{\code{soil_waterWP()} and \code{soil_thetaWP()} calculate the water volume (in mm) and moisture content (as percent of soil volume) of each soil layer at wilting point (-1.5 MPa), respectively. }
 \item{\code{soil_waterSAT()}, \code{soil_thetaSATSX()} and \code{soil_thetaSAT()} calculate the saturated water volume (in mm) and moisture content (as percent of soil volume) of each soil layer.}
-\item{\code{soil_waterTableDepth()} returns water table depth in mm from surface.}
+\item{\code{soil_saturatedWaterDepth()} returns the depth to saturation in mm from surface.}
 \item{\code{soil_rockWeight2Volume()} transforms rock percentage from weight to volume basis.}
 \item{\code{soil_retentionCurvePlot()} allows ploting the water retention curve of a given soil layer.}
 }
@@ -159,8 +183,12 @@ type
 vg = soil_vanGenuchtenParamsToth(40,10,1,1.3,TRUE)
 vg
 
-# Initialize soil object with default params
-s = soil(defaultSoilParams())
+# Define soil with default params
+soil_df <- defaultSoilParams(4)
+soil_df
+
+# Initialize soil parameters and state variables
+s = soil(soil_df)
 
 # Plot Saxton's and Van Genuchten's water retention curves
 soil_retentionCurvePlot(s, model="both")

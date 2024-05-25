@@ -1,8 +1,8 @@
 Package: medfate
 Type: Package
 Title: Mediterranean Forest Simulation
-Version: 3.2.0
-Date: 2023-11-29
+Version: 4.3.1
+Date: 2024-05-23
 Authors@R: c(
 	person('Miquel', 'De Cáceres', role=c('aut','cre', 'cph'),
 	email='miquelcaceres@gmail.com', comment = c(ORCID = "0000-0001-7132-2080")),
@@ -29,11 +29,11 @@ Suggests: testthat (>= 3.0.0), knitr, rmarkdown
 LinkingTo: Rcpp, meteoland
 Encoding: UTF-8
 NeedsCompilation: yes
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.1
 BugReports: https://github.com/emf-creaf/medfate/issues
 Config/testthat/edition: 3
 LazyData: true
-Packaged: 2023-11-30 08:41:27 UTC; miquel
+Packaged: 2024-05-25 07:26:51 UTC; miquel
 Author: Miquel De Cáceres [aut, cre, cph]
     (<https://orcid.org/0000-0001-7132-2080>),
   Nicolas Martin-StPaul [aut] (<https://orcid.org/0000-0001-7574-0108>),
@@ -49,4 +49,4 @@ Author: Miquel De Cáceres [aut, cre, cph]
   John Burkardt [cph] (Copyright holder of C++ code in 'incgamma.cpp')
 Maintainer: Miquel De Cáceres <miquelcaceres@gmail.com>
 Repository: CRAN
-Date/Publication: 2023-11-30 09:10:02 UTC
+Date/Publication: 2024-05-25 07:50:08 UTC

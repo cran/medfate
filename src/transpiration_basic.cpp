@@ -1,7 +1,7 @@
 #define STRICT_R_HEADERS
 #include <Rcpp.h>
 #include <numeric>
-#include "lightextinction.h"
+#include "lightextinction_basic.h"
 #include "windextinction.h"
 #include "windKatul.h"
 #include "hydraulics.h"
@@ -13,6 +13,7 @@
 #include "photosynthesis.h"
 #include "root.h"
 #include "soil.h"
+#include "spwb.h"
 #include <meteoland.h>
 using namespace Rcpp;
 
@@ -26,7 +27,7 @@ double plantVol(double plantPsi, NumericVector pars) {
   double stemrwc = tissueRelativeWaterContent(plantPsi, pars["stempi0"], pars["stemeps"], 
                                               plantPsi, pars["stem_c"], pars["stem_d"], 
                                               pars["stemaf"]);
-  return(((pars["Vleaf"] * leafrwc)*pars["LAIphe"]) + ((pars["Vsapwood"] * stemrwc)*pars["LAIlive"]));
+  return(((pars["Vleaf"] * leafrwc)*pars["LAI"]) + ((pars["Vsapwood"] * stemrwc)*pars["LAIlive"]));
 }
 
 
@@ -47,18 +48,25 @@ double findNewPlantPsiConnected(double flowFromRoots, double plantPsi, double ro
 
 List transpirationBasic(List x, NumericVector meteovec,  
                         double elevation, bool modifyInput = true) {
+  
+  //Will not modify input x 
+  if(!modifyInput) {
+    x = clone(x);
+  }
+  
   //Control parameters
   List control = x["control"];
-  String cavitationRefill = control["cavitationRefill"];
-  double refillMaximumRate = control["refillMaximumRate"];
+  String stemCavitationRecovery = control["stemCavitationRecovery"];
+  String leafCavitationRecovery = control["leafCavitationRecovery"];
+  double cavitationRecoveryMaximumRate = control["cavitationRecoveryMaximumRate"];
   String soilFunctions = control["soilFunctions"];
   double verticalLayerSize = control["verticalLayerSize"];
   String rhizosphereOverlap = control["rhizosphereOverlap"];
   bool plantWaterPools = (rhizosphereOverlap!="total");
   double hydraulicRedistributionFraction = control["hydraulicRedistributionFraction"];
-  
+
   //Soil water at field capacity
-  List soil = x["soil"];
+  DataFrame soil = Rcpp::as<Rcpp::DataFrame>(x["soil"]);
   NumericVector Water_FC = waterFC(soil, soilFunctions);
   
   //Meteo input
@@ -102,6 +110,12 @@ List transpirationBasic(List x, NumericVector meteovec,
     poolProportions = belowdf["poolProportions"];
   }
   
+  
+  
+  //Phenology parameters
+  DataFrame paramsPhenology = Rcpp::as<Rcpp::DataFrame>(x["paramsPhenology"]);
+  CharacterVector phenoType = paramsPhenology["PhenologyType"];
+  
   //Parameters  
   DataFrame paramsAnatomy = Rcpp::as<Rcpp::DataFrame>(x["paramsAnatomy"]);
   NumericVector Al2As = Rcpp::as<Rcpp::NumericVector>(paramsAnatomy["Al2As"]);
@@ -116,6 +130,8 @@ List transpirationBasic(List x, NumericVector meteovec,
   NumericVector Exp_Extract = Rcpp::as<Rcpp::NumericVector>(paramsTransp["Exp_Extract"]);
   NumericVector VCstem_c = Rcpp::as<Rcpp::NumericVector>(paramsTransp["VCstem_c"]);
   NumericVector VCstem_d = Rcpp::as<Rcpp::NumericVector>(paramsTransp["VCstem_d"]);
+  NumericVector VCleaf_c = Rcpp::as<Rcpp::NumericVector>(paramsTransp["VCleaf_c"]);
+  NumericVector VCleaf_d = Rcpp::as<Rcpp::NumericVector>(paramsTransp["VCleaf_d"]);
   NumericVector WUE = Rcpp::as<Rcpp::NumericVector>(paramsTransp["WUE"]);
   NumericVector WUE_par(numCohorts, 0.3643);
   NumericVector WUE_co2(numCohorts, 0.002757);
@@ -152,16 +168,16 @@ List transpirationBasic(List x, NumericVector meteovec,
   
   //Communication vectors
   //Comunication with outside
+  DataFrame internalPhenology = Rcpp::as<Rcpp::DataFrame>(x["internalPhenology"]);
+  NumericVector phi = Rcpp::as<Rcpp::NumericVector>(internalPhenology["phi"]);
   DataFrame internalWater = Rcpp::as<Rcpp::DataFrame>(x["internalWater"]);
-  NumericVector PlantPsi = clone(Rcpp::as<Rcpp::NumericVector>(internalWater["PlantPsi"]));
-  NumericVector StemPLC = clone(Rcpp::as<Rcpp::NumericVector>(internalWater["StemPLC"]));
-  
+  NumericVector PlantPsi = Rcpp::as<Rcpp::NumericVector>(internalWater["PlantPsi"]);
+  NumericVector StemPLC = Rcpp::as<Rcpp::NumericVector>(internalWater["StemPLC"]);
+  NumericVector LeafPLC = Rcpp::as<Rcpp::NumericVector>(internalWater["LeafPLC"]);
+
   //Determine whether leaves are out (phenology) and the adjusted Leaf area
-  NumericVector Phe(numCohorts,0.0);
   double s = 0.0, LAIcell = 0.0, canopyHeight = 0.0, LAIcelllive = 0.0, LAIcellexpanded = 0.0,LAIcelldead = 0.0;
   for(int c=0;c<numCohorts;c++) {
-    if(LAIlive[c]>0) Phe[c]=LAIphe[c]/LAIlive[c]; //Phenological status
-    else Phe[c]=0.0;
     s += (kPAR[c]*(LAIphe[c]+LAIdead[c]));
     LAIcell += LAIphe[c]+LAIdead[c];
     LAIcelldead += LAIdead[c];
@@ -220,11 +236,13 @@ List transpirationBasic(List x, NumericVector meteovec,
       KunsatM(j,_) = conductivity(soil_pool);
       //Calculate soil water potential
       psiSoilM(j,_) = psi(soil_pool, soilFunctions);
+      // Rcout<< Ws_pool[3]<< " "<< psiSoilM(j,3)<<"\n";
       //Calculate available water
       WaterM(j,_) = water(soil_pool, soilFunctions);
     }
   }
-  
+  // for(int i= 0;i<psiSoil.size();i++) Rcout<< "S "<<i<<" "<<psiSoil[i]<<"\n";
+    
   for(int c=0;c<numCohorts;c++) {
     NumericMatrix ExtractionPoolsCoh(numCohorts, nlayers); //this is used to store extraction of a SINGLE plant cohort from all pools
     
@@ -232,7 +250,7 @@ List transpirationBasic(List x, NumericVector meteovec,
                                                   _["leafpi0"] = LeafPI0[c], _["leafeps"] = LeafEPS[c],
                                                   _["leafaf"] = LeafAF[c],_["stempi0"] = StemPI0[c],_["stemeps"] = StemEPS[c],
                                                   _["stemaf"] = StemAF[c],_["Vsapwood"] = Vsapwood[c],_["Vleaf"] = Vleaf[c],
-                                                  _["LAIphe"] = LAIphe[c],_["LAIlive"] = LAIlive[c]);
+                                                  _["LAI"] = LAIphe[c],_["LAIlive"] = LAIlive[c]);
     
     double rootCrownPsi = NA_REAL;
     
@@ -242,7 +260,7 @@ List transpirationBasic(List x, NumericVector meteovec,
     double lvpd_tmax = std::max(0.0, lvp_tmax - vpatm);
     double lvpd_tmin = std::max(0.0, lvp_tmin - vpatm);
     double E_gmin = Gswmin[c]*(lvpd_tmin+lvpd_tmax)/(2.0*Patm); // mol·s-1·m-2
-    double E_cut = E_gmin*LAIphe[c]*(24.0*3600.0*0.018);
+    // double E_cut = E_gmin*LAIphe[c]*(24.0*3600.0*0.018);
     
     //Extraction from soil (can later be modified if there are changes in plant water content)
     if(!plantWaterPools) {
@@ -251,7 +269,7 @@ List transpirationBasic(List x, NumericVector meteovec,
       for(int l=0;l<nlayers;l++) {
         Klc[l] = Psi2K(psiSoil[l], Psi_Extract[c], Exp_Extract[c]);
         //Limit Mean Kl due to previous cavitation
-        if(cavitationRefill!="total") {
+        if(stemCavitationRecovery!="total") {
           Klc[l] = std::min(Klc[l], 1.0-StemPLC[c]); 
         }
         Kunlc[l] = pow(Kunsat[l],0.5)*V(c,l);
@@ -262,18 +280,28 @@ List transpirationBasic(List x, NumericVector meteovec,
         Extraction(c,l) = std::max(TmaxCoh[c]*Klcmean, E_gmin)*(Kunlc[l]/sumKunlc);
       }
       rootCrownPsi = averagePsi(psiSoil, V(c,_), Exp_Extract[c], Psi_Extract[c]);
-      // Rcout<< c << " : " << rootCrownPsi<<"\n";
     } else {
       NumericMatrix RHOPcoh = Rcpp::as<Rcpp::NumericMatrix>(RHOP[c]);
+      NumericMatrix RHOPcohDyn(numCohorts, nlayers);
+      for(int l=0;l<nlayers;l++) {
+        double overlapFactor = Psi2K(psiSoil[l], -1.0, 4.0);
+        RHOPcohDyn(c,l) = RHOPcoh(c,l);
+        for(int j=0; j<numCohorts;j++) {
+          if(j!=c) {
+            RHOPcohDyn(j,l) = RHOPcoh(j,l)*overlapFactor;
+            RHOPcohDyn(c,l) = RHOPcohDyn(c,l) + (RHOPcoh(j,l) - RHOPcohDyn(j,l));
+          } 
+        }
+      }
       NumericMatrix Klc(numCohorts, nlayers);
       NumericMatrix Kunlc(numCohorts, nlayers);
       NumericMatrix RHOPcohV(numCohorts, nlayers);
       for(int j = 0;j<numCohorts;j++) {
         for(int l=0;l<nlayers;l++) {
-          RHOPcohV(j,l) = RHOPcoh(j,l)*V(c,l);
+          RHOPcohV(j,l) = RHOPcohDyn(j,l)*V(c,l);
           Klc(j,l) = Psi2K(psiSoilM(c,l), Psi_Extract[c], Exp_Extract[c]);
           //Limit Mean Kl due to previous cavitation
-          if(cavitationRefill!="total") Klc(j,l) = std::min(Klc(j,l), 1.0-StemPLC[c]); 
+          if(stemCavitationRecovery!="total") Klc(j,l) = std::min(Klc(j,l), 1.0-StemPLC[c]); 
           Kunlc(j,l) = pow(KunsatM(j,l),0.5)*RHOPcohV(j,l);
         }
       }
@@ -285,10 +313,11 @@ List transpirationBasic(List x, NumericVector meteovec,
         }
         Extraction(c,l) = sum(ExtractionPoolsCoh(_,l)); // Sum extraction from all pools (layer l)
       }
+      
       rootCrownPsi = averagePsiPool(psiSoilM, RHOPcohV, Exp_Extract[c], Psi_Extract[c]);
-      // Rcout<< c << " : " << rootCrownPsi<<"\n";
+      // Rcout<< c << " : "<< psiSoilM(c,0) << " " << psiSoilM(c,1) << " " << psiSoilM(c,2) << " " << psiSoilM(c,3) << " " << rootCrownPsi<<"\n";
+      // Rcout<< c << " : "<< RHOPcohV(c,0) << " " << RHOPcohV(c,1) << " " << RHOPcohV(c,2) << " " << RHOPcohV(c,3) << " " << rootCrownPsi<<"\n";
     }
-    
 
 
     double oldVol = plantVol(PlantPsi[c], parsVol); 
@@ -321,10 +350,15 @@ List transpirationBasic(List x, NumericVector meteovec,
   
   //Plant water status (StemPLC, RWC, DDS)
   for(int c=0;c<numCohorts;c++) {
-    if(cavitationRefill!="total") {
+    if(stemCavitationRecovery!="total") {
       StemPLC[c] = std::max(1.0 - xylemConductance(PlantPsi[c], 1.0, VCstem_c[c], VCstem_d[c]), StemPLC[c]); //Track current embolism if no refill
     } else {
       StemPLC[c] = 1.0 - xylemConductance(PlantPsi[c], 1.0, VCstem_c[c], VCstem_d[c]);
+    }
+    if(leafCavitationRecovery!="total") {
+      LeafPLC[c] = std::max(1.0 - xylemConductance(PlantPsi[c], 1.0, VCleaf_c[c], VCleaf_d[c]), LeafPLC[c]); //Track current embolism if no refill
+    } else {
+      LeafPLC[c] = 1.0 - xylemConductance(PlantPsi[c], 1.0, VCleaf_c[c], VCleaf_d[c]);
     }
     
     //Relative water content and fuel moisture from plant water potential
@@ -337,20 +371,19 @@ List transpirationBasic(List x, NumericVector meteovec,
     LFMC[c] = maxFMC[c]*((1.0/r635[c])*RWClm[c]+(1.0 - (1.0/r635[c]))*RWCsm[c]);
     
     //Daily drought stress from plant WP
-    DDS[c] = Phe[c]*(1.0 - Psi2K(PlantPsi[c],Psi_Extract[c],Exp_Extract[c])); 
-    
-    if(cavitationRefill=="rate") {
-      double SAmax = 10e4/Al2As[c]; //cm2·m-2 of leaf area
-      double r = refillMaximumRate*std::max(0.0, (PlantPsi[c] + 1.5)/1.5);
+    DDS[c] = (1.0 - Psi2K(PlantPsi[c],Psi_Extract[c],Exp_Extract[c])); 
+    if(phenoType[c] == "winter-deciduous" || phenoType[c] == "winter-semideciduous") DDS[c] = phi[c]*DDS[c];
+      
+    double SAmax = 10e4/Al2As[c]; //cm2·m-2 of leaf area
+    double r = cavitationRecoveryMaximumRate*std::max(0.0, (PlantPsi[c] + 1.5)/1.5);
+    if(stemCavitationRecovery=="rate") {
       StemPLC[c] = std::max(0.0, StemPLC[c] - (r/SAmax));
+    }
+    if(leafCavitationRecovery=="rate") {
+      LeafPLC[c] = std::max(0.0, LeafPLC[c] - (r/SAmax));
     }
   }
   
-  
-  if(modifyInput) {
-    internalWater["StemPLC"] = StemPLC;
-    internalWater["PlantPsi"] = PlantPsi;
-  }
   //Atempt to implement hydraulic redistribution
   if(hydraulicRedistributionFraction > 0.0) {
     if(!plantWaterPools) {
@@ -404,23 +437,8 @@ List transpirationBasic(List x, NumericVector meteovec,
       }
     }
   }
-  //Modifies input soil
-  if(modifyInput) {
-    NumericVector Ws = soil["W"];
-    for(int l=0;l<nlayers;l++) Ws[l] = Ws[l] - (sum(Extraction(_,l))/Water_FC[l]); 
-    for(int c=0;c<numCohorts;c++) {
-      for(int l=0;l<nlayers;l++) {
-        if(!plantWaterPools){ //copy soil to the pools of all cohorts
-          Wpool(c,l) = Ws[l];
-        } else {//Applies pool extraction by each plant cohort
-          NumericMatrix ExtractionPoolsCoh = ExtractionPools[c];
-          for(int j=0;j<numCohorts;j++) {
-            Wpool(c,l) = Wpool(c,l) - (ExtractionPoolsCoh(j,l)/(Water_FC[l]*poolProportions[c])); //Apply extraction from pools
-          }
-        }
-      }
-    } 
-  }
+  
+
   
   //Copy LAIexpanded for output
   NumericVector LAIcohort(numCohorts);
@@ -447,13 +465,15 @@ List transpirationBasic(List x, NumericVector meteovec,
                                        _["LeafRWC"] = RWClm,
                                        _["LFMC"] = LFMC,
                                        _["StemPLC"] = StemPLC,
+                                       _["LeafPLC"] = LeafPLC,
                                        _["WaterBalance"] = PWB);
   Plants.attr("row.names") = above.attr("row.names");
   Extraction.attr("dimnames") = List::create(above.attr("row.names"), seq(1,nlayers));
   List l = List::create(_["cohorts"] = clone(cohorts),
                         _["Stand"] = Stand,
                         _["Plants"] = Plants,
-                        _["Extraction"] = Extraction);
+                        _["Extraction"] = Extraction,
+                        _["ExtractionPools"] = ExtractionPools);
   return(l);
 }
 
@@ -468,10 +488,10 @@ List transpirationBasic(List x, NumericVector meteovec,
 //'   and implements an approach originally described in Granier et al. (1999).} 
 //'   \item{Sub-model in function \code{transp_transpirationSperry} was described in De \enc{Cáceres}{Caceres} et al. (2021), and
 //'   implements a modelling approach originally described in Sperry et al. (2017).} 
-//'   \item{Sub-model in function \code{transp_transpirationCochard} was described for SurEau-Ecos v2.0 model in Ruffault et al. (2022).} 
+//'   \item{Sub-model in function \code{transp_transpirationSureau} was described for SurEau-Ecos v2.0 model in Ruffault et al. (2022).} 
 //' }
 //' 
-//' @param x An object of class \code{\link{spwbInput}} or \code{\link{growthInput}}, built using the 'Granier', 'Sperry' or 'Cochard' transpiration modes.
+//' @param x An object of class \code{\link{spwbInput}} or \code{\link{growthInput}}, built using the 'Granier', 'Sperry' or 'Sureau' transpiration modes.
 //' @param meteo A data frame with daily meteorological data series (see \code{\link{spwb}}).
 //' @param day An integer to identify a day (row) within the \code{meteo} data frame.
 //' @param latitude Latitude (in degrees).
@@ -493,7 +513,7 @@ List transpirationBasic(List x, NumericVector meteovec,
 //'       \item{\code{"psi"}: Water potential (in MPa) of the plant cohort (average over soil layers).}
 //'       \item{\code{"DDS"}: Daily drought stress [0-1] (relative whole-plant conductance).}
 //'     }
-//'   When using \code{transp_transpirationSperry} or \code{transp_transpirationCochard}, element \code{"Plants"} includes:
+//'   When using \code{transp_transpirationSperry} or \code{transp_transpirationSureau}, element \code{"Plants"} includes:
 //'     \itemize{
 //'       \item{\code{"LAI"}: Leaf area index of the plant cohort.}
 //'       \item{\code{"LAIlive"}: Leaf area index of the plant cohort, assuming all leaves are unfolded.}
@@ -520,7 +540,7 @@ List transpirationBasic(List x, NumericVector meteovec,
 //'   }
 //'   \item{\code{"Extraction"}: A data frame with mm of water extracted from each soil layer (in columns) by each cohort (in rows).}
 //' 
-//'   The remaining items are only given by \code{transp_transpirationSperry} or \code{transp_transpirationCochard}:
+//'   The remaining items are only given by \code{transp_transpirationSperry} or \code{transp_transpirationSureau}:
 //'   \item{\code{"EnergyBalance"}: A list with the following elements:
 //'     \itemize{
 //'       \item{\code{"Temperature"}: A data frame with the temperature of the atmosphere ('Tatm'), canopy ('Tcan') and soil ('Tsoil.1', 'Tsoil.2', ...) for each time step.}
@@ -597,19 +617,19 @@ List transpirationBasic(List x, NumericVector meteovec,
 //' data(examplemeteo)
 //' 
 //' #Load example plot plant data
-//' data(exampleforestMED)
+//' data(exampleforest)
 //' 
 //' #Default species parameterization
 //' data(SpParamsMED)
 //' 
-//' #Initialize soil with default soil params (4 layers)
-//' examplesoil <- soil(defaultSoilParams(4))
+//' #Define soil with default soil params (4 layers)
+//' examplesoil <- defaultSoilParams(4)
 //' 
 //' #Initialize control parameters
 //' control <- defaultControl("Granier")
 //' 
 //' #Initialize input
-//' x1 <- forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
+//' x1 <- spwbInput(exampleforest,examplesoil, SpParamsMED, control)
 //' 
 //' # Transpiration according to Granier's model, plant water potential 
 //' # and plant stress for a given day
@@ -621,28 +641,28 @@ List transpirationBasic(List x, NumericVector meteovec,
 //' control <- defaultControl("Sperry")
 //' 
 //' #Initialize input
-//' x2 <- forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
+//' x2 <- spwbInput(exampleforest,examplesoil, SpParamsMED, control)
 //' 
 //' # Transpiration according to Sperry's model
 //' t2 <- transp_transpirationSperry(x2, examplemeteo, 1, 
 //'                                 latitude = 41.82592, elevation = 100, slope = 0, aspect = 0,
 //'                                 modifyInput = FALSE)
 //'                                 
-//' #Switch to 'Cochard' transpiration mode
-//' control <- defaultControl("Cochard")
+//' #Switch to 'Sureau' transpiration mode
+//' control <- defaultControl("Sureau")
 //' 
 //' #Initialize input
-//' x3 <- forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
+//' x3 <- spwbInput(exampleforest,examplesoil, SpParamsMED, control)
 //' 
-//' # Transpiration according to Cochard's model
-//' t3 <- transp_transpirationCochard(x3, examplemeteo, 1, 
+//' # Transpiration according to Sureau model
+//' t3 <- transp_transpirationSureau(x3, examplemeteo, 1, 
 //'                                   latitude = 41.82592, elevation = 100, slope = 0, aspect = 0,
 //'                                   modifyInput = FALSE)
 //'                                 
 //' @name transp_modes
 // [[Rcpp::export("transp_transpirationGranier")]]
 List transpirationGranier(List x, DataFrame meteo, int day,
-                          double latitude, double elevation, double slope, double aspect,
+                          double latitude, double elevation, double slope, double aspect, 
                           bool modifyInput = true) {
   List control = x["control"];
   if(!meteo.containsElementNamed("MinTemperature")) stop("Please include variable 'MinTemperature' in weather input.");
@@ -669,7 +689,7 @@ List transpirationGranier(List x, DataFrame meteo, int day,
   double asprad = aspect * (M_PI/180.0);
   double slorad = slope * (M_PI/180.0);
   
-  CharacterVector dateStrings = meteo.attr("row.names");
+  CharacterVector dateStrings = getWeatherDates(meteo);
   std::string c = as<std::string>(dateStrings[day-1]);
   int J = meteoland::radiation_julianDay(std::atoi(c.substr(0, 4).c_str()),std::atoi(c.substr(5,2).c_str()),std::atoi(c.substr(8,2).c_str()));
 

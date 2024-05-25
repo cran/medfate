@@ -9,10 +9,11 @@ spwb(
   x,
   meteo,
   latitude,
-  elevation = NA_real_,
+  elevation,
   slope = NA_real_,
   aspect = NA_real_,
-  CO2ByYear = numeric(0)
+  CO2ByYear = numeric(0),
+  waterTableDepth = NA_real_
 )
 
 pwb(
@@ -20,7 +21,7 @@ pwb(
   meteo,
   W,
   latitude,
-  elevation = NA_real_,
+  elevation,
   slope = NA_real_,
   aspect = NA_real_,
   canopyEvaporation = numeric(0),
@@ -35,7 +36,7 @@ pwb(
 
 \item{meteo}{A data frame with daily meteorological data series. 
 Row names of the data frame should correspond to date strings with format "yyyy-mm-dd" (see \code{\link{Date}}). Alternatively,
-a column \code{dates} can contain \code{\link{Date}} or \code{\link{POSIXct}} classes.
+a column called \code{"dates"} or \code{"Dates"} can contain \code{\link{Date}} or \code{\link{POSIXct}} classes.
 The following columns are required and cannot have missing values:
   \itemize{
     \item{\code{MinTemperature}: Minimum temperature (in degrees Celsius).}
@@ -61,6 +62,8 @@ The following columns are optional:
 
 \item{CO2ByYear}{A named numeric vector with years as names and atmospheric CO2 concentration (in ppm) as values. Used to specify annual changes in CO2 concentration along the simulation (as an alternative to specifying daily values in \code{meteo}).}
 
+\item{waterTableDepth}{Water table depth (in mm). When not missing, capillarity rise will be allowed if lower than total soil depth.}
+
 \item{W}{A matrix with the same number of rows as \code{meteo} and as many columns as soil layers, containing the soil moisture of each layer as proportion of field capacity.}
 
 \item{canopyEvaporation}{A vector of daily canopy evaporation (from interception) values (mm). The length should match the number of rows in \code{meteo}.}
@@ -84,10 +87,13 @@ There are many elements in common in these lists, so they are listed here togeth
   \itemize{
     \item{\code{"PET"}: Potential evapotranspiration (in mm).}
     \item{\code{"Precipitation"}: Input precipitation (in mm).}
-    \item{\code{"Rain"}: Precipitation as rain (in mm).}
-    \item{\code{"Snow"}: Precipitation as snow (in mm).}
+    \item{\code{"Rain"}: Precipitation as rainfall (in mm).}
+    \item{\code{"Snow"}: Precipitation as snowfall (in mm).}
     \item{\code{"NetRain"}: Net rain, after accounting for interception (in mm).}
     \item{\code{"Infiltration"}: The amount of water infiltrating into the soil (in mm).}
+    \item{\code{"InfiltrationExcess"}: Excess infiltration in the topmost layer leading to an increase in runoff (in mm).}
+    \item{\code{"SaturationExcess"}: Excess saturation in the topmost layer leading to an increase in runoff (in mm).}
+    \item{\code{"CapillarityRise"}: Water entering the soil via capillarity rise (mm) from the water table, if \code{waterTableDepth} is supplied.}
     \item{\code{"Runoff"}: The amount of water exported via surface runoff (in mm).}
     \item{\code{"DeepDrainage"}: The amount of water exported via deep drainage (in mm).}
     \item{\code{"Evapotranspiration"}: Evapotranspiration (in mm).}
@@ -97,17 +103,21 @@ There are many elements in common in these lists, so they are listed here togeth
     \item{\code{"Transpiration"}: Woody plant transpiration (in mm).}
     \item{\code{"HydraulicRedistribution"}: Water redistributed among soil layers, transported through the plant hydraulic network.}
   }
-  \item{\code{"EnergyBalance"}: A data frame with the daily values of energy balance components for the soil and the canopy (only for \code{transpirationMode = "Sperry"} or \code{transpirationMode = "Cochard"}).}
-  \item{\code{"Temperature"}: A data frame with the daily values of minimum/mean/maximum temperatures for the atmosphere (input), canopy and soil (only for \code{transpirationMode = "Sperry"} or \code{transpirationMode = "Cochard"}).}
-  \item{\code{"Soil"}: A data frame where different variables (in columns) are given for each simulated day (in rows):}
+  \item{\code{"EnergyBalance"}: A data frame with the daily values of energy balance components for the soil and the canopy (only for \code{transpirationMode = "Sperry"} or \code{transpirationMode = "Sureau"}).}
+  \item{\code{"Temperature"}: A data frame with the daily values of minimum/mean/maximum temperatures for the atmosphere (input), canopy and soil (only for \code{transpirationMode = "Sperry"} or \code{transpirationMode = "Sureau"}).}
+  \item{\code{"Soil"}: A list with the following subelements:}
   \itemize{
-    \item{\code{"W.1"}, \code{...}, \code{"W.k"}: Relative soil moisture content (relative to field capacity) in each soil layer.}
-    \item{\code{"ML.1"}, \code{...}, \code{"ML.k"}: Soil water volume in each soil layer (in L/m2).}
-    \item{\code{"MLTot"}: Total soil water volume (in L/m2).}
+    \item{\code{"SWC"}: Soil water content (percent of soil volume) in each soil layer (and overall).}
+    \item{\code{"RWC"}: Relative soil moisture content (relative to field capacity) in each soil layer (and overall).}
+    \item{\code{"REW"}: Relative extractable water (min. psi = -5 MPa) in each soil layer (and overall).}
+    \item{\code{"ML"}: Soil water volume in each soil layer (in L/m2) (and overall).}
+    \item{\code{"Psi"}: Soil water potential in each soil layer (in MPa) (and overall).}
+    \item{\code{"PlantExt"}: Plant extraction from each soil layer (in mm) (and overall).}
+    \item{\code{"HydraulicInput"}: Water that entered the layer coming from other layers and transported via the plant hydraulic network (in mm) (and overall).}
+  }
+  \item{\code{"Snow"}: A data frame where the following variable (in columns) is given for each simulated day (in rows):}
+  \itemize{
     \item{\code{"SWE"}: Snow water equivalent (mm) of the snow pack.}
-    \item{\code{"PlantExt.1"}, \code{...}, \code{"PlantExt.k"}: Plant extraction from each soil layer (in mm).}
-    \item{\code{"HydraulicInput.1"}, \code{...}, \code{"HydraulicInput.k"}: Water that entered the layer coming from other layers and transported via the plant hydraulic network (in mm).}
-    \item{\code{"psi.1"}, \code{...}, \code{"psi.k"}: Soil water potential in each soil layer (in MPa).}
   }
   \item{\code{"Stand"}: A data frame where different variables (in columns) are given for each simulated day (in rows):}
   \itemize{
@@ -133,6 +143,7 @@ When \code{transpirationMode = "Granier"}, element \code{"Plants"} is a list wit
     \item{\code{"Transpiration"}: A data frame with the amount of daily transpiration (in mm) for each plant cohort.}
     \item{\code{"GrossPhotosynthesis"}: A data frame with the amount of daily gross photosynthesis (in g C·m-2) for each plant cohort. }
     \item{\code{"PlantPsi"}: A data frame with the average daily water potential of each plant (in MPa).}
+    \item{\code{"LeafPLC"}: A data frame with the average daily proportion of leaf conductance loss of each plant ([0-1]).}
     \item{\code{"StemPLC"}: A data frame with the average daily proportion of stem conductance loss of each plant ([0-1]).}
     \item{\code{"PlantWaterBalance"}: A data frame with the daily balance between transpiration and soil water extraction for each plant cohort. }
     \item{\code{"LeafRWC"}: A data frame with the average daily leaf relative water content of each plant (in percent).}
@@ -140,7 +151,7 @@ When \code{transpirationMode = "Granier"}, element \code{"Plants"} is a list wit
     \item{\code{"LFMC"}: A data frame with the daily live fuel moisture content (in percent of dry weight).}
     \item{\code{"PlantStress"}: A data frame with the amount of daily stress [0-1] suffered by each plant cohort (relative whole-plant conductance).}
   }
-If \code{transpirationMode="Sperry"} or \code{transpirationMode="Cochard"}, element \code{"Plants"} is a list with the following subelements:
+If \code{transpirationMode="Sperry"} or \code{transpirationMode="Sureau"}, element \code{"Plants"} is a list with the following subelements:
   \itemize{
     \item{\code{"LAI"}: A data frame with the daily leaf area index for each plant cohort.}
     \item{\code{"AbsorbedSWR"}: A data frame with the daily SWR absorbed by each plant cohort.}
@@ -162,6 +173,7 @@ If \code{transpirationMode="Sperry"} or \code{transpirationMode="Cochard"}, elem
     \item{\code{"StemRWC"}: A data frame with the average daily stem relative water content of each plant (in percent). }
     \item{\code{"LFMC"}: A data frame with the daily live fuel moisture content (in percent of dry weight).}
     \item{\code{"StemPsi"}: A data frame with the minimum daily stem water potential of each plant (in MPa). }
+    \item{\code{"LeafPLC"}: A data frame with the average daily proportion of leaf conductance loss of each plant ([0-1]).}
     \item{\code{"StemPLC"}: A data frame with the average daily proportion of stem conductance loss of each plant ([0-1]).}
     \item{\code{"RootPsi"}: A data frame with the minimum daily root water potential of each plant (in MPa). }
     \item{\code{"RhizoPsi"}: A list of data frames (one per plant cohort) with the minimum daily root water potential of each plant (in MPa).}
@@ -183,53 +195,47 @@ The simulation functions allow using three different sub-models of transpiration
   and implements an approach originally described in Granier et al. (1999).} 
   \item{The sub-model corresponding to 'Sperry' transpiration mode is illustrated by function \code{\link{transp_transpirationSperry}} and was described in De Caceres et al. (2021), and
   implements a modelling approach originally described in Sperry et al. (2017).}  
-  \item{The sub-model corresponding to 'Cochard' transpiration mode is illustrated by function \code{\link{transp_transpirationCochard}} and was described for model SurEau-Ecos v2.0 in Ruffault et al. (2022).} 
+  \item{The sub-model corresponding to 'Sureau' transpiration mode is illustrated by function \code{\link{transp_transpirationSureau}} and was described for model SurEau-Ecos v2.0 in Ruffault et al. (2022).} 
 }
-Simulations using the 'Sperry' or 'Cochard' transpiration mode are computationally much more expensive than 'Granier'.
+Simulations using the 'Sperry' or 'Sureau' transpiration mode are computationally much more expensive than 'Granier'.
 }
 \examples{
 #Load example daily meteorological data
 data(examplemeteo)
 
 #Load example plot plant data
-data(exampleforestMED)
+data(exampleforest)
 
 #Default species parameterization
 data(SpParamsMED)
 
-#Initialize soil with default soil params (4 layers)
-examplesoil <- soil(defaultSoilParams(4))
+#Define soil with default soil params (4 layers)
+examplesoil <- defaultSoilParams(4)
 
 #Initialize control parameters
 control <- defaultControl("Granier")
 
 #Initialize input
-x1 <- forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
+x1 <- spwbInput(exampleforest,examplesoil, SpParamsMED, control)
 
 #Call simulation function
 S1 <- spwb(x1, examplemeteo, latitude = 41.82592, elevation = 100)
 
-#Plot results
-plot(S1)
-
-#Monthly summary (averages) of soil water balance
-summary(S1, freq="months",FUN=mean, output="Soil")
-                  
 \donttest{
 #Switch to 'Sperry' transpiration mode
 control <- defaultControl("Sperry")
 
 #Initialize input
-x2 <- forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
+x2 <- spwbInput(exampleforest,examplesoil, SpParamsMED, control)
 
 #Call simulation function
 S2 <- spwb(x2, examplemeteo, latitude = 41.82592, elevation = 100)
 
-#Switch to 'Cochard' transpiration mode
-control <- defaultControl("Cochard")
+#Switch to 'Sureau' transpiration mode
+control <- defaultControl("Sureau")
 
 #Initialize input
-x3 <- forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
+x3 <- spwbInput(exampleforest,examplesoil, SpParamsMED, control)
 
 #Call simulation function
 S3 <- spwb(x3, examplemeteo, latitude = 41.82592, elevation = 100)
@@ -251,7 +257,7 @@ Sperry, J. S., M. D. Venturas, W. R. L. Anderegg, M. Mencuccini, D. S. Mackay, Y
 }
 \seealso{
 \code{\link{spwbInput}}, \code{\link{spwb_day}}, \code{\link{plot.spwb}}, 
-\code{\link{forest}}
+\code{\link{extract}}, \code{\link{summary.spwb}},  \code{\link{forest}}, \code{\link{aspwb}}
 }
 \author{
 \itemize{

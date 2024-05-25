@@ -113,7 +113,6 @@ The following plots are currently available for \code{\link{spwb}} (most of them
   \item{\code{"SoilVol"}: Soil water volumetric content (in mm).}
   \item{\code{"PlantExtraction"}: Water extracted by plants from each soil layer.}
   \item{\code{"HydraulicRedistribution"}: Water added to each soil layer coming from other soil layers, transported through the plant hydraulic network.}
-  \item{\code{"WTD"}: Water table depth.}
   \item{\code{"LAI"}: Expanded and dead leaf area index of the whole stand.}
   \item{\code{"PlantLAI"}: Plant cohort leaf area index (expanded leaves).}
   \item{\code{"PlantLAIlive"}: Plant cohort leaf area index ("live" leaves).}
@@ -189,14 +188,14 @@ In addition to the former, the following plots are available for objects \code{\
     \item{\code{"FineRootBiomass"}: Fine root dry biomass per individual.}
     \item{\code{"SapwoodArea"}:  Sapwood area per individual.}
     \item{\code{"LeafArea"}:  Leaf area per individual.}
-    \item{\code{"FineRootArea"}: Fine root area per individual (only for \code{transpirationMode = "Sperry"} or \code{transpirationMode = "Cochard"}).}
+    \item{\code{"FineRootArea"}: Fine root area per individual (only for \code{transpirationMode = "Sperry"} or \code{transpirationMode = "Sureau"}).}
     \item{\code{"DBH"}: Diameter at breast height (in cm) for an average individual of each plant cohort.}
     \item{\code{"Height"}: Height (in cm) for an average individual of each plant cohort.}
     \item{\code{"SAgrowth"}:  Sapwood area growth rate.}
     \item{\code{"LAgrowth"}:  Leaf area growth rate.}
-    \item{\code{"FRAgrowth"}:  Fine root area growth rate (only for \code{transpirationMode = "Sperry"} or \code{transpirationMode = "Cochard"}).}
+    \item{\code{"FRAgrowth"}:  Fine root area growth rate (only for \code{transpirationMode = "Sperry"} or \code{transpirationMode = "Sureau"}).}
     \item{\code{"HuberValue"}:  Ratio of leaf area to sapwood area.}
-    \item{\code{"RootAreaLeafArea"}:  Ratio of fine root area to leaf area (only for \code{transpirationMode = "Sperry"} or \code{transpirationMode = "Cochard"}).}
+    \item{\code{"RootAreaLeafArea"}:  Ratio of fine root area to leaf area (only for \code{transpirationMode = "Sperry"} or \code{transpirationMode = "Sureau"}).}
   }
 Finally, the following plots are only available for \code{\link{fordyn}} simulation results:
   \itemize{
@@ -213,22 +212,22 @@ Finally, the following plots are only available for \code{\link{fordyn}} simulat
 data(examplemeteo)
 
 #Load example plot plant data
-data(exampleforestMED)
+data(exampleforest)
 
 #Default species parameterization
 data(SpParamsMED)
 
-#Initialize soil with default soil params (2 layers)
-examplesoil = soil(defaultSoilParams(2))
+#Define soil with default soil params (4 layers)
+examplesoil <- defaultSoilParams(4)
 
 #Initialize control parameters
-control = defaultControl("Granier")
+control <- defaultControl("Granier")
 
 #Initialize input
-x = forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
+x <- spwbInput(exampleforest,examplesoil, SpParamsMED, control)
 
 #Call simulation function
-S1<-spwb(x, examplemeteo, latitude = 41.82592, elevation = 100)
+S1 <- spwb(x, examplemeteo, latitude = 41.82592, elevation = 100)
 
 #Plot results
 plot(S1)

@@ -127,13 +127,13 @@ double criticalFirelineIntensity(double CBH, double M) {
 //' 
 //' @examples
 //' #Load example plot plant data
-//' data(exampleforestMED)
+//' data(exampleforest)
 //' 
 //' #Default species parameterization
 //' data(SpParamsMED)
 //' 
 //' #Calculate fuel properties according to FCCS
-//' fccs = fuel_FCCS(exampleforestMED, SpParamsMED)
+//' fccs = fuel_FCCS(exampleforest, SpParamsMED)
 //'   
 //' #Calculate fire behavior according to FCCS
 //' fire_FCCS(fccs)
@@ -142,7 +142,7 @@ double criticalFirelineIntensity(double CBH, double M) {
 //' data(SFM_metric)
 //'       
 //' #Fuel stratification (returns heights in cm)
-//' fs = fuel_stratification(exampleforestMED, SpParamsMED)
+//' fs = fuel_stratification(exampleforest, SpParamsMED)
 //' 
 //' #Correct windspeed (transform heights to m)
 //' u = 11 #m/s
@@ -713,7 +713,7 @@ List rothermel(String modeltype, NumericVector wSI, NumericVector sSI, double de
  *  deadFuelMoistureExtinction: a value of dead fuel moisture of extinction (percent)
  *  control: A list with default parameter values
  */
-// List fb(List x, List soil, double latitude, double slope, double aspect, DataFrame meteo, DataFrame SpParams, 
+// List fb(List x, DataFrame soil, double latitude, double slope, double aspect, DataFrame meteo, DataFrame SpParams, 
 //         DataFrame FuelModelParams, List control) {
 //   bool verbose = control["verbose"];
 //   String liveFMCmode = control["liveFMCmode"];

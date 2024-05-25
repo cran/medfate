@@ -52,22 +52,22 @@ It may seem unnecessary to modify soil or control parameters via a function, but
 data(examplemeteo)
 
 #Load example plot plant data
-data(exampleforestMED)
+data(exampleforest)
 
 #Default species parameterization
 data(SpParamsMED)
 
-#Initialize soil with default soil params (4 layers)
-examplesoil = soil(defaultSoilParams(4))
+#Define soil with default soil params (4 layers)
+examplesoil <- defaultSoilParams(4)
 
 #Initialize control parameters
-control = defaultControl("Granier")
+control <- defaultControl("Granier")
 
 #Initialize input
-x1 = forest2spwbInput(exampleforestMED,examplesoil, SpParamsMED, control)
+x1 <- spwbInput(exampleforest,examplesoil, SpParamsMED, control)
 
 # Cohort name for Pinus halepensis
-PH_coh = paste0("T1_", SpParamsMED$SpIndex[SpParamsMED$Name=="Pinus halepensis"])
+PH_coh <- paste0("T1_", SpParamsMED$SpIndex[SpParamsMED$Name=="Pinus halepensis"])
 PH_coh 
 
 # Modify Z50 and Z95 of Pinus halepensis cohort 
@@ -91,7 +91,7 @@ x1$soil
 x1s$soil
 
 # When modifying growth input objects dependencies increase
-x1 = forest2growthInput(exampleforestMED,examplesoil, SpParamsMED, control)
+x1 <- growthInput(exampleforest,examplesoil, SpParamsMED, control)
 customParams <- c(2000,2)
 names(customParams) <- paste0(PH_coh,c("/Al2As", "/LAI_live"))
 x1m <- modifyInputParams(x1, customParams)

@@ -1,6 +1,7 @@
-#' Forest merge functions
+#' Forest complexity reduction
 #' 
-#' Functions to merge cohorts of a \code{\link{forest}} object.
+#' Functions \code{forest_mergeTrees} and \code{forest_mergeShrubs} merge cohorts of a \code{\link{forest}} object. 
+#' Function \code{forest_reduceToDominant} performs a strongest simplification of plant cohorts (see details).
 #' 
 #' @param x An object of class \code{\link{forest}}.
 #' @param byDBHclass Logical flag to indicate that 5-cm tree DBH classes should be kept separated.
@@ -9,13 +10,27 @@
 #' Tree DBH and shrub height classes are defined up to a specific size (i.e. larger plants are not merged) 
 #' corresponding to 52.5 cm and 90 cm, respectively.
 #' 
-#' @return Another \code{\link{forest}} object with merged trees or shrubs, depending on the function.
+#' Function \code{forest_reduceToDominant} simplifies the input forest to the tree cohort of highest LAI, among those of the tree species with highest LAI.
+#' The leaf area index of the whole tree layer will be attributed to the chosen cohort. The same is performed for the shrub layer.
+#' 
+#' @return Another \code{\link{forest}} object with simplified structure/composition, depending on the function.
 #' 
 #' @author Miquel De \enc{Cáceres}{Caceres} Ainsa, CREAF
 #' 
-#' @seealso \code{\link{spwb}}, \code{\link{forest}},  \code{\link{fordyn}}, \code{\link{summary.forest}}
+#' @seealso \code{\link{spwb}}, \code{\link{forest}},  \code{\link{forest_mapWoodyTables}}, \code{\link{fordyn}}, \code{\link{summary.forest}}
 #' 
-#' @name forest_mergeTrees
+#' @name forest_simplification
+#' 
+#' @examples
+#' # Example forest data
+#' data("exampleforest")
+#'
+#' # Reduce to dominant tree and dominant shrub
+#' reduced <- forest_reduceToDominant(exampleforest, SpParamsMED)
+#' 
+#' # Check that overall LAI does not change
+#' stand_LAI(exampleforest, SpParamsMED)
+#' stand_LAI(reduced, SpParamsMED)
 forest_mergeTrees<-function(x, byDBHclass = TRUE) {
   mergeTreesSize<-function(x) {
     ntree <- nrow(x)
@@ -112,7 +127,7 @@ forest_mergeTrees<-function(x, byDBHclass = TRUE) {
   return(x2)
 }
 
-#' @rdname forest_mergeTrees
+#' @rdname forest_simplification
 #' 
 #' @param byHeightclass Boolean flag to indicate that 10-cm shrub height classes should be kept separated.
 #' 
@@ -160,7 +175,7 @@ forest_mergeShrubs<-function(x, byHeightclass = TRUE) {
     nosel <- !(sel0a | sel0b | sel1a | sel1b | sel2a| sel2b | sel3a | sel3b | 
                  sel4a | sel4b | sel5a | sel5b | sel6a | sel6b | sel7a | sel7b | 
                  sel8a | sel8b | sel9a | sel9b | sel10)
-    y = x[nosel,, drop = FALSE]
+    y = x[nosel,c("Species", "Height", "Cover", "Z50", "Z95"), drop = FALSE]
     if(sum(sel0a)>0) y <- rbind(y, mergeShrubsSize(x[sel0a,, drop = FALSE]))
     if(sum(sel0b)>0) y <- rbind(y, mergeShrubsSize(x[sel0b,, drop = FALSE]))
     if(sum(sel1a)>0) y <- rbind(y, mergeShrubsSize(x[sel1a,, drop = FALSE]))
@@ -196,4 +211,41 @@ forest_mergeShrubs<-function(x, byHeightclass = TRUE) {
     x2$shrubData <- sd2
   }
   return(x2)
+}
+
+#' @rdname forest_simplification
+#' 
+#' @param SpParams A data frame with species parameters (see \code{\link{SpParamsDefinition}} and \code{\link{SpParamsMED}}).
+#' 
+forest_reduceToDominant <- function(x, SpParams) {
+  ntree <- nrow(x$treeData)
+  nshrub <- nrow(x$shrubData)
+  if(sum(ntree+nshrub)>0) {
+    stand_lai <- medfate::stand_LAI(x, SpParams)
+    plant_lai <- medfate::plant_LAI(x, SpParams)
+    plant_species <- medfate::plant_speciesName(x, SpParams)
+    is_tree <- rep(FALSE, length(plant_lai))
+    if(ntree>0) is_tree[1:ntree] <- TRUE
+    tree_lai <- sum(plant_lai[is_tree])
+    shrub_lai <- sum(plant_lai[!is_tree])
+    if(ntree>0) {
+      tree_species_lai <- tapply(plant_lai[is_tree], plant_species[is_tree], FUN = sum)
+      max_tree_species_lai <- names(tree_species_lai)[which.max(tree_species_lai)]
+      sel_tree_cohort <- (plant_species[is_tree] == max_tree_species_lai)
+      sel_tree_cohort[sel_tree_cohort] <- plant_lai[is_tree][sel_tree_cohort]==max(plant_lai[is_tree][sel_tree_cohort])
+      tree_cohort <- which(sel_tree_cohort)
+      x$treeData <- x$treeData[tree_cohort, , drop=FALSE]
+      x$treeData$LAI <- tree_lai
+    }
+    if(nshrub>0) {
+      shrub_species_lai <- tapply(plant_lai[!is_tree], plant_species[!is_tree], FUN = sum)
+      max_shrub_species_lai <- names(shrub_species_lai)[which.max(shrub_species_lai)]
+      sel_shrub_cohort <- (plant_species[!is_tree] == max_shrub_species_lai)
+      sel_shrub_cohort[sel_shrub_cohort] <- plant_lai[!is_tree][sel_shrub_cohort]==max(plant_lai[!is_tree][sel_shrub_cohort])
+      shrub_cohort <- which(sel_shrub_cohort)
+      x$shrubData <- x$shrubData[shrub_cohort, , drop=FALSE]
+      x$shrubData$LAI <- shrub_lai
+    }
+  }
+  return(x)
 }

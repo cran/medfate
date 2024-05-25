@@ -9,7 +9,7 @@ List initSperryNetwork(int c,
                        DataFrame internalWater, DataFrame paramsTranspiration, DataFrame paramsWaterStorage,
                        NumericVector VCroot_kmax, NumericVector VGrhizo_kmax,
                        NumericVector psiSoil, NumericVector VG_n, NumericVector VG_alpha,
-                       double sapFluidityDay = 1.0);
+                       double sapFluidityDay = 1.0, List control = NULL);
 
 List profitMaximization2(List supplyFunction, int initialPos,
                          double Catm, double Patm, double Tair, double vpa, double u, 
@@ -18,4 +18,4 @@ List profitMaximization2(List supplyFunction, int initialPos,
                          double Gswmin, double Gswmax);
 
 void innerSperry(List x, List input, List output, int n, double tstep, 
-                 bool verbose = false, int stepFunctions = NA_INTEGER, bool modifyInput = true);
+                 bool verbose = false, int stepFunctions = NA_INTEGER);

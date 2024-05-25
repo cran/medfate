@@ -3,20 +3,21 @@
 #include <Rcpp.h>
 using namespace Rcpp;
 
-// sand 1.7-2.9 W·m-1·K-1, clay 0.8-6.3 W·m-1·K-1 [Geiger et al. The Climate near the Ground]
-const double thermalConductivitySand = 1.57025; //W·m-1·K-1 From Dharssi et al. 2009
-const double thermalConductivitySilt = 1.57025; //W·m-1·K-1 From Dharssi et al. 2009
-const double thermalConductivityClay = 1.16025; //W·m-1·K-1 From Dharssi et al. 2009
-const double thermalConductivityAir = 0.025; //W·m-1·K-1 From Dharssi et al. 2009
-const double capacitySand = 1.25*1e6; //kg·m-3 
-const double capacitySilt = 1.19*1e6; //kg·m-3 
-const double capacityClay = 1.23*1e6; //kg·m-3 
-
 /**
- * Conversion factor from conductivity in cm·day-1 to molH20·m-1·MPa-1·s-1
+ * Conversion factor from conductivity in cm·day-1 to molH20·m-2·MPa-1·s-1
+ *  1 day = 86400 sec
+ *  1 mol H20 = 18.01528 g
  */
 const double cmdTOmmolm2sMPa = 655.2934; //100.0/(18.01528*86400.0*0.00009804139432); 
+/**
+ * Conversion factor from cm to MPa
+ */
+const double cmTOMPa = 0.00009804139432; 
 
+/**
+ * Conversion factor from m to MPa
+ */
+const double mTOMPa = 0.009804139432; //1/9.804139*0.000001; 
 
 CharacterVector layerNames(int nlayers) {
   CharacterVector ln(nlayers);
@@ -45,7 +46,7 @@ CharacterVector layerNames(int nlayers) {
 //' @param bd Bulk density (in g/cm3).
 //' @param topsoil A boolean flag to indicate topsoil layer.
 //' @param soilType A string indicating the soil type.
-//' @param soil Soil object (returned by function \code{\link{soil}}).
+//' @param soil Initialized soil object (returned by function \code{\link{soil}}).
 //' @param model Either 'SX' or 'VG' for Saxton's or Van Genuchten's water retention models; or 'both' to plot both retention models.
 //' @param minPsi Minimum water potential (in MPa) to calculate the amount of extractable water.
 //' @param pWeight Percentage of corresponding to rocks, in weight.
@@ -69,7 +70,7 @@ CharacterVector layerNames(int nlayers) {
 //' \item{\code{soil_waterFC()} and \code{soil_thetaFC()} calculate the water volume (in mm) and moisture content (as percent of soil volume) of each soil layer at field capacity, respectively.}
 //' \item{\code{soil_waterWP()} and \code{soil_thetaWP()} calculate the water volume (in mm) and moisture content (as percent of soil volume) of each soil layer at wilting point (-1.5 MPa), respectively. }
 //' \item{\code{soil_waterSAT()}, \code{soil_thetaSATSX()} and \code{soil_thetaSAT()} calculate the saturated water volume (in mm) and moisture content (as percent of soil volume) of each soil layer.}
-//' \item{\code{soil_waterTableDepth()} returns water table depth in mm from surface.}
+//' \item{\code{soil_saturatedWaterDepth()} returns the depth to saturation in mm from surface.}
 //' \item{\code{soil_rockWeight2Volume()} transforms rock percentage from weight to volume basis.}
 //' \item{\code{soil_retentionCurvePlot()} allows ploting the water retention curve of a given soil layer.}
 //' }
@@ -100,15 +101,19 @@ CharacterVector layerNames(int nlayers) {
 //' vg = soil_vanGenuchtenParamsToth(40,10,1,1.3,TRUE)
 //' vg
 //' 
-//' # Initialize soil object with default params
-//' s = soil(defaultSoilParams())
+//' # Define soil with default params
+//' soil_df <- defaultSoilParams(4)
+//' soil_df
+//' 
+//' # Initialize soil parameters and state variables
+//' s = soil(soil_df)
 //' 
 //' # Plot Saxton's and Van Genuchten's water retention curves
 //' soil_retentionCurvePlot(s, model="both")
 //' 
 //' @name soil_texture
 // [[Rcpp::export("soil_saturatedConductivitySX")]]
-double saturatedConductivitySaxton(double clay, double sand, double om = NA_REAL, bool mmol = true) {
+double saturatedConductivitySaxton(double clay, double sand, double bd, double om = NA_REAL, bool mmol = true) {
   double Ksat = NA_REAL;
   //If organic matter is missing use Saxton et al (1986)
   //Otherwise use Saxton & Rawls (2006)
@@ -134,6 +139,10 @@ double saturatedConductivitySaxton(double clay, double sand, double om = NA_REAL
     //mm/h to cm/day
     Ksat = Ksat*0.1*24.0;
   }
+  //Correct for bulk density
+  double bdsoil = 2.73; //Density of soil particles
+  double bdref = 1.2; //Reference bulk density for Ksat
+  Ksat = Ksat*std::pow((bdsoil - bd)/(bdsoil - bdref),3.0);
   //cm/day to mmolH20·m-1·s-1·MPa-1
   if(mmol) Ksat = Ksat*cmdTOmmolm2sMPa;
   return(Ksat);
@@ -141,7 +150,7 @@ double saturatedConductivitySaxton(double clay, double sand, double om = NA_REAL
 
 //' @rdname soil_texture
 // [[Rcpp::export("soil_unsaturatedConductivitySX")]]
-double unsaturatedConductivitySaxton(double theta, double clay, double sand, double om = NA_REAL, bool mmol = true) {
+double unsaturatedConductivitySaxton(double theta, double clay, double sand, double bd, double om = NA_REAL, bool mmol = true) {
   double Kunsat = NA_REAL;
   //If organic matter is missing use Saxton et al (1986)
   //Otherwise use Saxton & Rawls (2006)
@@ -167,6 +176,10 @@ double unsaturatedConductivitySaxton(double theta, double clay, double sand, dou
     //mm/h to cm/day
     Kunsat = Kunsat*0.1*24.0;
   }
+  //Correct for bulk density
+  double bdsoil = 2.73; //Density of soil particles
+  double bdref = 1.2; //Reference bulk density for Ksat
+  Kunsat = Kunsat*std::pow((bdsoil - bd)/(bdsoil - bdref),3.0);
   //cm/day to mmolH20·m-1·s-1·MPa-1
   if(mmol) Kunsat = Kunsat*cmdTOmmolm2sMPa;
   return(Kunsat);
@@ -307,6 +320,54 @@ double psi2thetaSaxton(double clay, double sand, double psi, double om = NA_REAL
 }
 
 /**
+ *  Returns soil hydraulic conductivity according to Van Genuchten's pedotransfer model (m = 1 - 1/n)
+ */
+//' @rdname soil_texture
+//' @param ksat saturated hydraulic conductance
+// [[Rcpp::export("soil_psi2kVG")]]
+double psi2kVanGenuchten(double ksat, double n, double alpha, double theta_res, double theta_sat, double psi){
+  double m = 1.0 - (1.0/n);
+  double Se = pow(1.0 + pow(alpha*std::abs(psi),n),-m);
+  double k = ksat*pow(Se,0.5)*pow(1.0 - pow(1.0 - pow(Se, 1.0/m), m), 2.0);
+  return(k);
+}
+
+double psi2kVanGenuchtenMicropores(double k_b, double n, double alpha, double theta_res, double theta_sat, 
+                                   double psi, double psi_b){
+  double m = 1.0 - (1.0/n);
+  double Se = pow(1.0 + pow(alpha*std::abs(psi),n),-m);
+  double Se_b = pow(1.0 + pow(alpha*std::abs(psi_b),n),-m);
+  //For pressure heads above psi_b, micropore conductivity set to k_b (MACRO 5.0 Larsbo & Jarvis)
+  Se = std::min(Se, Se_b);
+  double k = k_b*pow(Se/Se_b,0.5)*pow(1.0 - pow(1.0 - pow(Se, 1.0/m), m), 2.0)/pow(1.0 - pow(1.0 - pow(Se_b, 1.0/m), m), 2.0);
+  return(k);
+}
+
+//From Larsbo et al. (2005) eq. 8
+double psi2DVanGenuchten(double k_sat, double n, double alpha, double theta_res, double theta_sat, 
+                         double psi){
+  double m = 1.0 - (1.0/n);
+  double l = 0.5;
+  double Se = pow(1.0 + pow(alpha*std::abs(psi),n),-m);
+  double f_1 = ((1.0 - m)*k_sat)/(alpha*m*(theta_sat - theta_res));
+  double f_2 = pow(Se, l - 1.0/m);
+  double f_3 = pow(1.0 - pow(Se, 1.0/m),-1.0*m) + pow(1.0 - pow(Se, 1.0/m), m) - 2.0;
+  return(f_1*f_2*f_3);
+}
+
+
+
+//' @rdname soil_texture
+// [[Rcpp::export("soil_psi2cVG")]]
+double psi2cVanGenuchten(double n, double alpha, double theta_res, double theta_sat, double psi){
+  double m = 1.0 - (1.0/n);
+  double num = alpha*m*n*(theta_sat - theta_res)*pow(alpha*std::abs(psi), n - 1.0);
+  double den = pow(1.0 + pow(alpha*std::abs(psi),n),m + 1.0);
+  double c = num/den;
+  return(c);
+}
+
+/**
  *  Returns water content (% volume) according to Van Genuchten's pedotransfer model (m = 1 - 1/n)
  *  psi - Soil water potential (in MPa)
  */
@@ -314,7 +375,7 @@ double psi2thetaSaxton(double clay, double sand, double psi, double om = NA_REAL
 // [[Rcpp::export("soil_psi2thetaVG")]]
 double psi2thetaVanGenuchten(double n, double alpha, double theta_res, double theta_sat, double psi) {
   double m = 1.0 - (1.0/n);
-  double T = pow(pow(alpha*std::abs(psi),n)+1.0,-m);
+  double T = pow(1.0  + pow(alpha*std::abs(psi),n),-m);
   return(theta_res+T*(theta_sat-theta_res));
 }
 
@@ -327,6 +388,7 @@ double psi2thetaVanGenuchten(double n, double alpha, double theta_res, double th
 double theta2psiVanGenuchten(double n, double alpha, double theta_res, double theta_sat, double theta) {
   //if theta > theta_sat then psi = 0
   theta = std::min(theta, theta_sat);
+  theta = std::max(theta, theta_res);
   double T = (theta-theta_res)/(theta_sat-theta_res); //content relative
   double m = 1.0 - (1.0/n);
   // double T = pow(pow(alpha*std::abs(psi),n)+1.0,-m);
@@ -355,9 +417,31 @@ String USDAType(double clay, double sand) {
   return("Unknown");
 }
 
+NumericVector psi2thetasoil(DataFrame soil, NumericVector psi, String model="SX") {
+  NumericVector SD = soil["widths"];
+  int nlayers = SD.size();
+  NumericVector theta(nlayers);
+  if(model=="SX") {
+    NumericVector clay =soil["clay"];
+    NumericVector sand = soil["sand"];
+    NumericVector om = soil["om"];
+    for(int l=0;l<nlayers;l++) {
+      theta[l] = psi2thetaSaxton(clay[l], sand[l], psi[l], om[l]); 
+    }
+  } else if(model=="VG") {
+    NumericVector n =soil["VG_n"];
+    NumericVector alpha = soil["VG_alpha"];
+    NumericVector theta_res = soil["VG_theta_res"];
+    NumericVector theta_sat = soil["VG_theta_sat"];
+    for(int l=0;l<nlayers;l++) {
+      theta[l] = psi2thetaVanGenuchten(n[l],alpha[l],theta_res[l], theta_sat[l], psi[l]); 
+    }
+  }
+  return(theta);
+}
 
-NumericVector psi2thetasoil(List soil, double psi, String model="SX") {
-  NumericVector SD = soil["dVec"];
+NumericVector psi2thetasoil(DataFrame soil, double psi, String model="SX") {
+  NumericVector SD = soil["widths"];
   int nlayers = SD.size();
   NumericVector theta(nlayers);
   if(model=="SX") {
@@ -385,7 +469,11 @@ NumericVector psi2thetasoil(List soil, double psi, String model="SX") {
  */
 //' @rdname soil_texture
 // [[Rcpp::export("soil_thetaFC")]]
-NumericVector thetaFC(List soil, String model="SX") {
+NumericVector thetaFC(DataFrame soil, String model="SX") {
+  if(!soil.inherits("soil")) {
+    if(soil.inherits("data.frame")) stop("Please, initialize soil parameters using function `soil()`");
+    else stop("Wrong class for `soil`.");
+  }
   return(psi2thetasoil(soil, -0.033, model));
 }
 
@@ -395,7 +483,11 @@ NumericVector thetaFC(List soil, String model="SX") {
  */
 //' @rdname soil_texture
 // [[Rcpp::export("soil_thetaWP")]]
-NumericVector thetaWP(List soil, String model="SX") {
+NumericVector thetaWP(DataFrame soil, String model="SX") {
+  if(!soil.inherits("soil")) {
+    if(soil.inherits("data.frame")) stop("Please, initialize soil parameters using function `soil()`");
+    else stop("Wrong class for `soil`.");
+  }
   return(psi2thetasoil(soil, -1.5, model));
 }
 
@@ -404,8 +496,12 @@ NumericVector thetaWP(List soil, String model="SX") {
  */
 //' @rdname soil_texture
 // [[Rcpp::export("soil_thetaSAT")]]
-NumericVector thetaSAT(List soil, String model="SX") {
-  NumericVector SD = soil["dVec"];
+NumericVector thetaSAT(DataFrame soil, String model="SX") {
+  if(!soil.inherits("soil")) {
+    if(soil.inherits("data.frame")) stop("Please, initialize soil parameters using function `soil()`");
+    else stop("Wrong class for `soil`.");
+  }
+  NumericVector SD = soil["widths"];
   int nlayers = SD.size();
   NumericVector Theta_Sat(nlayers);
   if(model=="SX") {
@@ -429,13 +525,17 @@ NumericVector thetaSAT(List soil, String model="SX") {
  */
 //' @rdname soil_texture
 // [[Rcpp::export("soil_waterFC")]]
-NumericVector waterFC(List soil, String model="SX") {
-  NumericVector dVec = soil["dVec"];
+NumericVector waterFC(DataFrame soil, String model="SX") {
+  if(!soil.inherits("soil")) {
+    if(soil.inherits("data.frame")) stop("Please, initialize soil parameters using function `soil()`");
+    else stop("Wrong class for `soil`.");
+  }
+  NumericVector widths = soil["widths"];
   NumericVector Theta_FC = thetaFC(soil, model);
   NumericVector rfc = soil["rfc"];
-  int nlayers = dVec.size();
+  int nlayers = widths.size();
   NumericVector Water_FC(nlayers);
-  for(int i=0;i<nlayers;i++) Water_FC[i] = dVec[i]*Theta_FC[i]*(1.0-(rfc[i]/100.0));
+  for(int i=0;i<nlayers;i++) Water_FC[i] = widths[i]*Theta_FC[i]*(1.0-(rfc[i]/100.0));
   return(Water_FC);
 }
 
@@ -444,38 +544,66 @@ NumericVector waterFC(List soil, String model="SX") {
  */
 //' @rdname soil_texture
 // [[Rcpp::export("soil_waterSAT")]]
-NumericVector waterSAT(List soil, String model="SX") {
-  NumericVector dVec = soil["dVec"];
+NumericVector waterSAT(DataFrame soil, String model="SX") {
+  if(!soil.inherits("soil")) {
+    if(soil.inherits("data.frame")) stop("Please, initialize soil parameters using function `soil()`");
+    else stop("Wrong class for `soil`.");
+  }
+  NumericVector widths = soil["widths"];
   NumericVector Theta_SAT = thetaSAT(soil, model);
   NumericVector rfc = soil["rfc"];
-  int nlayers = dVec.size();
+  int nlayers = widths.size();
   NumericVector Water_SAT(nlayers);
-  for(int i=0;i<nlayers;i++) Water_SAT[i] = dVec[i]*Theta_SAT[i]*(1.0-(rfc[i]/100.0));
+  for(int i=0;i<nlayers;i++) Water_SAT[i] = widths[i]*Theta_SAT[i]*(1.0-(rfc[i]/100.0));
   return(Water_SAT);
 }
 
 //' @rdname soil_texture
 // [[Rcpp::export("soil_waterWP")]]
-NumericVector waterWP(List soil, String model="SX") {
-  NumericVector dVec = soil["dVec"];
+NumericVector waterWP(DataFrame soil, String model="SX") {
+  if(!soil.inherits("soil")) {
+    if(soil.inherits("data.frame")) stop("Please, initialize soil parameters using function `soil()`");
+    else stop("Wrong class for `soil`.");
+  }
+  NumericVector widths = soil["widths"];
   NumericVector theta_WP = thetaWP(soil, model);
   NumericVector rfc = soil["rfc"];
-  int nlayers = dVec.size();
+  int nlayers = widths.size();
   NumericVector Water_WP(nlayers);
-  for(int i=0;i<nlayers;i++) Water_WP[i] = dVec[i]*theta_WP[i]*(1.0-(rfc[i]/100.0));
+  for(int i=0;i<nlayers;i++) Water_WP[i] = widths[i]*theta_WP[i]*(1.0-(rfc[i]/100.0));
   return(Water_WP);
 }
 
 //' @rdname soil_texture
+ // [[Rcpp::export("soil_waterPsi")]]
+ NumericVector waterPsi(DataFrame soil, double psi, String model="SX") {
+   if(!soil.inherits("soil")) {
+     if(soil.inherits("data.frame")) stop("Please, initialize soil parameters using function `soil()`");
+     else stop("Wrong class for `soil`.");
+   }
+   NumericVector widths = soil["widths"];
+   NumericVector theta_psi = psi2thetasoil(soil, psi, model);
+   NumericVector rfc = soil["rfc"];
+   int nlayers = widths.size();
+   NumericVector Water_psi(nlayers);
+   for(int i=0;i<nlayers;i++) Water_psi[i] = widths[i]*theta_psi[i]*(1.0-(rfc[i]/100.0));
+   return(Water_psi);
+ }
+
+//' @rdname soil_texture
 // [[Rcpp::export("soil_waterExtractable")]]
-NumericVector waterExtractable(List soil, String model="SX", double minPsi = -5.0) {
-  NumericVector dVec = soil["dVec"];
+NumericVector waterExtractable(DataFrame soil, String model="SX", double minPsi = -5.0) {
+  if(!soil.inherits("soil")) {
+    if(soil.inherits("data.frame")) stop("Please, initialize soil parameters using function `soil()`");
+    else stop("Wrong class for `soil`.");
+  }
+  NumericVector widths = soil["widths"];
   NumericVector theta_FC = thetaFC(soil, model);
   NumericVector theta_Min = psi2thetasoil(soil, minPsi, model);
   NumericVector rfc = soil["rfc"];
-  int nlayers = dVec.size();
+  int nlayers = widths.size();
   NumericVector Water_Extr(nlayers);
-  for(int i=0;i<nlayers;i++) Water_Extr[i] = dVec[i]*((theta_FC[i]- theta_Min[i])*(1.0-(rfc[i]/100.0)));
+  for(int i=0;i<nlayers;i++) Water_Extr[i] = widths[i]*((theta_FC[i]- theta_Min[i])*(1.0-(rfc[i]/100.0)));
   return(Water_Extr);
 }
 
@@ -484,7 +612,11 @@ NumericVector waterExtractable(List soil, String model="SX", double minPsi = -5.
  */
 //' @rdname soil_texture
 // [[Rcpp::export("soil_theta")]]
-NumericVector theta(List soil, String model="SX") {
+NumericVector theta(DataFrame soil, String model="SX") {
+  if(!soil.inherits("soil")) {
+    if(soil.inherits("data.frame")) stop("Please, initialize soil parameters using function `soil()`");
+    else stop("Wrong class for `soil`.");
+  }
   NumericVector Theta_FC = thetaFC(soil, model);
   NumericVector W = soil["W"];
   NumericVector Theta = Theta_FC * W;
@@ -493,13 +625,17 @@ NumericVector theta(List soil, String model="SX") {
 
 //' @rdname soil_texture
 // [[Rcpp::export("soil_water")]]
-NumericVector water(List soil, String model="SX") {
-  NumericVector dVec = soil["dVec"];
+NumericVector water(DataFrame soil, String model="SX") {
+  if(!soil.inherits("soil")) {
+    if(soil.inherits("data.frame")) stop("Please, initialize soil parameters using function `soil()`");
+    else stop("Wrong class for `soil`.");
+  }
+  NumericVector widths = soil["widths"];
   NumericVector Theta = theta(soil, model);
   NumericVector rfc = soil["rfc"];
-  int nlayers = dVec.size();
+  int nlayers = widths.size();
   NumericVector Water(nlayers);
-  for(int i=0;i<nlayers;i++) Water[i] = dVec[i]*Theta[i]*(1.0-(rfc[i]/100.0));
+  for(int i=0;i<nlayers;i++) Water[i] = widths[i]*Theta[i]*(1.0-(rfc[i]/100.0));
   return(Water);
 }
 
@@ -515,7 +651,7 @@ double rockWeight2Volume(double pWeight, double bulkDensity, double rockDensity 
  */
 //' @rdname soil_texture
 // [[Rcpp::export("soil_psi")]]
-NumericVector psi(List soil, String model="SX") {
+NumericVector psi(DataFrame soil, String model="SX") {
   NumericVector Theta = theta(soil, model);
   int nlayers = Theta.size();
   NumericVector psi(nlayers);
@@ -540,35 +676,74 @@ NumericVector psi(List soil, String model="SX") {
 
 //' @rdname soil_texture
 // [[Rcpp::export("soil_conductivity")]]
-NumericVector conductivity(List soil) {
-  NumericVector Theta = theta(soil, "SX");
-  int nlayers = Theta.size();
-  NumericVector Kunsat(nlayers);
-  NumericVector clay =soil["clay"];
-  NumericVector sand = soil["sand"];
-  NumericVector om = soil["om"];
-  for(int l=0;l<nlayers;l++) {
-    Kunsat[l] = unsaturatedConductivitySaxton(Theta[l], clay[l], sand[l], om[l]);
-  }
-  return(Kunsat);
+NumericVector conductivity(DataFrame soil, String model="SX") {
+  NumericVector W = soil["W"];
+  int nlayers = W.size();
+  NumericVector K(nlayers);
+  if(model=="SX") {
+    NumericVector Theta = theta(soil, model);
+    NumericVector clay =soil["clay"];
+    NumericVector sand = soil["sand"];
+    NumericVector bd = soil["bd"];
+    NumericVector om = soil["om"];
+    for(int l=0;l<nlayers;l++) {
+      K[l] = unsaturatedConductivitySaxton(Theta[l], clay[l], sand[l], bd[l], om[l]);
+    }
+  } else {
+    NumericVector psiSoil = psi(soil, model);
+    NumericVector Ksat = soil["Ksat"];
+    for(int l=0;l<nlayers;l++) {
+      NumericVector n =soil["VG_n"];
+      NumericVector alpha = soil["VG_alpha"];
+      NumericVector theta_res = soil["VG_theta_res"];
+      NumericVector theta_sat = soil["VG_theta_sat"];
+      K[l] = psi2kVanGenuchten(Ksat[l], n[l], alpha[l], theta_res[l], theta_sat[l], psiSoil[l]);
+    }
+  } 
+  return(K);
 }
 
 //' @rdname soil_texture
-// [[Rcpp::export("soil_waterTableDepth")]]
-double waterTableDepth(List soil, String model = "SX") {
-  NumericVector dVec = soil["dVec"];
+ // [[Rcpp::export("soil_capacitance")]]
+ NumericVector capacitance(DataFrame soil, String model="SX") {
+   NumericVector W = soil["W"];
+   int nlayers = W.size();
+   NumericVector C(nlayers);
+   if(model=="SX") {
+     stop("Capacitance not available for model 'SX'");
+   } else {
+     NumericVector psiSoil = psi(soil, model);
+     NumericVector Ksat = soil["Ksat"];
+     for(int l=0;l<nlayers;l++) {
+       NumericVector n =soil["VG_n"];
+       NumericVector alpha = soil["VG_alpha"];
+       NumericVector theta_res = soil["VG_theta_res"];
+       NumericVector theta_sat = soil["VG_theta_sat"];
+       C[l] = psi2cVanGenuchten(n[l], alpha[l], theta_res[l], theta_sat[l], psiSoil[l]);
+     }
+   } 
+   return(C);
+ }
+
+//' @rdname soil_texture
+// [[Rcpp::export("soil_saturatedWaterDepth")]]
+double saturatedWaterDepth(DataFrame soil, String model = "SX") {
+  NumericVector widths = soil["widths"];
   NumericVector W = soil["W"];
   NumericVector Theta_FC = thetaFC(soil, model);
   NumericVector Theta_SAT = thetaSAT(soil, model);
   int nlayers = W.length();
   double z = 0.0;
+  int nunsaturated = 0;
   for(int l=0;l<nlayers;l++) {
     if(W[l]>1.0) {
-      z = z + dVec[l]*(Theta_SAT[l]-Theta_FC[l]*W[l])/(Theta_SAT[l]-Theta_FC[l]);
+      z = z + widths[l]*(Theta_SAT[l]-Theta_FC[l]*W[l])/(Theta_SAT[l]-Theta_FC[l]);
     } else {
-      z = z + dVec[l];
+      z = z + widths[l];
+      nunsaturated++;
     }
   }
+  if(nunsaturated==nlayers) z = NA_REAL;
   return(z);
 }
 
@@ -608,6 +783,25 @@ NumericVector vanGenuchtenParamsCarsel(String soilType) {
   return(vg);
 }
 
+//' @rdname soil_texture
+// [[Rcpp::export("soil_campbellParamsClappHornberger")]]
+NumericVector campbellParamsClappHornberger(String soilType) {
+   NumericVector cp(4,NA_REAL);
+   if(soilType=="Sand") {cp[0]=0.395; cp[1]=-12.1; cp[2] = 4.05; cp[3]=63.36;}
+   else if(soilType=="Loamy sand") {cp[0]=0.410; cp[1]=-9.1;cp[2] = 4.38; cp[3]=56.28;}
+   else if(soilType=="Sandy loam") {cp[0]=0.435; cp[1]=-21.8; cp[2] = 4.90; cp[3]=12.48;}
+   else if(soilType=="Silt loam") {cp[0]=0.485; cp[1]=-78.6; cp[2] = 5.30; cp[3]=2.59;}
+   else if(soilType=="Loam") {cp[0]=0.451; cp[1]=-47.8; cp[2] = 5.39; cp[3]=2.50;}
+   else if(soilType=="Silt") {cp[0]=0.485; cp[1]=-78.6; cp[2] = 5.30; cp[3]=2.59;} // EQUAL TO SILT LOAM
+   else if(soilType=="Sandy clay loam") {cp[0]=0.420; cp[1]=-29.9; cp[2] = 7.12; cp[3]=2.27;}
+   else if(soilType=="Silty clay loam") {cp[0]=0.477; cp[1]=-35.6; cp[2] = 7.75; cp[3]=0.61;}
+   else if(soilType=="Clay loam") {cp[0]=0.476; cp[1]=-63.0; cp[2] = 8.52; cp[3]=0.88;}
+   else if(soilType=="Sandy clay") {cp[0]=0.426; cp[1]=-15.3; cp[2] = 10.4; cp[3]=0.38;}
+   else if(soilType=="Silty clay") {cp[0]=0.492; cp[1]=-49.0; cp[2] = 10.4; cp[3]=0.37;}
+   else if(soilType=="Clay") {cp[0]=0.482; cp[1]=-40.5; cp[2] = 11.4; cp[3]=0.46;}
+   cp.attr("names") = CharacterVector::create("theta_sat", "psi_sat_cm", "b", "K_sat_cm_h");
+   return(cp);
+ }
 /* 
  * Parameters for the Van Genuchten-Mualem equations, taken from:
  * Tóth, B., Weynants, M., Nemes, A., Makó, A., Bilas, G., & Tóth, G. 2015. New generation of hydraulic pedotransfer functions for Europe. European Journal of Soil Science 66: 226–238.
@@ -640,47 +834,41 @@ NumericVector vanGenuchtenParamsToth(double clay, double sand, double om, double
   vg.attr("names") = CharacterVector::create("alpha", "n", "theta_res", "theta_sat");
   return(vg);
 }
-  
-
-
-
 
 
 //' Soil initialization
 //'
 //' Initializes soil parameters and state variables for its use in simulations.
 //' 
-//' @param SoilParams A data frame of soil parameters (see an example in \code{\link{defaultSoilParams}}).
+//' @param x A data frame of soil parameters (see an example in \code{\link{defaultSoilParams}}).
 //' @param VG_PTF Pedotransfer functions to obtain parameters for the van Genuchten-Mualem equations. Either \code{"Carsel"} (Carsel and Parrish 1988) or \code{"Toth"} (Toth et al. 2015).
-//' @param W A numerical vector with the initial relative water content of each soil layer.
-//' @param SWE Initial snow water equivalent of the snow pack on the soil surface (mm).
+//' 
+//' @return
+//' Function \code{soil} returns a data frame of class \code{soil} with the following columns:
+//' \itemize{
+//'   \item{\code{widths}: Width of soil layers (in mm).}
+//'   \item{\code{sand}: Sand percentage for each layer (in percent volume).}
+//'   \item{\code{clay}: Clay percentage for each layer (in percent volume).}
+//'   \item{\code{om}: Organic matter percentage for each layer (in percent volume).}
+//'   \item{\code{nitrogen}: Sum of total nitrogen (ammonia, organic and reduced nitrogen) for each layer (in g/kg).}
+//'   \item{\code{rfc}: Percentage of rock fragment content for each layer.}
+//'   \item{\code{macro}: Macroporosity for each layer (estimated using Stolf et al. 2011).}
+//'   \item{\code{Ksat}: Saturated soil conductivity for each layer (estimated using function \code{\link{soil_saturatedConductivitySX}}.}
+//'   \item{\code{VG_alpha}, \code{VG_n}, \code{VG_theta_res}, \code{VG_theta_sat}: Parameters for van Genuchten's pedotransfer functions, for each layer, corresponding to the USDA texture type.}
+//'   \item{\code{W}: State variable with relative water content of each layer (in as proportion relative to FC).}
+//'   \item{\code{Temp}: State variable with temperature (in ºC) of each layer.}
+//' }
+//' 
+//' @author Miquel De \enc{Cáceres}{Caceres} Ainsa, CREAF
 //' 
 //' @details 
-//' Function \code{print} prompts a description of soil characteristics and state variables (water content and temperature) 
+//' Function \code{summary} prompts a description of soil characteristics and state variables (water content and temperature) 
 //' according to a water retention curve (either Saxton's or Van Genuchten's). 
 //' Volume at field capacity is calculated assuming a soil water potential equal to -0.033 MPa. 
 //' Parameter \code{Temp} is initialized as missing for all soil layers. 
 //' 
-//' @return
-//' Function \code{soil} returns a list of class \code{soil} with the following elements:
-//' \itemize{
-//'   \item{\code{SoilDepth}: Soil depth (in mm).}
-//'   \item{\code{W}: State variable with relative water content of each layer (in as proportion relative to FC).}
-//'   \item{\code{Temp}: State variable with temperature (in ºC) of each layer.}
-//'   \item{\code{Ksoil}: Kappa parameter for bare soil evaporation.}
-//'   \item{\code{Gsoil}: Gamma parameter for bare soil evaporation (see \code{\link{hydrology_soilEvaporationAmount}}).}
-//'   \item{\code{dVec}: Width of soil layers (in mm).}
-//'   \item{\code{sand}: Sand percentage for each layer (in percent volume).}
-//'   \item{\code{clay}: Clay percentage for each layer (in percent volume).}
-//'   \item{\code{om}: Organic matter percentage for each layer (in percent volume).}
-//'   \item{\code{VG_alpha}, \code{VG_n}, \code{VG_theta_res}, \code{VG_theta_sat}: Parameters for van Genuchten's pedotransfer functions, for each layer, corresponding to the USDA texture type.}
-//'   \item{\code{Ksat}: Saturated soil conductivity for each layer (estimated using function \code{\link{soil_saturatedConductivitySX}}.}
-//'   \item{\code{macro}: Macroporosity for each layer (estimated using Stolf et al. 2011).}
-//'   \item{\code{rfc}: Percentage of rock fragment content for each layer.}
-//'   \item{\code{Kdrain}: Saturated vertical hydraulic conductivity (mm/day) (i.e. how easy is deep drainage towards groundwater). Function \code{soil} estimates it as a function of soil saturated hydraulic conductivity, but should be parametrized as a function of bedrock material. }
-//' }
-//' 
-//' @author Miquel De \enc{Cáceres}{Caceres} Ainsa, CREAF
+//' If available, the user can specify columns \code{VG_alpha}, \code{VG_n}, \code{VG_theta_res}, \code{VG_theta_sat} and \code{K_sat},
+//' to override Van Genuchten parameters an saturated conductivity estimated from pedotransfer functions when calling function \code{soil}. 
 //' 
 //' @references
 //' Carsel, R.F., and Parrish, R.S. 1988. Developing joint probability distributions of soil water retention characteristics. Water Resources Research 24: 755–769.
@@ -689,103 +877,126 @@ NumericVector vanGenuchtenParamsToth(double clay, double sand, double om, double
 //' 
 //' Stolf, R., Thurler, A., Oliveira, O., Bacchi, S., Reichardt, K., 2011. Method to estimate soil macroporosity and microporosity based on sand content and bulk density. Rev. Bras. Ciencias do Solo 35, 447–459.
 //' 
-//' @seealso   \code{\link{soil_psi2thetaSX}}, \code{\link{soil_psi2thetaVG}}, \code{\link{spwb}}, \code{\link{defaultSoilParams}}
+//' @seealso   \code{\link{soil_redefineLayers}}, \code{\link{soil_psi2thetaSX}}, \code{\link{soil_psi2thetaVG}}, \code{\link{spwb}}, \code{\link{defaultSoilParams}}
 //' 
 //' @examples
+//' # Default parameters
+//' df_soil <- defaultSoilParams()
+//' 
 //' # Initializes soil
-//' s = soil(defaultSoilParams())
+//' s = soil(df_soil)
+//' s
 //' 
 //' # Prints soil characteristics according to Saxton's water retention curve
-//' print(s, model="SX")
+//' summary(s, model="SX")
 //' 
 //' # Prints soil characteristics according to Van Genuchten's water retention curve
-//' print(s, model="VG")
+//' summary(s, model="VG")
 //' 
+//' # Add columns 'VG_theta_sat' and 'VG_theta_res' with custom values
+//' df_soil$VG_theta_sat <- 0.400 
+//' df_soil$VG_theta_res <- 0.040 
+//' 
+//' # Reinitialize soil (should override estimations)
+//' s2 = soil(df_soil)
+//' s2
+//' summary(s2, model="VG")
 //' @name soil
 // [[Rcpp::export("soil")]]
-List soil(DataFrame SoilParams, String VG_PTF = "Toth", 
-          NumericVector W = NumericVector::create(1.0), 
-          double SWE = 0.0) {
-  double SoilDepth = 0.0;
-  NumericVector dVec = clone(as<NumericVector>(SoilParams["widths"]));
-  int nlayers = dVec.size();
-
-  if(W.size()==1) {
-    double w0 = W[0];
-    W = NumericVector(nlayers);
-    for(int l=0;l<nlayers;l++) W[l] = w0; 
-  } else {
-    W = clone(W);
-  }
-  
+DataFrame soilInit(DataFrame x, String VG_PTF = "Toth") {
+  int nlayers = x.nrow();
+  if((VG_PTF!="Toth") && (VG_PTF!="Carsel")) stop("Wrong VG_PTF (should be either 'Toth' or 'Carsel')");
   //Soil parameters related to physical structure
-  NumericVector clay = clone(as<NumericVector>(SoilParams["clay"]));
-  NumericVector sand = clone(as<NumericVector>(SoilParams["sand"]));
-  NumericVector om = clone(as<NumericVector>(SoilParams["om"]));
-  NumericVector bd = clone(as<NumericVector>(SoilParams["bd"]));
-  NumericVector rfc = clone(as<NumericVector>(SoilParams["rfc"]));
-
+  NumericVector widths = clone(as<NumericVector>(x["widths"]));
+  NumericVector clay = clone(as<NumericVector>(x["clay"]));
+  NumericVector sand = clone(as<NumericVector>(x["sand"]));
+  NumericVector bd = clone(as<NumericVector>(x["bd"]));
+  NumericVector rfc = clone(as<NumericVector>(x["rfc"]));
+  
+  if(any(is_na(widths))) stop("Missing values in soil 'widths'");
   if(any(is_na(clay))) stop("Missing values in soil 'clay'");
   if(any(is_na(sand))) stop("Missing values in soil 'sand'");
   if(any(is_na(bd))) stop("Missing values in soil 'bd'");
   if(any(is_na(rfc))) stop("Missing values in soil 'rfc'");
+
+  NumericVector W(nlayers, 1.0);
+  if(x.containsElementNamed("W")) W = clone(as<NumericVector>(x["W"]));
+  if(any(is_na(W))) stop("Missing values in soil 'W'");
+  
+  //Optional
+  NumericVector om(nlayers, NA_REAL);
+  NumericVector nitrogen(nlayers, NA_REAL);
+  if(x.containsElementNamed("om")) om = clone(as<NumericVector>(x["om"]));
+  if(x.containsElementNamed("nitrogen")) nitrogen = clone(as<NumericVector>(x["nitrogen"]));
   
   //Parameters to be calculated and state variables
   NumericVector macro(nlayers, NA_REAL);
   NumericVector temperature(nlayers, NA_REAL);
-  CharacterVector usda_Type(nlayers);
-  NumericVector VG_alpha(nlayers);
-  NumericVector VG_n(nlayers);
-  NumericVector VG_theta_res(nlayers);
-  NumericVector VG_theta_sat(nlayers);
-  NumericVector Ksat(nlayers);
+  CharacterVector usda_Type(nlayers, NA_STRING);
+  NumericVector VG_alpha(nlayers, NA_REAL);
+  NumericVector VG_n(nlayers, NA_REAL);
+  NumericVector VG_theta_res(nlayers, NA_REAL);
+  NumericVector VG_theta_sat(nlayers, NA_REAL);
+  NumericVector Ksat(nlayers, NA_REAL);
+  
+  //Get parameters from input if specified
+  if(x.containsElementNamed("VG_alpha")) VG_alpha = clone(as<NumericVector>(x["VG_alpha"]));
+  if(x.containsElementNamed("VG_n")) VG_n = clone(as<NumericVector>(x["VG_n"]));
+  if(x.containsElementNamed("VG_theta_res")) VG_theta_res = clone(as<NumericVector>(x["VG_theta_res"]));
+  if(x.containsElementNamed("VG_theta_sat")) VG_theta_sat = clone(as<NumericVector>(x["VG_theta_sat"]));
+  if(x.containsElementNamed("Ksat")) Ksat = clone(as<NumericVector>(x["Ksat"]));
+  if(x.containsElementNamed("macro")) macro = clone(as<NumericVector>(x["macro"]));
+  if(x.containsElementNamed("usda")) usda_Type = clone(as<CharacterVector>(x["usda"]));
+  
   for(int l=0;l<nlayers;l++) {
-    usda_Type[l] = USDAType(clay[l],sand[l]);
+    if(CharacterVector::is_na(usda_Type[l]))  usda_Type[l] = USDAType(clay[l],sand[l]);
+    // Stolf, R., Thurler, A., Oliveira, O., Bacchi, S., Reichardt, K., 2011. Method to estimate soil macroporosity and microporosity based on sand content and bulk density. Rev. Bras. Ciencias do Solo 35, 447–459.
+    if(NumericVector::is_na(macro[l])) macro[l] = std::max(0.0,0.693 - 0.465*bd[l] + 0.212*(sand[l]/100.0));
+    
     NumericVector vgl;
     if(VG_PTF=="Carsel") {
       vgl = vanGenuchtenParamsCarsel(usda_Type[l]); 
+      if(NumericVector::is_na(Ksat[l])) {
+        Ksat[l] = vgl[4]; //Use Carsel estimate for Ksat
+      }
     } else if(VG_PTF=="Toth") {
-      if(!SoilParams.containsElementNamed("bd")) stop("bd missing in SoilParams");
-      NumericVector bd = as<NumericVector>(SoilParams["bd"]);
-      if(l==0) vgl = vanGenuchtenParamsToth(clay[l], sand[l], om[l], bd[l], TRUE);
-      else vgl = vanGenuchtenParamsToth(clay[l], sand[l], om[l], bd[l], FALSE);
+      // if(l==0) vgl = vanGenuchtenParamsToth(clay[l], sand[l], om[l], bd[l], TRUE);
+      //Use non-top soil equation for all layers
+      vgl = vanGenuchtenParamsToth(clay[l], sand[l], om[l], bd[l], false);
+      if(NumericVector::is_na(Ksat[l])) {
+        Ksat[l] = saturatedConductivitySaxton(clay[l], sand[l], bd[l], om[l]); 
+      }
     } else {
       stop("Wrong value for 'VG_PTF'");
     }
-    VG_alpha[l] = vgl[0];
-    VG_n[l] = vgl[1];
-    VG_theta_res[l] = vgl[2];
-    VG_theta_sat[l] = vgl[3];
-    // Stolf, R., Thurler, A., Oliveira, O., Bacchi, S., Reichardt, K., 2011. Method to estimate soil macroporosity and microporosity based on sand content and bulk density. Rev. Bras. Ciencias do Solo 35, 447–459.
-    macro[l] = std::max(0.0,0.693 - 0.465*bd[l] + 0.212*(sand[l]/100.0));
-    Ksat[l] = saturatedConductivitySaxton(clay[l], sand[l], om[l]);
-    SoilDepth +=dVec[l];
+    if(NumericVector::is_na(VG_alpha[l])) VG_alpha[l] = vgl[0];
+    if(NumericVector::is_na(VG_n[l])) VG_n[l] = vgl[1];
+    if(NumericVector::is_na(VG_theta_res[l])) VG_theta_res[l] = vgl[2];
+    if(NumericVector::is_na(VG_theta_sat[l])) VG_theta_sat[l] = vgl[3];
   }
-  // Saturated vertical hydraulic conductivity (mm/day) 
-  double Kdrain = 0.05*saturatedConductivitySaxton(clay[nlayers-1], sand[nlayers-1], om[nlayers-1], false);
-  double Ksoil = 0.05;
-  double Gsoil = 0.5; //TO DO, implement pedotransfer functions for Gsoil
-  List l = List::create(_["SoilDepth"] = SoilDepth,
-                      _["W"] = W, 
-                      _["SWE"] = SWE,
-                      _["Temp"] = temperature,
-                      _["Ksoil"] = Ksoil, _["Gsoil"] = Gsoil,
-                      _["dVec"] = dVec,
-                      _["sand"] = sand, _["clay"] = clay, _["om"] = om,
-                      _["VG_alpha"] = VG_alpha,_["VG_n"] = VG_n, 
-                      _["VG_theta_res"] = VG_theta_res,_["VG_theta_sat"] = VG_theta_sat,
-                      _["Ksat"] = Ksat,
-                      _["Kdrain"] = Kdrain,
-                      _["macro"] = macro,
-                      _["bd"] = bd,
-                      _["rfc"] = rfc);
-  l.attr("class") = CharacterVector::create("soil","list");
+  DataFrame l = DataFrame::create(_["widths"] = widths,
+                        _["sand"] = sand, 
+                        _["clay"] = clay, 
+                        _["usda"] = usda_Type,
+                        _["om"] = om, 
+                        _["nitrogen"] = nitrogen,
+                        _["bd"] = bd,
+                        _["rfc"] = rfc,
+                        _["macro"] = macro,
+                        _["Ksat"] = Ksat,
+                        _["VG_alpha"] = VG_alpha,
+                        _["VG_n"] = VG_n, 
+                        _["VG_theta_res"] = VG_theta_res,
+                        _["VG_theta_sat"] = VG_theta_sat,
+                        _["W"] = W, 
+                        _["Temp"] = temperature);
+  l.attr("class") = CharacterVector::create("soil","data.frame");
   return(l);
 }
 
 
 // [[Rcpp::export(".modifySoilLayerParam")]]
-void modifySoilLayerParam(List soil, String paramName, int layer, double newValue, 
+void modifySoilLayerParam(DataFrame soil, String paramName, int layer, double newValue, 
                           String VG_PTF = "Toth") {
   
   //Perform modification
@@ -798,7 +1009,7 @@ void modifySoilLayerParam(List soil, String paramName, int layer, double newValu
   NumericVector om = as<NumericVector>(soil["om"]);
   NumericVector bd = as<NumericVector>(soil["bd"]);
   NumericVector rfc =as<NumericVector>(soil["rfc"]);
-  NumericVector dVec = as<NumericVector>(soil["dVec"]);
+  NumericVector widths = as<NumericVector>(soil["widths"]);
   NumericVector macro = as<NumericVector>(soil["macro"]);
   NumericVector VG_alpha = as<NumericVector>(soil["VG_alpha"]);
   NumericVector VG_n = as<NumericVector>(soil["VG_n"]);
@@ -806,10 +1017,9 @@ void modifySoilLayerParam(List soil, String paramName, int layer, double newValu
   NumericVector VG_theta_sat = as<NumericVector>(soil["VG_theta_sat"]);
   NumericVector Ksat = as<NumericVector>(soil["Ksat"]);
   
-  int nlayers = dVec.size();
+  int nlayers = widths.size();
 
   //Parameters to be re-calculated
-  double SoilDepth = 0.0;
   CharacterVector usda_Type(nlayers);
   for(int l=0;l<nlayers;l++) {
     usda_Type[l] = USDAType(clay[l],sand[l]);
@@ -828,172 +1038,6 @@ void modifySoilLayerParam(List soil, String paramName, int layer, double newValu
     VG_theta_sat[l] = vgl[3];
     // Stolf, R., Thurler, A., Oliveira, O., Bacchi, S., Reichardt, K., 2011. Method to estimate soil macroporosity and microporosity based on sand content and bulk density. Rev. Bras. Ciencias do Solo 35, 447–459.
     macro[l] = std::max(0.0,0.693 - 0.465*bd[l] + 0.212*(sand[l]/100.0));
-    Ksat[l] = saturatedConductivitySaxton(clay[l], sand[l], om[l]);
-    SoilDepth +=dVec[l];
+    Ksat[l] = saturatedConductivitySaxton(clay[l], sand[l], bd[l], om[l]);
   }
-  // Saturated vertical hydraulic conductivity (mm/day) 
-  double Kdrain = 0.05*saturatedConductivitySaxton(clay[nlayers-1], sand[nlayers-1], om[nlayers-1], false);
-  soil["Kdrain"] = Kdrain;
-  //Update SoilDepth
-  soil["SoilDepth"] = SoilDepth;
-  
-}
-
-/**
- * Calculates midpoints of soil layers
- */
-NumericVector midpoints(NumericVector dVec) {
-  int nlayers = dVec.length();
-  double sumz = 0.0;
-  NumericVector midZ(nlayers);
-  for(int l = 0;l<nlayers; l++) {
-    midZ[l] = sumz + dVec[l]/2.0;
-    sumz = sumz + dVec[l];
-  }
-  return(midZ);
-}
-
-/**
- * Soil thermal conductivity 
- *
- * Dharssi, I., Vidale, P.L., Verhoef, A., MacPherson, B., Jones, C., & Best, M. 2009. New soil physical properties implemented in the Unified Model at PS18. 9–12.
- * Best et al. 2011
- */
-NumericVector layerThermalConductivity(NumericVector sand, NumericVector clay, NumericVector W, NumericVector Theta_FC) {
-  int nlayers = sand.length();
-  NumericVector thermalCond(nlayers,0.0);
-  for(int l=0;l<nlayers;l++) {
-    double silt = 100 - sand[l] - clay[l];
-    double lambda_m = ((thermalConductivitySand*sand[l])+(thermalConductivitySilt*silt)+(thermalConductivityClay*clay[l]))/(silt+sand[l]+clay[l]);
-    double lambda_dry = pow(thermalConductivityAir, Theta_FC[l])*pow(lambda_m, (1.0-Theta_FC[l]));
-    double Ke = 0.0;
-    if(W[l]>=0.1) Ke = log10(W[l]) + 1.0;
-    double lambda_s = std::max(1.58,std::min(2.2,1.58 + 12.4*(lambda_dry-0.25)));
-    thermalCond[l] = (lambda_s-lambda_dry)*Ke + lambda_dry;
-  }
-  return(thermalCond);
-}
-
-
-/**
- * Soil thermal capacity. Simplified from:
- * 
- *  returns - J·m-3·K-1
- * Cox, P.M., Betts, R.A., Bunton, C.B., Essery, R.L.H., Rowntree, P.R., & Smith, J. 1999. The impact of new land surface physics on the GCM simulation of climate and climate sensitivity. Climate Dynamics 15: 183–203.
- */
-NumericVector layerThermalCapacity(NumericVector sand, NumericVector clay, NumericVector W, NumericVector Theta_FC) {
-  int nlayers = sand.length();
-  NumericVector thermalCap(nlayers,0.0);
-  for(int l=0;l<nlayers;l++) {
-    thermalCap[l] = ((sand[l]*capacitySand)+(clay[l]*capacityClay) + ((100.0-clay[l]-sand[l])*capacitySilt))/100.0;
-    thermalCap[l] = thermalCap[l] + 4.19*1e3*1000.0*Theta_FC[l]*W[l];//Add water
-  }
-  return(thermalCap);
-}
-
-
-//' Soil thermodynamic functions
-//' 
-//' Functions \code{soil_thermalConductivity} and \code{soil_thermalCapacity} calculate thermal conductivity and thermal capacity 
-//' for each soil layer, given its texture and water content. Functions \code{soil_temperatureGradient} and \code{soil_temperatureChange} 
-//' are used to calculate soil temperature gradients (in ºC/m) and temporal temperature change (in ºC/s) 
-//' given soil layer texture and water content (and possibly including heat flux from above).
-//' 
-//' @param soil Soil object (returned by function \code{\link{soil}}).
-//' @param model Either 'SX' or 'VG' for Saxton's or Van Genuchten's pedotransfer models.
-//' @param dVec Width of soil layers (in mm).
-//' @param Temp Temperature (in ºC) for each soil layer.
-//' @param clay Percentage of clay (in percent weight) for each layer.
-//' @param sand Percentage of sand (in percent weight) for each layer.
-//' @param W Soil moisture (in percent of field capacity) for each layer.
-//' @param Theta_FC Relative water content (in percent volume) at field capacity for each layer.
-//' @param Gdown Downward heat flux from canopy to soil (in W·m-2).
-//' 
-//' @return 
-//' Function \code{soil_thermalConductivity} returns a vector with values of thermal conductivity (W/m/ºK) for each soil layer. 
-//' 
-//' Function \code{soil_thermalCapacity} returns a vector with values of heat storage capacity (J/m3/ºK) for each soil layer. 
-//' 
-//' Function \code{soil_temperatureGradient} returns a vector with values of temperature gradient between consecutive soil layers. 
-//' 
-//' Function \code{soil_temperatureChange} returns a vector with values of instantaneous temperature change (ºC/s) for each soil layer.
-//' 
-//' @references
-//' Cox, P.M., Betts, R.A., Bunton, C.B., Essery, R.L.H., Rowntree, P.R., and Smith, J. 1999. The impact of new land surface physics on the GCM simulation of climate and climate sensitivity. Climate Dynamics 15: 183–203.
-//' 
-//' Dharssi, I., Vidale, P.L., Verhoef, A., MacPherson, B., Jones, C., and Best, M. 2009. New soil physical properties implemented in the Unified Model at PS18. 9–12.
-//' 
-//' @author Miquel De \enc{Cáceres}{Caceres} Ainsa, CREAF
-//' 
-//' @seealso \code{\link{soil}}
-//' 
-//' @examples
-//' examplesoil = soil(defaultSoilParams())
-//' soil_thermalConductivity(examplesoil)
-//' soil_thermalCapacity(examplesoil)
-//' 
-//' #Values change when altering water content (drier layers have lower conductivity and capacity)
-//' examplesoil$W = c(0.1, 0.4, 0.7, 1.0)
-//' soil_thermalConductivity(examplesoil)
-//' soil_thermalCapacity(examplesoil)
-//' 
-//' @name soil_thermodynamics
-// [[Rcpp::export("soil_thermalCapacity")]]
-NumericVector thermalCapacity(List soil, String model = "SX") {
-  NumericVector sand = soil["sand"];
-  NumericVector clay = soil["clay"];
-  NumericVector W = soil["W"];
-  NumericVector Theta_FC = thetaFC(soil, model);
-  return(layerThermalCapacity(sand, clay, W, Theta_FC));
-}
-
-//' @rdname soil_thermodynamics
-// [[Rcpp::export("soil_thermalConductivity")]]
-NumericVector thermalConductivity(List soil, String model = "SX") {
-  NumericVector sand = soil["sand"];
-  NumericVector clay = soil["clay"];
-  NumericVector W = soil["W"];
-  NumericVector Theta_FC = thetaFC(soil, model);
-  return(layerThermalConductivity(sand, clay, W, Theta_FC));
-}
-
-
-/**
- * Soil temperature gradient (in ºC/m)
- */
-//' @name soil_thermodynamics
-// [[Rcpp::export("soil_temperatureGradient")]]
-NumericVector temperatureGradient(NumericVector dVec, NumericVector Temp) {
-  NumericVector midZ = midpoints(dVec);
-  int nlayers = Temp.length();
-  NumericVector gradTemp(nlayers,0.0);
-  if(nlayers>1) {
-    for(int l = 0;l<nlayers-1; l++) {
-      gradTemp[l] = (Temp[l+1]-Temp[l])/(0.001*(midZ[l+1]-midZ[l]));
-    }
-  }
-  gradTemp[nlayers-1] = (15.5-Temp[nlayers-1])/(0.001*(10000.0-midZ[nlayers-1])); //15.5º at 10 m
-  return(gradTemp);
-}
-
-//' @name soil_thermodynamics
-// [[Rcpp::export("soil_temperatureChange")]]
-NumericVector temperatureChange(NumericVector dVec, NumericVector Temp,
-                                NumericVector sand, NumericVector clay, 
-                                NumericVector W, NumericVector Theta_FC,
-                                double Gdown) {
-  NumericVector lambda = layerThermalConductivity(sand, clay, W, Theta_FC);
-  NumericVector Ca = layerThermalCapacity(sand, clay, W, Theta_FC);
-  int nlayers = Temp.length();
-  NumericVector gradTemp = temperatureGradient(dVec, Temp);
-  NumericVector midZ = midpoints(dVec);
-  double Gup = -Gdown; //Gdown > 0 when net flux is in the direction of soil
-  double Gi;
-  NumericVector tempch(nlayers);
-  for(int l = 0;l<nlayers; l++) {
-    Gi = lambda[l]*gradTemp[l]; //Gi < 0 when net flux is downward
-    tempch[l] = (Gi-Gup)/(Ca[l]*0.001*dVec[l]);
-    Gup = Gi;
-  }
-  return(tempch);
 }

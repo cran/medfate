@@ -6,25 +6,34 @@
 using namespace Rcpp;
 
 double soilEvaporationAmount(double DEF,double PETs, double Gsoil);
-double herbaceousTranspiration(double pet, double LherbSWR, double herbLAI, 
-                               List soil, String soilFunctions, bool modifySoil = true);
-NumericVector soilEvaporation(List soil, String soilFunctions, double pet, double LgroundSWR,
-                              bool modifySoil = true);
+NumericVector herbaceousTranspiration(double pet, double LherbSWR, double herbLAI, 
+                                      DataFrame soil, String soilFunctions, bool modifySoil = true);
+double soilEvaporation(DataFrame soil, double snowpack, 
+                       String soilFunctions, double pet, double LgroundSWR,
+                       bool modifySoil = true);
 
-double infiltrationAmount(double input, double Ssoil);
-NumericVector infiltrationRepartition(double I, NumericVector dVec, NumericVector macro, 
+
+double infiltrationBoughton(double input, double Ssoil);
+double infitrationGreenAmpt(double t, double Psi_w, double Ksat, double theta_sat, double theta_dry);
+double infiltrationAmount(double rainfallInput, double rainfallIntensity, DataFrame soil, 
+                          String soilFunctions, String model = "GreenAmpt1911", double K_correction = 1.0);
+NumericVector infiltrationRepartition(double I, NumericVector widths, NumericVector macro, 
                                       double a = -0.005, double b = 3.0);
 
-double interceptionGashDay(double Precipitation, double Cm, double p, double ER=0.05);
+double rainfallIntensity(int month, double prec, NumericVector rainfallIntensityPerMonth);
 
-double erFactor(int doy, double pet, double prec, double Rconv = 5.6, double Rsyn = 1.5);
+double interceptionGashDay(double Rainfall, double Cm, double p, double ER=0.05);
+double interceptionLiuDay(double Rainfall, double Cm, double p, double ER=0.05);
 
 double snowMelt(double tday, double rad, double LgroundSWR, double elevation);
 
-NumericVector soilWaterInputs(List soil, String soilFunctions, double prec, double er, double tday, double rad, double elevation,
-                              double Cm, double LgroundPAR, double LgroundSWR, 
-                              double runon = 0.0,
-                              bool snowpack = true, bool modifySoil = true);
-NumericVector soilInfiltrationPercolation(List soil, String soilFunctions, 
-                                          double waterInput,
-                                          bool rockyLayerDrainage = true, bool modifySoil = true);
+NumericVector waterInputs(List x, 
+                          double prec, double rainfallIntensity,
+                          double pet, double tday, double rad, double elevation,
+                          double Cm, double LgroundPAR, double LgroundSWR, 
+                          bool modifyInput = true);
+NumericVector soilWaterBalance(DataFrame soil, String soilFunctions, 
+                               double rainfallInput, double rainfallIntensity, double snowmelt, NumericVector sourceSink, 
+                               double runon = 0.0, Nullable<NumericVector> lateralFlows = R_NilValue, double waterTableDepth = NA_REAL,
+                               String infiltrationMode = "GreenAmpt1911", double infiltrationCorrection = 5.0, String soilDomains = "single", 
+                               int nsteps = 24, int max_nsubsteps = 3600, bool modifySoil = true);

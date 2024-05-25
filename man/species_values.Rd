@@ -26,7 +26,13 @@ species_LAI(x, SpParams, gdd = NA_real_, bounded = TRUE)
 
 species_characterParameter(species, SpParams, parName)
 
-species_parameter(species, SpParams, parName, fillMissing = TRUE)
+species_parameter(
+  species,
+  SpParams,
+  parName,
+  fillMissing = TRUE,
+  fillWithGenus = TRUE
+)
 }
 \arguments{
 \item{x}{An object of class \code{\link{forest}}.}
@@ -44,6 +50,8 @@ species_parameter(species, SpParams, parName, fillMissing = TRUE)
 \item{parName}{A string with a parameter name.}
 
 \item{fillMissing}{A boolean flag to try imputation on missing values.}
+
+\item{fillWithGenus}{A boolean flag to try imputation of missing values using genus values.}
 }
 \value{
 A vector with values for each species in \code{SpParams}:
@@ -67,10 +75,10 @@ Functions to calculate attributes of a \code{\link{forest}} object by species or
 data(SpParamsMED)
 
 # Load example plot
-data(exampleforestMED)
+data(exampleforest)
 
 # Species basal area in the forest plot
-species_basalArea(exampleforestMED, SpParamsMED)
+species_basalArea(exampleforest, SpParamsMED)
   
 # Value of parameter "Psi_Extract" for two species
 species_parameter(c("Pinus halepensis", "Quercus ilex"), SpParamsMED, "Psi_Extract")

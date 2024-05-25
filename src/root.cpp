@@ -146,27 +146,27 @@ NumericVector conicRS_one(double Zcone, NumericVector d){
 //' @author Miquel De \enc{Cáceres}{Caceres} Ainsa, CREAF
 //' 
 //' @seealso
-//'  \code{\link{spwb}},  \code{\link{forest2spwbInput}}, \code{\link{soil}}
+//'  \code{\link{spwb}},  \code{\link{spwbInput}}, \code{\link{soil}}
 //'
 //' @examples
 //' #Load example plot plant data
-//' data(exampleforestMED)
+//' data(exampleforest)
 //' 
 //' #Default species parameterization
 //' data(SpParamsMED)
 //' 
-//' ntree = nrow(exampleforestMED$treeData)
+//' ntree <- nrow(exampleforest$treeData)
 //' 
 //' #Initialize soil with default soil params
-//' S = soil(defaultSoilParams())
+//' s <- defaultSoilParams(4)
 //' 
 //' #Calculate conic root system for trees
-//' V1 = root_conicDistribution(Z=rep(2000,ntree), S$dVec)            
+//' V1 <- root_conicDistribution(Z=rep(2000,ntree), s$widths)            
 //' print(V1)
 //'      
 //' #Calculate LDR root system for trees (Schenck & Jackson 2002)
-//' V2 = root_ldrDistribution(Z50 = rep(200,ntree), 
-//'                           Z95 = rep(1000,ntree), S$dVec)
+//' V2 <- root_ldrDistribution(Z50 = rep(200,ntree), 
+//'                           Z95 = rep(1000,ntree), s$widths)
 //' print(V2)     
 //' 
 //' @name root
@@ -425,7 +425,9 @@ double coarseRootSoilVolumeFromConductance(double Kmax_rootxylem, double VCroot_
   double fTol = 0.005;
   double vol = 0.0;
   double f = frv(vol, B, v, ax, ra);
-  while(std::abs(f)>fTol) {
+  int nsteps = 0;
+  int maxnsteps = 200;
+  while((std::abs(f)>fTol) && (nsteps < maxnsteps)) {
     // Rcout<<vol<<"\n";
     if((f > 0.0)) {
       vol += step; 
@@ -434,7 +436,9 @@ double coarseRootSoilVolumeFromConductance(double Kmax_rootxylem, double VCroot_
       step = step/2.0;
     }
     f = frv(vol,B,v, ax,ra);
+    nsteps++;
   }
+  if(nsteps==maxnsteps) warning("Maximum number of steps reached in coarse root volume estimation");
   // for(int j=0;j<numLayers;j++) {
     // Rcout<<j<<" "<<ax[j]<<" "<<sqrt(vol)*ra[j]<<" "<<((d[j]/1000.0)*M_PI*pow(sqrt(vol)*ra[j],2.0))<<"\n";
   // }
@@ -577,6 +581,19 @@ List nonoverlapHorizontalProportions(NumericMatrix V) {
   l.attr("names") = rownames(V);
   return(l);
 }
+List equaloverlapHorizontalProportions(NumericVector poolProportions, NumericMatrix V) {
+  int numCohorts = V.nrow();
+  int numlayers = V.ncol();
+  List l(numCohorts);
+  for(int coh=0;coh<numCohorts;coh++) {
+    NumericMatrix RHOP(numCohorts,numlayers);
+    for(int l=0;l<numlayers;l++) RHOP(_,l) = poolProportions;
+    RHOP.attr("dimnames") = V.attr("dimnames");
+    l[coh] = RHOP;
+  }
+  l.attr("names") = rownames(V);
+  return(l);
+}
 //' @rdname root
 // [[Rcpp::export("root_horizontalProportions")]]
 List horizontalProportions(NumericVector poolProportions, NumericVector VolInd, NumericVector N, NumericMatrix V, 
@@ -588,6 +605,7 @@ List horizontalProportions(NumericVector poolProportions, NumericVector VolInd, 
   NumericVector poolAreaInd(numCohorts);
   for(int c=0;c<numCohorts;c++) {
     poolAreaInd[c] = 10000.0*poolProportions[c]/N[c]; //area of the pool per individual of the cohort
+    // Rcout<<poolAreaInd[c]<<"\n";
   }
   
   NumericMatrix iga = individualRootedGroundArea(VolInd,V,d,rfc);
