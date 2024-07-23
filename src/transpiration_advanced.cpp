@@ -69,6 +69,7 @@ List transpirationAdvanced(List x, NumericVector meteovec,
   String leafCavitationRecovery = control["leafCavitationRecovery"];
   double cavitationRecoveryMaximumRate = control["cavitationRecoveryMaximumRate"];
   bool sapFluidityVariation = control["sapFluidityVariation"];
+  String lfmcComponent = control["lfmcComponent"];
 
   //Meteo input
   double tmin = meteovec["tmin"];
@@ -984,6 +985,19 @@ List transpirationAdvanced(List x, NumericVector meteovec,
         RootPsiInst(c,n) = RootCrownPsiVEC[c]; //Store instantaneous root crown potential
         LeafSympPsiInst(c,n) = LeafSympPsiVEC[c];
         StemSympPsiInst(c,n) = StemSympPsiVEC[c];
+        minLeafPsi[c] = LeafPsiVEC[c];
+        maxLeafPsi[c] = LeafPsiVEC[c];
+        minStemPsi[c] =  StemPsiVEC[c];
+        minRootPsi[c] = RootCrownPsiVEC[c];
+        minLeafPsi_SL[c] = LeafPsiVEC[c];
+        minLeafPsi_SH[c] = LeafPsiVEC[c];
+        maxLeafPsi_SL[c] = LeafPsiVEC[c];
+        maxLeafPsi_SH[c] = LeafPsiVEC[c];
+        StemSympRWCInst(c,n) = symplasticRelativeWaterContent(StemSympPsiVEC[c], StemPI0[c], StemEPS[c]);
+        LeafSympRWCInst(c,n) = symplasticRelativeWaterContent(LeafSympPsiVEC[c], LeafPI0[c], LeafEPS[c]);
+        StemRWCInst(c,n) = StemSympRWCInst(c,n)*(1.0 - StemAF[c]) + (1.0 - StemPLCVEC[c])*StemAF[c];
+        LeafRWCInst(c,n) = LeafSympRWCInst(c,n)*(1.0 - LeafAF[c]) + (1.0 - LeafPLCVEC[c])*LeafAF[c];
+        
       }
     }
     
@@ -1040,7 +1054,7 @@ List transpirationAdvanced(List x, NumericVector meteovec,
       
       //Soil temperature changes
       NumericVector soilTchange = temperatureChange(widths, Tsoil, sand, clay, Ws, Theta_SAT, Theta_FC, Ebalsoil[n], tstep);
-      for(int l=0;l<nlayers;l++) Tsoil[l] = Tsoil[l] + soilTchange[l];
+      for(int l=0;l<nlayers;l++) Tsoil[l] = Tsoil[l] + std::max(-3.0, std::min(3.0, soilTchange[l]));
       if(n<(ntimesteps-1)) Tsoil_mat(n+1,_)= Tsoil;
       
     } else { //Multilayer canopy balance
@@ -1194,7 +1208,11 @@ List transpirationAdvanced(List x, NumericVector meteovec,
     PLClm[c] = sum(LeafPLC(c,_))/((double)LeafPLC.ncol());
     RWCsm[c] = sum(StemRWCInst(c,_))/((double)StemRWCInst.ncol());
     RWClm[c] = sum(LeafRWCInst(c,_))/((double)LeafRWCInst.ncol());
-    LFMC[c] = maxFMC[c]*((1.0/r635[c])*RWClm[c]+(1.0 - (1.0/r635[c]))*RWCsm[c]);
+    if(lfmcComponent=="fine") {
+      LFMC[c] = maxFMC[c]*((1.0/r635[c])*RWClm[c]+(1.0 - (1.0/r635[c]))*RWCsm[c]);
+    } else { //leaf
+      LFMC[c] = maxFMC[c]*RWClm[c];
+    }
     dEdPm[c] = sum(dEdPInst(c,_))/((double)dEdPInst.ncol());  
     DDS[c] = (1.0 - (dEdPm[c]/(sapFluidityDay*Plant_kmax[c])));
     if(phenoType[c] == "winter-deciduous" || phenoType[c] == "winter-semideciduous") {
@@ -1251,6 +1269,7 @@ List transpirationAdvanced(List x, NumericVector meteovec,
                         _["SunlitLeaves"] = Sunlit,
                         _["ShadeLeaves"] = Shade,
                         _["ExtractionInst"] = soilLayerExtractInst,
+                        _["RadiationInputInst"] = ddd,
                         _["PlantsInst"] = PlantsInst,
                         _["SunlitLeavesInst"] = SunlitInst,
                         _["ShadeLeavesInst"] = ShadeInst,
@@ -1279,7 +1298,7 @@ List transpirationAdvanced(List x, NumericVector meteovec,
 //' @param herbTranspiration Transpiration of herbaceous plants for \code{day} (mm).
 //' @param stepFunctions An integer to indicate a simulation step for which photosynthesis and profit maximization functions are desired.
 //' 
-//' 
+//' @keywords internal
 // [[Rcpp::export("transp_transpirationSperry")]]
 List transpirationSperry(List x, DataFrame meteo, int day,
                         double latitude, double elevation, double slope, double aspect,
@@ -1363,6 +1382,7 @@ List transpirationSperry(List x, DataFrame meteo, int day,
 } 
 
 //' @rdname transp_modes
+//' @keywords internal
 // [[Rcpp::export("transp_transpirationSureau")]]
 List transpirationSureau(List x, DataFrame meteo, int day,
                          double latitude, double elevation, double slope, double aspect,

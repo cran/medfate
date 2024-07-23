@@ -64,6 +64,7 @@ List transpirationBasic(List x, NumericVector meteovec,
   String rhizosphereOverlap = control["rhizosphereOverlap"];
   bool plantWaterPools = (rhizosphereOverlap!="total");
   double hydraulicRedistributionFraction = control["hydraulicRedistributionFraction"];
+  String lfmcComponent = control["lfmcComponent"];
 
   //Soil water at field capacity
   DataFrame soil = Rcpp::as<Rcpp::DataFrame>(x["soil"]);
@@ -368,7 +369,11 @@ List transpirationBasic(List x, NumericVector meteovec,
     RWCsm[c] =  tissueRelativeWaterContent(PlantPsi[c], StemPI0[c], StemEPS[c], 
                                            PlantPsi[c], VCstem_c[c], VCstem_d[c], 
                                            StemAF[c]);
-    LFMC[c] = maxFMC[c]*((1.0/r635[c])*RWClm[c]+(1.0 - (1.0/r635[c]))*RWCsm[c]);
+    if(lfmcComponent=="fine") {
+      LFMC[c] = maxFMC[c]*((1.0/r635[c])*RWClm[c]+(1.0 - (1.0/r635[c]))*RWCsm[c]);
+    } else { //"leaf"
+      LFMC[c] = maxFMC[c]*RWClm[c];
+    }
     
     //Daily drought stress from plant WP
     DDS[c] = (1.0 - Psi2K(PlantPsi[c],Psi_Extract[c],Exp_Extract[c])); 
@@ -660,6 +665,7 @@ List transpirationBasic(List x, NumericVector meteovec,
 //'                                   modifyInput = FALSE)
 //'                                 
 //' @name transp_modes
+//' @keywords internal
 // [[Rcpp::export("transp_transpirationGranier")]]
 List transpirationGranier(List x, DataFrame meteo, int day,
                           double latitude, double elevation, double slope, double aspect, 

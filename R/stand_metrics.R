@@ -66,6 +66,7 @@
 #' \item{\code{stand_quadraticMeanTreeDiameter}: Quadratic mean tree diameter, i.e. the diameter value corresponding to the current basal area and density.}
 #' \item{\code{stand_meanTreeHeight}: Mean tree height (in cm).}
 #' \item{\code{stand_dominantTreeHeight}: Dominant tree height, i.e the average height of the 100 tallest trees (in cm).}
+#' \item{\code{stand_dominantTreeSpecies}: Dominant tree species name, determined in terms of basal area (and considering all tree sizes).}
 #' \item{\code{stand_hartBeckingIndex}: Hart-Becking index.}
 #' \item{\code{stand_foliarBiomass}: Standing biomass of leaves (in kg/m2).}
 #' \item{\code{stand_fuel}: Stand fine fuel load (in kg/m2).}
@@ -88,6 +89,7 @@
 #' stand_basalArea(exampleforest)
 #'     
 #' @name stand_values
+#' @keywords internal
 stand_dominantTreeDiameter<-function(x, minDBH = 7.5) {
   if(nrow(x$treeData)>0) {
     return(.dominantTreeDiameter(n = x$treeData$N, dbh = x$treeData$DBH, minDBH = minDBH))
@@ -96,6 +98,7 @@ stand_dominantTreeDiameter<-function(x, minDBH = 7.5) {
 }
 
 #' @rdname stand_values
+#' @keywords internal
 stand_treeDensity<-function(x, minDBH = 7.5) {
   N <- as.numeric(NA)
   if(nrow(x$treeData)>0) N <- sum(x$treeData$N[x$treeData$DBH>minDBH])
@@ -103,6 +106,7 @@ stand_treeDensity<-function(x, minDBH = 7.5) {
 }
 
 #' @rdname stand_values
+#' @keywords internal
 stand_meanTreeHeight<-function(x, minDBH = 7.5) {
   MTH <- as.numeric(NA)
   if(nrow(x$treeData)>0) {
@@ -116,6 +120,7 @@ stand_meanTreeHeight<-function(x, minDBH = 7.5) {
 }
 
 #' @rdname stand_values
+#' @keywords internal
 stand_dominantTreeHeight<-function(x, minDBH = 7.5) {
   if(nrow(x$treeData)>0) {
     return(.dominantTreeHeight(n = x$treeData$N, h = x$treeData$Height, dbh = x$treeData$DBH, minDBH = minDBH))
@@ -124,6 +129,7 @@ stand_dominantTreeHeight<-function(x, minDBH = 7.5) {
 }
 
 #' @rdname stand_values
+#' @keywords internal
 stand_hartBeckingIndex<-function(x, minDBH = 7.5) {
   if(nrow(x$treeData)>0) {
     return(.hartBeckingIndex(n = x$treeData$N, h = x$treeData$Height, dbh = x$treeData$DBH, minDBH = minDBH))
@@ -132,6 +138,7 @@ stand_hartBeckingIndex<-function(x, minDBH = 7.5) {
 }
 
 #' @rdname stand_values
+#' @keywords internal
 stand_quadraticMeanTreeDiameter<-function(x, minDBH = 7.5) {
   if(nrow(x$treeData)>0) {
     return(.quadraticMeanTreeDiameter(n = x$treeData$N, dbh = x$treeData$DBH, minDBH = 7.5))
@@ -140,6 +147,7 @@ stand_quadraticMeanTreeDiameter<-function(x, minDBH = 7.5) {
 }
 
 #' @rdname stand_values
+#' @keywords internal
 stand_dominantTreeSpecies <-function(x, SpParams) {
   s<-species_basalArea(x, SpParams)
   s<-s[!is.na(s)]

@@ -164,11 +164,11 @@ double layerFuelAverageCrownLength(double minHeight, double maxHeight, NumericVe
 //' Function \code{fuel_stratification} provides a stratification of the stand into understory and canopy strata. 
 //' Function \code{fuel_FCCS} calculates fuel characteristics from a \code{forest} object 
 //' following an adaptation of the protocols described for the Fuel Characteristics Classification System (Prichard et al. 2013). 
-//' Function \code{fuel_windAdjustmentFactor} determines the adjustment factor of wind for surface fires, according to Andrews (2012). 
 //' 
 //' @param object An object of class \code{\link{forest}}
 //' @param SpParams A data frame with species parameters (see \code{\link{SpParamsMED}}).
 //' @param cohortFMC A numeric vector of (actual) fuel moisture content by cohort.
+//' @param loadingOffset A vector of length five with fine fuel loading values (canopy, shrub, herb, woody and litter) to be added to loading estimations from \code{forest}.
 //' @param gdd Growth degree-days.
 //' @param heightProfileStep Precision for the fuel bulk density profile.
 //' @param maxHeightProfile Maximum height for the fuel bulk density profile.
@@ -208,14 +208,9 @@ double layerFuelAverageCrownLength(double minHeight, double maxHeight, NumericVe
 //'     \item{\code{canopyLAI}: Cumulated LAI of the canopy (i.e. leaf area comprised between canopy base and top heights).}
 //'   }
 //'   
-//' Function \code{fuel_cohortFineFMC} returns a list with three matrices (for leaves, twigs and fine fuels). 
-//' Each of them contains live moisture content values for each day (in rows) and plant cohort (in columns).
 //' 
-//' Function \code{fuel_windAdjustmentFactor} returns a value between 0 and 1.
 //' 
 //' @references
-//' Andrews, P. L. 2012. Modeling wind adjustment factor and midflame wind speed for Rothermel’s surface fire spread model. USDA Forest Service - General Technical Report RMRS-GTR:1–39.
-//' 
 //' Prichard, S. J., D. V Sandberg, R. D. Ottmar, E. Eberhardt, A. Andreu, P. Eagle, and K. Swedin. 2013. Classification System Version 3.0: Technical Documentation.
 //' 
 //' Reinhardt, E., D. Lutes, and J. Scott. 2006. FuelCalc: A method for estimating fuel characteristics. Pages 273–282.
@@ -235,10 +230,9 @@ double layerFuelAverageCrownLength(double minHeight, double maxHeight, NumericVe
 //' fuel_stratification(exampleforest, SpParamsMED)
 //'   
 //' #Calculate fuel properties according to FCCS
-//' fccs = fuel_FCCS(exampleforest, SpParamsMED)
+//' fccs <- fuel_FCCS(exampleforest, SpParamsMED)
 //' fccs
 //' 
-//' fuel_windAdjustmentFactor(fccs$htc[2], fccs$hbc[1], fccs$htc[1], fccs$cover[1])
 //' 
 //' @name fuel_properties
 // [[Rcpp::export("fuel_stratification")]]
@@ -358,6 +352,7 @@ CharacterVector leafLitterFuelType(List object, DataFrame SpParams) {
 //'   }
 // [[Rcpp::export("fuel_FCCS")]]
 DataFrame FCCSproperties(List object, DataFrame SpParams, NumericVector cohortFMC = NumericVector::create(), 
+                         NumericVector loadingOffset = NumericVector::create(0.0, 0.0, 0.0, 0.0, 0.0),
                          double gdd = NA_REAL,  
                          double heightProfileStep = 10.0, double maxHeightProfile = 5000, double bulkDensityThreshold = 0.05,
                          String depthMode = "crownaverage") {
@@ -422,7 +417,7 @@ DataFrame FCCSproperties(List object, DataFrame SpParams, NumericVector cohortFM
     canopyDepth = layerFuelAverageCrownLength(200.0,10000.0,  cohCL, cohLoading, cohHeight, cohCR)/100.0; 
   }
   NumericVector cohCanopyLoading = layerCohortFuelLoading(200.0, 10000.0, cohLoading, cohHeight, cohCR);
-  double canopyLoading = std::accumulate(cohCanopyLoading.begin(),cohCanopyLoading.end(),0.0);
+  double canopyLoading = loadingOffset[0] + std::accumulate(cohCanopyLoading.begin(),cohCanopyLoading.end(),0.0);
   
   //Shrub limits and loading  
   double shrubBaseHeight = liveStrat["surfaceLayerBaseHeight"];
@@ -439,7 +434,7 @@ DataFrame FCCSproperties(List object, DataFrame SpParams, NumericVector cohortFM
   }
 
   NumericVector cohShrubLoading = layerCohortFuelLoading(0.0, 200.0, cohLoading, cohHeight, cohCR);
-  double shrubLoading = std::accumulate(cohShrubLoading.begin(),cohShrubLoading.end(),0.0);
+  double shrubLoading = loadingOffset[1] + std::accumulate(cohShrubLoading.begin(),cohShrubLoading.end(),0.0);
   //Herb limits and loading  
   double herbCover = object["herbCover"];
   if(NumericVector::is_na(herbCover)) herbCover = 0.0;
@@ -448,12 +443,12 @@ DataFrame FCCSproperties(List object, DataFrame SpParams, NumericVector cohortFM
   double herbDepth = herbHeight/100.0; //in cm
   NumericVector LAIlive = cohortLAI(object, SpParams);//Without correction
   double woodyLAI = sum(LAIlive);
-  double herbLoading = herbFoliarBiomassAllometric(herbCover, herbHeight, woodyLAI); // From piropinus
+  double herbLoading = loadingOffset[2] + herbFoliarBiomassAllometric(herbCover, herbHeight, woodyLAI); // From piropinus
   
   //Woody loading  
-  double woodyLoading = std::accumulate(cohSmallBranchLitter.begin(),cohSmallBranchLitter.end(),0.0);
+  double woodyLoading = loadingOffset[3] + std::accumulate(cohSmallBranchLitter.begin(),cohSmallBranchLitter.end(),0.0);
   //Litter loading  
-  double litterLoading = std::accumulate(cohLeafLitter.begin(),cohLeafLitter.end(),0.0);
+  double litterLoading = loadingOffset[4] + std::accumulate(cohLeafLitter.begin(),cohLeafLitter.end(),0.0);
   
   //Properties
   NumericVector cover(5,NA_REAL); //Percent cover

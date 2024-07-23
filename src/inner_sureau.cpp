@@ -394,6 +394,7 @@ List initSureauNetwork(int c, NumericVector LAIphe,
 //' @seealso  \code{\link{spwb}}
 //' 
 //' @name sureau_ecos
+//' @keywords internal
 // [[Rcpp::export("initSureauNetworks")]]
 List initSureauNetworks(List x) {
   DataFrame above = Rcpp::as<Rcpp::DataFrame>(x["above"]);
@@ -492,6 +493,7 @@ void calculateRhizoPsi(int c,
 //'             \item{"rate" - following a rate of new sapwood formation.}
 //'             \item{"total" - instantaneous complete refilling.}
 //'           }
+//' @keywords internal
 // [[Rcpp::export("semi_implicit_integration")]]
 void semi_implicit_integration(List network, double dt, NumericVector opt, 
                                String stemCavitationRecovery = "annual", String leafCavitationRecovery = "total") {
@@ -1163,6 +1165,24 @@ void innerSureau(List x, List input, List output, int n, double tstep,
         }
       }
     }
-    
+    else if(LAIlive[c]>0.0) { //Cohorts with living individuals but no LAI (or completely embolized)
+      List network = networks[c];
+      E_SL(c,n) = 0.0;
+      E_SH(c,n) = 0.0;
+      Psi_SH(c,n) = network["Psi_LSym"];
+      Psi_SL(c,n) = network["Psi_LSym"];
+      dEdPInst(c,n) = network["k_Plant"];
+      LeafPsiVEC[c] = network["Psi_LApo"];
+      LeafSympPsiVEC[c] = network["Psi_LSym"];
+      StemPsiVEC[c] = network["Psi_SApo"];
+      StemSympPsiVEC[c] = network["Psi_SSym"];
+      RootCrownPsiVEC[c] = network["Psi_RCApo"];
+      StemPLCVEC[c] = ((double) network["PLC_Stem"])/100.0;
+      LeafPLCVEC[c] = ((double) network["PLC_Leaf"])/100.0;
+      Aginst(c,n) = 0.0;
+      Aninst(c,n) = 0.0;
+      Einst(c,n) = 0.0;
+      PWBinst(c,n) = 0.0;
+    }
   }
 }

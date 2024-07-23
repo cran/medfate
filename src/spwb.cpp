@@ -20,6 +20,7 @@
 #include <meteoland.h>
 using namespace Rcpp;
 
+// [[Rcpp::export(".getWeatherDates")]]
 CharacterVector getWeatherDates(DataFrame meteo){
   CharacterVector dateStrings;
   String dateColumnName = NA_STRING;
@@ -27,8 +28,14 @@ CharacterVector getWeatherDates(DataFrame meteo){
   if(meteo.containsElementNamed("dates")) {
     dateColumnName = "dates";
     is_date_column = true;
+  } else if(meteo.containsElementNamed("date")) {
+    dateColumnName = "date";
+    is_date_column = true;
   } else if(meteo.containsElementNamed("Dates")) {
     dateColumnName = "Dates";
+    is_date_column = true;
+  } else if(meteo.containsElementNamed("Date")) {
+    dateColumnName = "Date";
     is_date_column = true;
   }
   if(is_date_column){
@@ -50,8 +57,19 @@ CharacterVector getWeatherDates(DataFrame meteo){
         dS[i] = d.format("%Y-%m-%d");
       }
       dateStrings = dS;
+    } else if(vector.inherits("POSIXct")) {
+      DatetimeVector datetimeVector = Rcpp::as<Rcpp::DatetimeVector>(vector);
+      CharacterVector dS(datetimeVector.size(), NA_STRING);
+      for(int i=0;i< datetimeVector.size();i++) {
+        Datetime dt = datetimeVector[i];
+        Date d(dt.getYear(), dt.getMonth(), dt.getDay());
+        dS[i] = d.format("%Y-%m-%d");
+      }
+      dateStrings = dS;
     } else if(is<StringVector>(vector)) {
       dateStrings = Rcpp::as<Rcpp::StringVector>(vector);
+    } else {
+      stop("Could not parse date column.");
     }
   } else {
     dateStrings = meteo.attr("row.names"); 
@@ -688,6 +706,7 @@ List spwbDay_advanced(List x, NumericVector meteovec,
                         _["ShadeLeaves"] = transp["ShadeLeaves"],
                         _["ExtractionInst"] = soilLayerExtractInst,
                         _["PlantsInst"] = PlantsInst,
+                        _["RadiationInputInst"] = transp["RadiationInputInst"],
                         _["SunlitLeavesInst"] = transp["SunlitLeavesInst"],
                         _["ShadeLeavesInst"] = transp["ShadeLeavesInst"],
                         _["LightExtinction"] = transp["LightExtinction"],
@@ -2056,6 +2075,7 @@ void printWaterBalanceResult(List outputList, List x,
 //' \code{\link{extract}}, \code{\link{summary.spwb}},  \code{\link{forest}}, \code{\link{aspwb}}
 //' 
 //' @examples
+//' \donttest{
 //' #Load example daily meteorological data
 //' data(examplemeteo)
 //' 
@@ -2077,7 +2097,6 @@ void printWaterBalanceResult(List outputList, List x,
 //' #Call simulation function
 //' S1 <- spwb(x1, examplemeteo, latitude = 41.82592, elevation = 100)
 //' 
-//' \donttest{
 //' #Switch to 'Sperry' transpiration mode
 //' control <- defaultControl("Sperry")
 //' 
@@ -2273,15 +2292,29 @@ List spwb(List x, DataFrame meteo,
         if(DOY[i]==1) {
           DataFrame internalWater = Rcpp::as<Rcpp::DataFrame>(x["internalWater"]);
           NumericVector StemPLC = Rcpp::as<Rcpp::NumericVector>(internalWater["StemPLC"]);
-          for(int j=0;j<StemPLC.length();j++) StemPLC[j] = 0.0; 
+          for(int j=0;j<StemPLC.length();j++) StemPLC[j] = 0.0;
+          if(transpirationMode =="Sureau") {
+            NumericVector StemPsi = Rcpp::as<Rcpp::NumericVector>(internalWater["StemPsi"]);
+            NumericVector StemSympPsi = Rcpp::as<Rcpp::NumericVector>(internalWater["StemSympPsi"]);
+            for(int j=0;j<StemPsi.length();j++) {
+              StemPsi[j] = -0.033;
+              StemSympPsi[j] = -0.033;
+            } 
+          }
         }
       }
       if(leafCavitationRecovery=="annual") {
         if(DOY[i]==1) {
           DataFrame internalWater = Rcpp::as<Rcpp::DataFrame>(x["internalWater"]);
           NumericVector LeafPLC = Rcpp::as<Rcpp::NumericVector>(internalWater["LeafPLC"]);
-          for(int j=0;j<LeafPLC.length();j++) {
-            LeafPLC[j] = 0.0;
+          for(int j=0;j<LeafPLC.length();j++) LeafPLC[j] = 0.0;
+          if(transpirationMode =="Sureau") {
+            NumericVector LeafPsi = Rcpp::as<Rcpp::NumericVector>(internalWater["LeafPsi"]);
+            NumericVector LeafSympPsi = Rcpp::as<Rcpp::NumericVector>(internalWater["LeafSympPsi"]);
+            for(int j=0;j<LeafPsi.length();j++) {
+              LeafPsi[j] = -0.033;
+              LeafSympPsi[j] = -0.033;
+            }
           }
         }
       }
@@ -2685,14 +2718,28 @@ List pwb(List x, DataFrame meteo, NumericMatrix W,
           DataFrame internalWater = Rcpp::as<Rcpp::DataFrame>(x["internalWater"]);
           NumericVector StemPLC = Rcpp::as<Rcpp::NumericVector>(internalWater["StemPLC"]);
           for(int j=0;j<StemPLC.length();j++) StemPLC[j] = 0.0;
+          if(transpirationMode =="Sureau") {
+            NumericVector StemPsi = Rcpp::as<Rcpp::NumericVector>(internalWater["StemPsi"]);
+            NumericVector StemSympPsi = Rcpp::as<Rcpp::NumericVector>(internalWater["StemSympPsi"]);
+            for(int j=0;j<StemPsi.length();j++) {
+              StemPsi[j] = -0.033;
+              StemSympPsi[j] = -0.033;
+            } 
+          }
         }
     }
     if(leafCavitationRecovery=="annual") {
       if(DOY[i]==1) {
         DataFrame internalWater = Rcpp::as<Rcpp::DataFrame>(x["internalWater"]);
         NumericVector LeafPLC = Rcpp::as<Rcpp::NumericVector>(internalWater["LeafPLC"]);
-        for(int j=0;j<LeafPLC.length();j++) {
-          LeafPLC[j] = 0.0;
+        for(int j=0;j<LeafPLC.length();j++) LeafPLC[j] = 0.0;
+        if(transpirationMode =="Sureau") {
+          NumericVector LeafPsi = Rcpp::as<Rcpp::NumericVector>(internalWater["LeafPsi"]);
+          NumericVector LeafSympPsi = Rcpp::as<Rcpp::NumericVector>(internalWater["LeafSympPsi"]);
+          for(int j=0;j<LeafPsi.length();j++) {
+            LeafPsi[j] = -0.033;
+            LeafSympPsi[j] = -0.033;
+          }
         }
       }
     }
