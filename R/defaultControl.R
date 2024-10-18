@@ -21,13 +21,17 @@
 #'       \item{\code{standResults [= TRUE]}: Boolean flag to keep stand-level results (in a data frame called 'Stand').}
 #'       \item{\code{soilResults [= TRUE]}: Boolean flag to keep soil-level results (in a list called 'Soil').}
 #'       \item{\code{snowResults [= TRUE]}: Boolean flag to keep snow results (in a data frame called 'Snow').}
-#'       \item{\code{plantResults [= TRUE]}: Boolean flag to keep plant-level results (in a list called 'Plants').}
+#'       \item{\code{plantResults [= TRUE]}: Boolean flag to keep plant-level water/energy/photosynthesis results (in a list called 'Plants').}
+#'       \item{\code{labileCarbonBalanceResults [= TRUE]}: Boolean flag to keep plant-level labile carbon balance results (in a list called 'LabileCarbonBalance').}
+#'       \item{\code{plantStructureResults [= TRUE]}: Boolean flag to keep plant-level structure results (in a list called 'PlantStructure').}
+#'       \item{\code{growthMortalityResults [= TRUE]}: Boolean flag to keep plant-level growth and mortality results (in a list called 'GrowthMortality').}
 #'       \item{\code{leafResults [= TRUE]}: Boolean flag to keep leaf-level results (in elements called 'SunlitLeaves' and 'ShadeLeaves').}
 #'       \item{\code{temperatureResults [= TRUE]}: Boolean flag to keep temperature results (in elements called 'Temperature' and 'TemperatureLayers').}
 #'       \item{\code{subdailyResults [= FALSE]}: Boolean flag to force subdaily results to be stored (as a list called 'subdaily' of \code{\link{spwb_day}} objects, one by simulated date) in calls to \code{\link{spwb}}. In function \code{fordyn} \code{subdailyResults} is always set to FALSE.}
 #'       \item{\code{fireHazardResults [= FALSE]}: Boolean flag to force calculation of daily fire hazard.}
 #'       \item{\code{fireHazardStandardWind [= NA]}: Wind speed (in m/s) for fire-hazard estimation. If missing, actual wind-speed is used.}
 #'       \item{\code{fireHazardStandardDFMC [= NA]}: Dead fuel moisture content for fire-hazard estimation. If missing, estimation from current weather is used.}
+#'       \item{\code{clearCommunications [= TRUE]}: Boolean flag to indicate that internal communication structures should be removed at the end of the simulation.}
 #'     }
 #'   \bold{Water balance} (functions \code{\link{spwb}}, \code{\link{pwb}} or \code{\link{spwb_day}}):
 #'     \itemize{
@@ -155,6 +159,7 @@
 #'      \item{\code{minimumTreeCohortDensity [= 1]}: Threshold of tree density resulting in cohort removal.}
 #'      \item{\code{minimumShrubCohortCover [= 0.01]}: Threshold of shrub cover resulting in cohort removal.}
 #'      \item{\code{dynamicallyMergeCohorts [= TRUE]}: Boolean flag to indicate that cohorts should be merged when possible. This option speeds up calculations but results in a loss of cohort identity and reinitialization of many state variables.}
+#'      \item{\code{keepCohortsWithID [= TRUE]}: Boolean flag to indicate that cohorts having a non-missing value in a column \code{"ID"} (if present) should not be merged or removed.}
 #'      \item{\code{seedRain [= NULL]}: Vector of species names whose seed rain is to be added to seed bank, regardless of local seed production.}
 #'      \item{\code{seedProductionTreeHeight [= 300]}: Default minimum tree height for producing seeds (when species parameter \code{SeedProductionHeight} is missing).}
 #'      \item{\code{seedProductionShrubHeight [= 30]}: Default minimum shrub height for producing seeds (when species parameter \code{SeedProductionHeight} is missing).}
@@ -192,11 +197,16 @@ defaultControl<-function(transpirationMode = "Granier", soilDomains = "buckets")
     soilResults = TRUE,
     snowResults = TRUE,
     plantResults = TRUE,
+    plantWaterBalanceResults = TRUE,
+    labileCarbonBalanceResults = TRUE,
+    plantStructureResults = TRUE,
+    growthMortalityResults = TRUE,
     leafResults = TRUE,
     temperatureResults = TRUE,
     fireHazardResults = FALSE,
     fireHazardStandardWind = NA,
     fireHazardStandardDFMC = NA,
+    clearCommunications = TRUE,
     
     # For water balance
     transpirationMode = transpirationMode,
@@ -300,6 +310,7 @@ defaultControl<-function(transpirationMode = "Granier", soilDomains = "buckets")
     minimumTreeCohortDensity = 1,
     minimumShrubCohortCover = 0.01,
     dynamicallyMergeCohorts = TRUE,
+    keepCohortsWithObsID = FALSE,
     seedRain = NULL,
     seedProductionTreeHeight = 300,
     seedProductionShrubHeight = 30,

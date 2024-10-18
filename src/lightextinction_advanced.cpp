@@ -1,4 +1,5 @@
 #include <Rcpp.h>
+#include "communication_structures.h"
 #include "forestutils.h"
 #include "paramutils.h"
 #include "incbeta.h"
@@ -93,9 +94,9 @@ double leafAngleCDF(double leafAngle, double p, double q) {
 //' @keywords internal
 // [[Rcpp::export("light_leafAngleBetaParameters")]]
 NumericVector leafAngleBetaParameters(double leafAngle, double leafAngleSD) {
-  double pow_sum = pow(leafAngleSD,2.0) + pow(leafAngle,2.0);
+  double pow_sum = (leafAngleSD*leafAngleSD) + (leafAngle*leafAngle);
   double p_num = 1.0 - pow_sum/(leafAngle*M_PI/2.0);
-  double p_den = pow_sum/pow(leafAngle,2.0) - 1.0;
+  double p_den = pow_sum/(leafAngle*leafAngle) - 1.0;
   double p = p_num/p_den;
   double q = (M_PI/(2.0*leafAngle) - 1.0)*p;
   return(NumericVector::create(_["p"] = p,
@@ -151,7 +152,7 @@ NumericVector layerDirectIrradianceFraction(NumericMatrix LAIme, NumericMatrix L
     for(int j =0;j<ncoh;j++) {
       gsum = gamma[j]*(LAIme(i,j)+LAImd(i,j));
       lsum = LAIme(i,j)+LAImd(i,j);
-      s = s + (kb[j]*pow(alpha[j],0.5)*ClumpingIndex[j]*(std::max(LAIme(i,j)+LAImd(i,j), trunkExtinctionFraction*LAImx(i,j))));
+      s = s + (kb[j]*std::sqrt(alpha[j])*ClumpingIndex[j]*(std::max(LAIme(i,j)+LAImd(i,j), trunkExtinctionFraction*LAImx(i,j))));
     }
     //Average gamma according to LAI
     gamma_i = gsum/lsum;
@@ -170,7 +171,7 @@ double groundDirectIrradianceFraction(NumericMatrix LAIme, NumericMatrix LAImd,N
     //for subsequent layers increase s
     //Extinction is the maximum between the sum of dead(standing) and expanded leaves and a fraction of maximum live leaves corresponding to trunks (for winter-deciduous stands)
     for(int j =0;j<ncoh;j++) {
-      s = s + (kb[j]*pow(alpha[j],0.5)*ClumpingIndex[j]*(std::max(LAIme(i,j)+LAImd(i,j), trunkExtinctionFraction*LAImx(i,j))));
+      s = s + (kb[j]*std::sqrt(alpha[j])*ClumpingIndex[j]*(std::max(LAIme(i,j)+LAImd(i,j), trunkExtinctionFraction*LAImx(i,j))));
     }
   }
   return(exp(-1.0*s));
@@ -204,7 +205,7 @@ NumericMatrix layerDiffuseIrradianceFraction(NumericMatrix LAIme, NumericMatrix 
        for(int j =0;j<ncoh;j++) {
          gsum = gamma[j]*(LAIme(i,j)+LAImd(i,j));
          lsum = LAIme(i,j)+LAImd(i,j);
-         s = s + (K(k,j)*pow(alpha[j],0.5)*ClumpingIndex[j]*(std::max(LAIme(i,j)+LAImd(i,j), trunkExtinctionFraction*LAImx(i,j))));
+         s = s + (K(k,j)*sqrt(alpha[j])*ClumpingIndex[j]*(std::max(LAIme(i,j)+LAImd(i,j), trunkExtinctionFraction*LAImx(i,j))));
        }
        //Average gamma according to LAI
        gamma_i = gsum/lsum;
@@ -228,7 +229,7 @@ double groundDiffuseIrradianceFraction(NumericMatrix LAIme, NumericMatrix LAImd,
       //for subsequent layers increase s
       //Extinction is the maximum between the sum of dead(standing) and expanded leaves and a fraction of maximum live leaves corresponding to trunks (for winter-deciduous stands)
       for(int j =0;j<ncoh;j++) {
-        s = s + (K(k,j)*pow(alpha[j],0.5)*ClumpingIndex[j]*(std::max(LAIme(i,j)+LAImd(i,j), trunkExtinctionFraction*LAImx(i,j))));
+        s = s + (K(k,j)*std::sqrt(alpha[j])*ClumpingIndex[j]*(std::max(LAIme(i,j)+LAImd(i,j), trunkExtinctionFraction*LAImx(i,j))));
       }
     }
     // I fraction for the current layer (no extinction for top layer)
@@ -256,9 +257,9 @@ NumericMatrix cohortDiffuseAbsorbedRadiation(double Id0, NumericMatrix Idf,
     for(int k = 0;k<nZ;k++) { //Over all sky zones
       if(NumericVector::is_na(Idf(k,i))) stop("NA Idf");
       double s = 0.0;
-      for(int j = 0;j<ncoh;j++) s += K(k,j)*pow(alpha[j],0.5)*ClumpingIndex[j]*(LAIme(i,j)+LAImd(i,j));
+      for(int j = 0;j<ncoh;j++) s += K(k,j)*std::sqrt(alpha[j])*ClumpingIndex[j]*(LAIme(i,j)+LAImd(i,j));
       for(int j = 0;j<ncoh;j++) {
-        Ida(i,j) = Ida(i,j) + Id0*(1.0-gamma[j])*Idf(k,i)*pow(alpha[j],0.5)*K(k,j)*exp(-1.0*s);
+        Ida(i,j) = Ida(i,j) + Id0*(1.0-gamma[j])*Idf(k,i)*std::sqrt(alpha[j])*K(k,j)*exp(-1.0*s);
       }
     }
   }
@@ -280,14 +281,14 @@ NumericMatrix cohortScatteredAbsorbedRadiation(double Ib0, NumericVector Ibf,
   for(int i = 0;i<nlayer;i++) {
     double s1 = 0.0, s2=0.0;
     for(int j = 0;j<ncoh;j++) {
-      s1 += kb[j]*pow(alpha[j],0.5)*ClumpingIndex[j]*(LAIme(i,j)+LAImd(i,j));
+      s1 += kb[j]*std::sqrt(alpha[j])*ClumpingIndex[j]*(LAIme(i,j)+LAImd(i,j));
       s2 += kb[j]*ClumpingIndex[j]*(LAIme(i,j)+LAImd(i,j));
     }
     for(int j = 0;j<ncoh;j++) {
-      double diff = pow(alpha[j],0.5)*exp(-1.0*s1) - alpha[j]*exp(-1.0*s2);
+      double diff = std::sqrt(alpha[j])*exp(-1.0*s1) - alpha[j]*exp(-1.0*s2);
       // double diff = exp(-1.0*s1) - exp(-1.0*s2);
       // Rcout<< i << " "<< j << " "<< s1 << " " << s2 << " " << diff<<"\n";
-      Ibsa(i,j) = Ib0*Ibf[i]*pow(alpha[j], 0.5)*kb[j]*diff;
+      Ibsa(i,j) = Ib0*Ibf[i]*std::sqrt(alpha[j])*kb[j]*diff;
     }
   }
   return(Ibsa);
@@ -521,21 +522,19 @@ List instantaneousLightExtinctionAbsortion(NumericMatrix LAIme, NumericMatrix LA
   return(res);
 }
 
-/**
- *  LWR model of Ma and Liu (2019), based on Flerchinger et al (2009)
- *  
- *  Ma Y, Liu H (2019) An Advanced Multiple-Layer Canopy Model in the WRF Model With Large-Eddy Simulations to Simulate Canopy Flows and Scalar Transport Under Different Stability Conditions. J Adv Model Earth Syst 11:2330–2351. https://doi.org/10.1029/2018MS001347
- *  Flerchinger GN, Xiao W, Sauer TJ, Yu Q (2009) Simulation of within-canopy radiation exchange. NJAS - Wageningen J Life Sci 57:5–15. https://doi.org/10.1016/j.njas.2009.07.004
- */
-//' @rdname light_advanced
-//' @keywords internal
-// [[Rcpp::export("light_longwaveRadiationSHAW")]]
-List longwaveRadiationSHAW(NumericMatrix LAIme, NumericMatrix LAImd, NumericMatrix LAImx, 
-                           double LWRatm, double Tsoil, NumericVector Tair, double trunkExtinctionFraction = 0.1) {
+void longwaveRadiationSHAW_inner(List internalLWR, NumericMatrix LAIme, NumericMatrix LAImd, NumericMatrix LAImx, 
+                                 double LWRatm, double Tsoil, NumericVector Tair, double trunkExtinctionFraction = 0.1) {
   int ncoh = LAIme.ncol();
   int ncanlayers = Tair.size();
-  NumericVector Lup(ncanlayers), Ldown(ncanlayers), Lnet(ncanlayers);
-  NumericVector tau(ncanlayers), sumTauComp(ncanlayers);
+  
+  DataFrame LWR_layer = as<Rcpp::DataFrame>(internalLWR["LWR_layer"]);
+  
+  NumericVector Lup = as<NumericVector>(LWR_layer["Lup"]);
+  NumericVector Ldown = as<NumericVector>(LWR_layer["Ldown"]);
+  NumericVector Lnet = as<NumericVector>(LWR_layer["Lnet"]);
+  NumericVector tau = as<NumericVector>(LWR_layer["tau"]);
+  NumericVector sumTauComp = as<NumericVector>(LWR_layer["sumTauComp"]);
+  
   NumericMatrix lai_ij(ncanlayers, ncoh);
   NumericMatrix tauM(ncanlayers, ncoh);
   NumericMatrix LnetM(ncanlayers, ncoh);
@@ -544,6 +543,9 @@ List longwaveRadiationSHAW(NumericMatrix LAIme, NumericMatrix LAImd, NumericMatr
   double Kdlw = 0.7815; //Extinction coefficient fo LWR
   double eps_c = 0.97;
   double eps_g = 0.97;
+  
+  double sigma_pow_Tsoil = SIGMA_Wm2*pow(Tsoil+273.16,4.0);
+  
   //Transmissivity
   for(int i=0;i<ncanlayers;i++) {
     double lai_layer = 0.0;
@@ -564,7 +566,7 @@ List longwaveRadiationSHAW(NumericMatrix LAIme, NumericMatrix LAImd, NumericMatr
     Ldown[i] = tau[i]*Ldown_upper + (1.0 - tau[i])*eps_c*SIGMA_Wm2*pow(Tair[i]+273.16,4.0);
   }
   //Upwards
-  double Lup_g = (1.0 - eps_g)*Ldown[0] + eps_g*SIGMA_Wm2*pow(Tsoil+273.16,4.0);
+  double Lup_g = (1.0 - eps_g)*Ldown[0] + eps_g*sigma_pow_Tsoil;
   for(int i=0;i<ncanlayers;i++) {
     double Lup_lower = 0.0;
     if(i==0) Lup_lower = Lup_g;
@@ -587,17 +589,33 @@ List longwaveRadiationSHAW(NumericMatrix LAIme, NumericMatrix LAImd, NumericMatr
       } 
     }
   }
-  double Lnet_g = eps_g*(Ldown[0] - SIGMA_Wm2*pow(Tsoil+273.16,4.0));
+  double Lnet_g = eps_g*(Ldown[0] - sigma_pow_Tsoil);
   double Lnet_c = sum(Lnet);
-  DataFrame LWR = DataFrame::create(_["Ldown"] = Ldown, 
-                                    _["Lup"] = Lup,
-                                    _["Lnet"] = Lnet);
-  return(List::create(_["LWR_layer"] = LWR,
-                      _["Ldown_ground"] = Ldown[0],
-                      _["Lup_ground"] = Lup_g,
-                      _["Lnet_ground"] = Lnet_g,
-                      _["Ldown_canopy"] = LWRatm,
-                      _["Lup_canopy"] = Lup[(ncanlayers-1)],
-                      _["Lnet_canopy"] = Lnet_c,
-                      _["Lnet_cohort_layer"] = LnetM));
+
+  internalLWR["Ldown_ground"] = Ldown[0];
+  internalLWR["Lup_ground"] = Lup_g;
+  internalLWR["Lnet_ground"] = Lnet_g;
+  internalLWR["Ldown_canopy"] = LWRatm;
+  internalLWR["Lup_canopy"] = Lup[(ncanlayers-1)];
+  internalLWR["Lnet_canopy"] = Lnet_c;
+  internalLWR["Lnet_cohort_layer"] = LnetM;
 }
+
+
+/**
+ *  LWR model of Ma and Liu (2019), based on Flerchinger et al (2009)
+ *  
+ *  Ma Y, Liu H (2019) An Advanced Multiple-Layer Canopy Model in the WRF Model With Large-Eddy Simulations to Simulate Canopy Flows and Scalar Transport Under Different Stability Conditions. J Adv Model Earth Syst 11:2330–2351. https://doi.org/10.1029/2018MS001347
+ *  Flerchinger GN, Xiao W, Sauer TJ, Yu Q (2009) Simulation of within-canopy radiation exchange. NJAS - Wageningen J Life Sci 57:5–15. https://doi.org/10.1016/j.njas.2009.07.004
+ */
+//' @rdname light_advanced
+//' @keywords internal
+// [[Rcpp::export("light_longwaveRadiationSHAW")]]
+List longwaveRadiationSHAW(NumericMatrix LAIme, NumericMatrix LAImd, NumericMatrix LAImx, 
+                            double LWRatm, double Tsoil, NumericVector Tair, double trunkExtinctionFraction = 0.1) {
+   List internalLWR = internalLongWaveRadiation(Tair.size());
+   longwaveRadiationSHAW_inner(internalLWR, LAIme, LAImd, LAImx,
+                               LWRatm, Tsoil, Tair, trunkExtinctionFraction);
+   return(internalLWR);
+ }
+

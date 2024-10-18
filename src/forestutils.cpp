@@ -254,16 +254,22 @@ NumericVector treeCrownRatioAllometric(IntegerVector SP, NumericVector N, Numeri
 /**
  * Foliar biomass (in kg/m2)
  */
-NumericVector treeFoliarBiomassAllometric(IntegerVector SP, NumericVector N, NumericVector dbh, DataFrame SpParams, double gdd = NA_REAL){
+NumericVector treeFoliarBiomassAllometric(IntegerVector SP, NumericVector N, NumericVector dbh, DataFrame SpParams, double gdd = NA_REAL,
+                                          bool competitionEffect = true){
   NumericVector afbt = speciesNumericParameterWithImputation(SP, SpParams, "a_fbt",true, true);
   NumericVector bfbt = speciesNumericParameterWithImputation(SP, SpParams, "b_fbt",true, true);
   NumericVector cfbt = speciesNumericParameterWithImputation(SP, SpParams, "c_fbt",true, true);
-  NumericVector ltba = largerTreeBasalArea(N,dbh, 1.0); //Allometries were calibrated including the target cohort
   int ncoh = N.size();
   NumericVector lb(ncoh);
   for(int i=0;i<ncoh;i++) {
-    lb[i] = ((N[i]/10000.0)*afbt[i]*pow(std::min(200.0,dbh[i]), bfbt[i])*exp(cfbt[i]*std::min(ltba[i], 200.0)));
+    lb[i] = ((N[i]/10000.0)*afbt[i]*pow(std::min(100.0,dbh[i]), bfbt[i]));
     lb[i] = lb[i] * exp(-0.0001*N[i]);//Correct for high density packing
+  }
+  if(competitionEffect) {
+    NumericVector ltba = largerTreeBasalArea(N,dbh, 1.0); //Allometries were calibrated including the target cohort
+    for(int i=0;i<ncoh;i++) {
+      lb[i] = lb[i]*exp(cfbt[i]*std::min(ltba[i], 100.0));
+    }
   }
   if(!NumericVector::is_na(gdd)) {
     NumericVector Sgdd = speciesNumericParameterWithImputation(SP, SpParams, "Sgdd", true, true);
@@ -276,7 +282,8 @@ NumericVector treeFoliarBiomassAllometric(IntegerVector SP, NumericVector N, Num
 }
 
 NumericVector shrubFoliarBiomassAllometric(IntegerVector SP, NumericVector Cover, NumericVector H, 
-                                 DataFrame SpParams, double gdd = NA_REAL, double treeLAI = 0.0){
+                                 DataFrame SpParams, double gdd = NA_REAL, double treeLAI = 0.0,
+                                 bool competitionEffect = true){
   NumericVector aShrubFuel = speciesNumericParameterWithImputation(SP, SpParams, "a_bsh",true, true);
   NumericVector bShrubFuel = speciesNumericParameterWithImputation(SP, SpParams, "b_bsh",true, true);
   NumericVector Sgdd = speciesNumericParameterWithImputation(SP, SpParams, "Sgdd", true, true);
@@ -298,7 +305,7 @@ NumericVector shrubFoliarBiomassAllometric(IntegerVector SP, NumericVector Cover
         // multiply by 'number of individuals' per m2 
         W = weightkgind*(Cover[i]/(100*areaind[i]));  //Fine fuel (kg/m2)
         fb[i] = W/fTreeFuel[i]; //Foliar biomass (kg/m2)
-        fb[i] = fb[i]*exp(-0.235*treeLAI); //Correct depending on tree leaf area
+        if(competitionEffect) fb[i] = fb[i]*exp(-0.235*treeLAI); //Correct depending on tree leaf area
         // Rcout<<Cover[i]<<" "<<(Cover[i]/(100*areaind))<<" "<< W<< " "<< fb[i]<<"\n";
         if(!NumericVector::is_na(gdd)) { //Apply phenology correction to foliar fuels
           fb[i] = fb[i]*leafDevelopmentStatus(Sgdd[i], gdd); 
@@ -414,9 +421,10 @@ NumericVector shrubFuelAllometric(IntegerVector SP, NumericVector FB, DataFrame 
 /**
  *  Leaf Area Index (LAI)
  */
-NumericVector treeLAIAllometric(IntegerVector SP, NumericVector N, NumericVector dbh, DataFrame SpParams, double gdd = NA_REAL){
+NumericVector treeLAIAllometric(IntegerVector SP, NumericVector N, NumericVector dbh, DataFrame SpParams, double gdd = NA_REAL,
+                                bool competitionEffect = true){
   NumericVector SLA = speciesNumericParameterWithImputation(SP, SpParams, "SLA", true, true); // m2/kg (=mg/mm2)
-  NumericVector lb = treeFoliarBiomassAllometric(SP, N, dbh, SpParams, gdd); //kg per m2
+  NumericVector lb = treeFoliarBiomassAllometric(SP, N, dbh, SpParams, gdd, competitionEffect); //kg per m2
   int ncoh = N.size();
   NumericVector lai(ncoh);
   for(int i=0;i<ncoh;i++) {
@@ -426,9 +434,9 @@ NumericVector treeLAIAllometric(IntegerVector SP, NumericVector N, NumericVector
 }
 
 NumericVector shrubLAIAllometric(IntegerVector SP, NumericVector Cover, NumericVector H, DataFrame SpParams, 
-                       double gdd = NA_REAL, double treeLAI = 0.0){
+                       double gdd = NA_REAL, double treeLAI = 0.0, bool competitionEffect = true){
   NumericVector SLA = speciesNumericParameterWithImputation(SP, SpParams, "SLA", true, true); // m2/kg (=mg/mm2)
-  NumericVector lb = shrubFoliarBiomassAllometric(SP, Cover, H, SpParams, gdd, treeLAI); //kg per m2
+  NumericVector lb = shrubFoliarBiomassAllometric(SP, Cover, H, SpParams, gdd, treeLAI, competitionEffect); //kg per m2
   int ncoh = SP.size();
   NumericVector lai(ncoh);
   for(int i=0;i<ncoh;i++) {
@@ -817,7 +825,7 @@ NumericVector cohortCrownLength(List x, DataFrame SpParams) {
 //' @rdname plant_values
 //' @keywords internal
 // [[Rcpp::export("plant_foliarBiomass")]]
-NumericVector cohortFoliarBiomass(List x, DataFrame SpParams, double gdd = NA_REAL) {
+NumericVector cohortFoliarBiomass(List x, DataFrame SpParams, double gdd = NA_REAL, bool competitionEffect = true) {
   DataFrame treeData = Rcpp::as<Rcpp::DataFrame>(x["treeData"]);
   DataFrame shrubData = Rcpp::as<Rcpp::DataFrame>(x["shrubData"]);
   NumericVector tFB(treeData.nrows(), NA_REAL), shFB(shrubData.nrows(), NA_REAL);
@@ -863,7 +871,7 @@ NumericVector cohortFoliarBiomass(List x, DataFrame SpParams, double gdd = NA_RE
     }
   } 
   // Apply foliar biomass allometries to fill gaps
-  NumericVector tFBAllom = treeFoliarBiomassAllometric(treeSP, treeData["N"], treeData["DBH"], SpParams, gdd);
+  NumericVector tFBAllom = treeFoliarBiomassAllometric(treeSP, treeData["N"], treeData["DBH"], SpParams, gdd, competitionEffect);
   for(int i=0;i<treeData.nrows();i++) {
     if(NumericVector::is_na(tFB[i])) {
       tFB[i] = tFBAllom[i];
@@ -902,7 +910,7 @@ NumericVector cohortFoliarBiomass(List x, DataFrame SpParams, double gdd = NA_RE
   //Sum tree LAI for shrub correction
   double treeLAI = sum(tLAI);
   NumericVector shFBAllom= shrubFoliarBiomassAllometric(shrubSP, shrubData["Cover"], shrubData["Height"], 
-                                                        SpParams, gdd, treeLAI);
+                                                        SpParams, gdd, treeLAI, competitionEffect);
   for(int i=0;i<shrubData.nrows();i++) {
     if(NumericVector::is_na(shFB[i])) {
       shFB[i] = shFBAllom[i];
@@ -962,7 +970,7 @@ NumericVector cohortFuelLoading(List x, DataFrame SpParams, double gdd = NA_REAL
     }
   }
   //Use foliar allometries to fill foliar biomass gaps
-  NumericVector tFBAllom = treeFoliarBiomassAllometric(treeSP,treeData["N"], treeData["DBH"], SpParams, NA_REAL); //Do not include phenology (to have correct estimates of branch biomass)
+  NumericVector tFBAllom = treeFoliarBiomassAllometric(treeSP,treeData["N"], treeData["DBH"], SpParams, NA_REAL, true); //Do not include phenology (to have correct estimates of branch biomass)
   for(int i=0;i<tFB.size();i++) {
     if(NumericVector::is_na(tFB[i])) {
       tFB[i] = tFBAllom[i];
@@ -995,7 +1003,7 @@ NumericVector cohortFuelLoading(List x, DataFrame SpParams, double gdd = NA_REAL
   //Use foliar allometries to fill foliar biomass gaps
   double treeLAI = sum(tLAI);
   NumericVector shFBAllom= shrubFoliarBiomassAllometric(shrubSP, shrubData["Cover"], shrubData["Height"], 
-                                                        SpParams, gdd, treeLAI);
+                                                        SpParams, gdd, treeLAI, true);
   for(int i=0;i<shrubData.nrows();i++) {
     if(NumericVector::is_na(shFB[i])) shFB[i] = shFBAllom[i];
   }
@@ -1080,10 +1088,11 @@ NumericVector cohortPhytovolume(List x, DataFrame SpParams) {
 }
 
 //' @rdname plant_values
+//' @param competitionEffect Logical flag to indicate the inclusion of competition effect on LAI estimates.
 //' @keywords internal
 // [[Rcpp::export("plant_LAI")]]
 NumericVector cohortLAI(List x, DataFrame SpParams, double gdd = NA_REAL, 
-                        bool bounded = true){
+                        bool bounded = true, bool competitionEffect = true){
   DataFrame treeData = Rcpp::as<Rcpp::DataFrame>(x["treeData"]);
   DataFrame shrubData = Rcpp::as<Rcpp::DataFrame>(x["shrubData"]);
   NumericVector tLAI(treeData.nrows(), NA_REAL);
@@ -1114,7 +1123,7 @@ NumericVector cohortLAI(List x, DataFrame SpParams, double gdd = NA_REAL,
     for(int i=0;i<tLAI.size();i++) tLAI[i] = tFB[i]*tSLA[i];
   }
   // Apply allometries to fill LAI gaps
-  NumericVector tLAIAllom = treeLAIAllometric(treeSP, treeData["N"], treeData["DBH"], SpParams, NA_REAL); //NO phenology yet
+  NumericVector tLAIAllom = treeLAIAllometric(treeSP, treeData["N"], treeData["DBH"], SpParams, NA_REAL, competitionEffect); //NO phenology yet
   for(int i=0;i<tLAI.size();i++) {
     if(NumericVector::is_na(tLAI[i])) tLAI[i] = tLAIAllom[i];
   }
@@ -1141,7 +1150,7 @@ NumericVector cohortLAI(List x, DataFrame SpParams, double gdd = NA_REAL,
   // Apply allometries for missing values
   double treeLAI = sum(tLAI);
   NumericVector shLAIAllom = shrubLAIAllometric(shrubSP, shrubData["Cover"], shrubData["Height"], 
-                                                SpParams, NA_REAL, treeLAI); //NO phenology yet
+                                                SpParams, NA_REAL, treeLAI, competitionEffect); //NO phenology yet
   for(int i=0;i<shLAI.size();i++) {
     if(NumericVector::is_na(shLAI[i])) shLAI[i] = shLAIAllom[i];
   }
@@ -1592,8 +1601,12 @@ DataFrame forest2aboveground(List x, DataFrame SpParams, double gdd = NA_REAL, b
   int nshrub = shrubData.nrows();
   
   NumericVector CR = cohortCrownRatio(x, SpParams);
-  NumericVector LAI_live = cohortLAI(x, SpParams, NA_REAL, true);
-  NumericVector LAI_expanded = cohortLAI(x, SpParams, gdd, true);
+  // Maximum LAI
+  NumericVector LAI_live = cohortLAI(x, SpParams, NA_REAL, true, true);
+  // Actual LAI accounting for phenology
+  NumericVector LAI_expanded = cohortLAI(x, SpParams, gdd, true, true);
+  // Maximum LAI assuming no competition effect
+  NumericVector LAI_nocomp = cohortLAI(x, SpParams, NA_REAL, true, false);
   IntegerVector SP(ntree+nshrub);
   NumericVector H(ntree+nshrub);
   
@@ -1616,12 +1629,16 @@ DataFrame forest2aboveground(List x, DataFrame SpParams, double gdd = NA_REAL, b
   NumericVector treeDBH = treeData["DBH"];
   NumericVector shrubH = shrubData["Height"];  
   NumericVector shrubCover = shrubData["Cover"];  
-  
+  CharacterVector treeObsID(ntree, NA_STRING);
+  CharacterVector shrubObsID(nshrub, NA_STRING);
+  if(treeData.containsElementNamed("ObsID")) treeObsID = treeData["ObsID"];
+  if(shrubData.containsElementNamed("ObsID")) shrubObsID = shrubData["ObsID"];
   NumericVector N = cohortDensity(x, SpParams);
     
-  NumericVector LAI_dead(ntree+nshrub);
-  NumericVector DBH(ntree+nshrub);
-  NumericVector Cover(ntree+nshrub);
+  NumericVector LAI_dead(ntree+nshrub, 0.0);
+  NumericVector DBH(ntree+nshrub, NA_REAL);
+  NumericVector Cover(ntree+nshrub, NA_REAL);
+  CharacterVector ObsID(ntree+nshrub, NA_STRING);
   
   for(int i=0;i<ntree;i++) {
     SP[i] = treeSP[i];
@@ -1629,15 +1646,19 @@ DataFrame forest2aboveground(List x, DataFrame SpParams, double gdd = NA_REAL, b
     DBH[i] = treeDBH[i];
     LAI_dead[i] = 0.0;
     Cover[i] = NA_REAL;
+    ObsID[i] = treeObsID[i];
   }
   for(int i=0;i<nshrub;i++) {
     SP[ntree+i] = shrubSP[i];
     H[ntree+i] = shrubH[i];
     DBH[ntree+i] = NA_REAL;
+    LAI_dead[i] = 0.0;
+    ObsID[ntree+i] = shrubObsID[i];
     Cover[ntree+i] = shrubCover[i];
   }
   DataFrame above = DataFrame::create(_["SP"]=SP, _["N"] = N,  _["DBH"] = DBH,_["Cover"] = Cover, _["H"]=H, _["CR"] = CR, 
-                    _["LAI_live"]=LAI_live, _["LAI_expanded"] = LAI_expanded, _["LAI_dead"] = LAI_dead);
+                    _["LAI_live"]=LAI_live, _["LAI_expanded"] = LAI_expanded, _["LAI_dead"] = LAI_dead, 
+                    _["LAI_nocomp"] = LAI_nocomp, _["ObsID"] = ObsID);
   if(loading) {
     NumericVector cohLoading = cohortFuelLoading(x, SpParams, gdd, true);
     above.push_back(cohLoading, "Loading");
@@ -1659,9 +1680,18 @@ NumericMatrix forest2belowground(List x, DataFrame soil, DataFrame SpParams) {
   int nlayers = widths.size();
   NumericVector treeZ50 = treeData["Z50"];
   NumericVector treeZ95 = treeData["Z95"];
+  NumericVector treeZ100(treeZ50.size(), NA_REAL);
+  if(treeData.containsElementNamed("Z100")) treeZ100 = Rcpp::as<Rcpp::NumericVector>(treeData["Z100"]);
+  
   NumericVector shrubZ50 = shrubData["Z50"];  
   NumericVector shrubZ95 = shrubData["Z95"];  
-  NumericMatrix V = ldrDistribution(treeZ50, shrubZ50, treeZ95, shrubZ95, widths);
+  NumericVector shrubZ100(shrubData.size(), NA_REAL);
+  if(shrubData.containsElementNamed("Z100")) shrubZ100 = Rcpp::as<Rcpp::NumericVector>(shrubData["Z100"]);
+  
+  NumericMatrix V = ldrDistribution(treeZ50, shrubZ50, 
+                                    treeZ95, shrubZ95, 
+                                    treeZ100, shrubZ100, 
+                                    widths);
   V.attr("dimnames") = List::create(cohortIDs(x, SpParams), layerNames(nlayers));
   return(V);
 }

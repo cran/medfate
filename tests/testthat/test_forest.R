@@ -40,12 +40,26 @@ test_that("Test forest summary",{
 })
 
 test_that("Test forest simplification",{
+  f <- exampleforest
+  f$treeData$Z100 <- c(1500, 1900)
+  f$shrubDataZ100 <- 800
   expect_s3_class(forest_reduceToDominant(exampleforest, SpParamsMED), "forest")
   expect_s3_class(forest_reduceToDominant(emptyforest(), SpParamsMED), "forest")
+  expect_s3_class(forest_reduceToDominant(f, SpParamsMED), "forest")
   expect_s3_class(forest_mergeTrees(exampleforest), "forest")
   expect_s3_class(forest_mergeTrees(emptyforest()), "forest")
+  expect_s3_class(forest_mergeTrees(f), "forest")
   expect_s3_class(forest_mergeShrubs(exampleforest), "forest")
   expect_s3_class(forest_mergeShrubs(emptyforest()), "forest")
+  expect_s3_class(forest_mergeShrubs(f), "forest")
+  f2 <- exampleforest
+  f2$shrubData <- rbind(f2$shrubData, f2$shrubData, f2$shrubData)
+  f2$shrubData$ObsID <- c(NA,"1", NA)
+  f2$treeData$ObsID <- c("1", NA)
+  expect_s3_class(forest_mergeTrees(f2), "forest")
+  expect_s3_class(forest_mergeShrubs(f2), "forest")
+  expect_s3_class(forest_mergeTrees(f2, keepCohortsWithObsID = TRUE), "forest")
+  expect_s3_class(forest_mergeShrubs(f2, keepCohortsWithObsID = TRUE), "forest")
 })
 
 test_that("Test stand metrics",{

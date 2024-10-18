@@ -279,6 +279,14 @@ carbon_carbonCompartments <- function(x, biomassUnits = "g_m2") {
     .Call(`_medfate_carbonCompartments`, x, biomassUnits)
 }
 
+.addCommunicationStructures <- function(x) {
+    invisible(.Call(`_medfate_addCommunicationStructures`, x))
+}
+
+.clearCommunicationStructures <- function(x) {
+    invisible(.Call(`_medfate_clearCommunicationStructures`, x))
+}
+
 .criticalFirelineIntensity <- function(CBH, M) {
     .Call(`_medfate_criticalFirelineIntensity`, CBH, M)
 }
@@ -618,8 +626,8 @@ plant_crownLength <- function(x, SpParams) {
 
 #' @rdname plant_values
 #' @keywords internal
-plant_foliarBiomass <- function(x, SpParams, gdd = NA_real_) {
-    .Call(`_medfate_cohortFoliarBiomass`, x, SpParams, gdd)
+plant_foliarBiomass <- function(x, SpParams, gdd = NA_real_, competitionEffect = TRUE) {
+    .Call(`_medfate_cohortFoliarBiomass`, x, SpParams, gdd, competitionEffect)
 }
 
 #' @rdname plant_values
@@ -647,9 +655,10 @@ plant_phytovolume <- function(x, SpParams) {
 }
 
 #' @rdname plant_values
+#' @param competitionEffect Logical flag to indicate the inclusion of competition effect on LAI estimates.
 #' @keywords internal
-plant_LAI <- function(x, SpParams, gdd = NA_real_, bounded = TRUE) {
-    .Call(`_medfate_cohortLAI`, x, SpParams, gdd, bounded)
+plant_LAI <- function(x, SpParams, gdd = NA_real_, bounded = TRUE, competitionEffect = TRUE) {
+    .Call(`_medfate_cohortLAI`, x, SpParams, gdd, bounded, competitionEffect)
 }
 
 #' Herbaceous description functions
@@ -1296,6 +1305,11 @@ hydraulics_xylemConductance <- function(psi, kxylemmax, c, d) {
 }
 
 #' @rdname hydraulics_conductancefunctions
+hydraulics_xylemConductanceSigmoid <- function(psi, kxylemmax, P50, slope) {
+    .Call(`_medfate_xylemConductanceSigmoid`, psi, kxylemmax, P50, slope)
+}
+
+#' @rdname hydraulics_conductancefunctions
 #' @keywords internal
 hydraulics_xylemPsi <- function(kxylem, kxylemmax, c, d) {
     .Call(`_medfate_xylemPsi`, kxylem, kxylemmax, c, d)
@@ -1540,6 +1554,9 @@ hydraulics_regulatedPsiTwoElements <- function(Emax, psiSoil, krhizomax, kxylemm
 #' @param rootc,rootd Parameters of the Weibull function for roots (root xylem vulnerability curve).
 #' @param stemc,stemd Parameters of the Weibull function for stems (stem xylem vulnerability curve).
 #' @param leafc,leafd Parameters of the Weibull function for leaves (leaf vulnerability curve).
+#' @param root_P50,root_slope Parameters of the Sigmoid function for roots (root xylem vulnerability curve).
+#' @param stem_P50,stem_slope Parameters of the Sigmoid function for stems (stem xylem vulnerability curve).
+#' @param leaf_P50,leaf_slope Parameters of the Sigmoid function for leaves (leaf vulnerability curve).
 #' @param n,alpha Parameters of the Van Genuchten function (rhizosphere vulnerability curve).
 #' @param averageResistancePercent Average (across water potential values) resistance percent of the rhizosphere, with respect to total resistance (rhizosphere + root xylem + stem xylem).
 #' @param initialValue Initial value of rhizosphere conductance.
@@ -1580,8 +1597,14 @@ hydraulics_maximumSoilPlantConductance <- function(krhizomax, krootmax, kstemmax
 
 #' @rdname hydraulics_scalingconductance
 #' @keywords internal
-hydraulics_soilPlantResistances <- function(psiSoil, psiRhizo, psiStem, PLCstem, psiLeaf, krhizomax, n, alpha, krootmax, rootc, rootd, kstemmax, stemc, stemd, kleafmax, leafc, leafd) {
-    .Call(`_medfate_soilPlantResistances`, psiSoil, psiRhizo, psiStem, PLCstem, psiLeaf, krhizomax, n, alpha, krootmax, rootc, rootd, kstemmax, stemc, stemd, kleafmax, leafc, leafd)
+hydraulics_soilPlantResistancesSigmoid <- function(psiSoil, psiRhizo, psiStem, PLCstem, psiLeaf, PLCleaf, krhizomax, n, alpha, krootmax, root_P50, root_slope, kstemmax, stem_P50, stem_slope, kleafmax, leaf_P50, leaf_slope) {
+    .Call(`_medfate_soilPlantResistancesSigmoid`, psiSoil, psiRhizo, psiStem, PLCstem, psiLeaf, PLCleaf, krhizomax, n, alpha, krootmax, root_P50, root_slope, kstemmax, stem_P50, stem_slope, kleafmax, leaf_P50, leaf_slope)
+}
+
+#' @rdname hydraulics_scalingconductance
+#' @keywords internal
+hydraulics_soilPlantResistancesWeibull <- function(psiSoil, psiRhizo, psiStem, PLCstem, psiLeaf, PLCleaf, krhizomax, n, alpha, krootmax, rootc, rootd, kstemmax, stemc, stemd, kleafmax, leafc, leafd) {
+    .Call(`_medfate_soilPlantResistancesWeibull`, psiSoil, psiRhizo, psiStem, PLCstem, psiLeaf, PLCleaf, krhizomax, n, alpha, krootmax, rootc, rootd, kstemmax, stemc, stemd, kleafmax, leafc, leafd)
 }
 
 #' @rdname hydraulics_scalingconductance
@@ -2300,20 +2323,24 @@ light_cohortAbsorbedSWRFraction <- function(z, x, SpParams, gdd = NA_real_) {
     .Call(`_medfate_cohortAbsorbedSWRFraction`, z, x, SpParams, gdd)
 }
 
-.paramsBelow <- function(above, Z50, Z95, soil, paramsAnatomydf, paramsTranspirationdf, control) {
-    .Call(`_medfate_paramsBelow`, above, Z50, Z95, soil, paramsAnatomydf, paramsTranspirationdf, control)
+.paramsBelow <- function(above, Z50, Z95, Z100, soil, paramsAnatomydf, paramsTranspirationdf, control) {
+    .Call(`_medfate_paramsBelow`, above, Z50, Z95, Z100, soil, paramsAnatomydf, paramsTranspirationdf, control)
 }
 
-.spwbInput <- function(above, Z50, Z95, soil, FCCSprops, SpParams, control) {
-    .Call(`_medfate_spwbInputInner`, above, Z50, Z95, soil, FCCSprops, SpParams, control)
+.spwbInput <- function(above, Z50, Z95, Z100, soil, FCCSprops, SpParams, control) {
+    .Call(`_medfate_spwbInputInner`, above, Z50, Z95, Z100, soil, FCCSprops, SpParams, control)
 }
 
-.growthInput <- function(above, Z50, Z95, soil, FCCSprops, SpParams, control) {
-    .Call(`_medfate_growthInputInner`, above, Z50, Z95, soil, FCCSprops, SpParams, control)
+.growthInput <- function(above, Z50, Z95, Z100, soil, FCCSprops, SpParams, control) {
+    .Call(`_medfate_growthInputInner`, above, Z50, Z95, Z100, soil, FCCSprops, SpParams, control)
 }
 
 .cloneInput <- function(input) {
     .Call(`_medfate_cloneInput`, input)
+}
+
+.rootDistributionComplete <- function(x, SpParams, fillMissingRootParams) {
+    .Call(`_medfate_rootDistributionComplete`, x, SpParams, fillMissingRootParams)
 }
 
 #' Input for simulation models
@@ -2871,6 +2898,7 @@ photo_multilayerPhotosynthesisFunction <- function(E, psiLeaf, Catm, Patm, Tair,
 #' 
 #' @param Z50 A vector of depths (in mm) corresponding to 50\% of roots.
 #' @param Z95 A vector of depths (in mm) corresponding to 95\% of roots.
+#' @param Z100 A vector of depths (in mm) corresponding to 100\% of roots.
 #' @param Zcone A vector of depths (in mm) corresponding to the root cone tip.
 #' @param d The width (in mm) corresponding to each soil layer.
 #' @param v Vector of proportions of fine roots in each soil layer.
@@ -2938,7 +2966,8 @@ photo_multilayerPhotosynthesisFunction <- function(E, psiLeaf, Catm, Patm, Tair,
 #'      
 #' #Calculate LDR root system for trees (Schenck & Jackson 2002)
 #' V2 <- root_ldrDistribution(Z50 = rep(200,ntree), 
-#'                           Z95 = rep(1000,ntree), s$widths)
+#'                            Z95 = rep(1000,ntree),
+#'                            Z100 = rep(NA, ntree), s$widths)
 #' print(V2)     
 #' 
 #' @name root
@@ -2949,8 +2978,8 @@ root_conicDistribution <- function(Zcone, d) {
 
 #' @rdname root
 #' @keywords internal
-root_ldrDistribution <- function(Z50, Z95, d) {
-    .Call(`_medfate_ldrDistribution`, Z50, Z95, d)
+root_ldrDistribution <- function(Z50, Z95, Z100, d) {
+    .Call(`_medfate_ldrDistribution`, Z50, Z95, Z100, d)
 }
 
 .rootDistribution <- function(z, x) {

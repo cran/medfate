@@ -515,7 +515,7 @@ DataFrame paramsTranspirationSureau(DataFrame above, NumericVector Z95, DataFram
   return(paramsTranspirationdf);
 }
 // [[Rcpp::export(".paramsBelow")]]
-List paramsBelow(DataFrame above, NumericVector Z50, NumericVector Z95, DataFrame soil, 
+List paramsBelow(DataFrame above, NumericVector Z50, NumericVector Z95, NumericVector Z100, DataFrame soil, 
                  DataFrame paramsAnatomydf, DataFrame paramsTranspirationdf, List control) {
 
   NumericVector widths = soil["widths"];
@@ -536,7 +536,7 @@ List paramsBelow(DataFrame above, NumericVector Z50, NumericVector Z95, DataFram
   double averageFracRhizosphereResistance = control["averageFracRhizosphereResistance"];
   
 
-  NumericMatrix V = ldrDistribution(Z50, Z95, widths);
+  NumericMatrix V = ldrDistribution(Z50, Z95, Z100, widths);
   V.attr("dimnames") = List::create(above.attr("row.names"), layerNames(nlayers));
   // CharacterVector slnames(V.ncol());
   // for(int i=0;i<V.ncol();i++) slnames[i] = i+1;
@@ -576,6 +576,7 @@ List paramsBelow(DataFrame above, NumericVector Z50, NumericVector Z95, DataFram
     if(rhizosphereOverlap!="total") {
       belowdf = DataFrame::create(_["Z50"] = Z50,
                                   _["Z95"] = Z95,
+                                  _["Z100"] = Z100,
                                   _["fineRootBiomass"] = FRB,
                                   _["coarseRootSoilVolume"] = CRSV,
                                   _["poolProportions"] = poolProportions);
@@ -590,6 +591,7 @@ List paramsBelow(DataFrame above, NumericVector Z50, NumericVector Z95, DataFram
     } else {
       belowdf = DataFrame::create(_["Z50"] = Z50,
                                   _["Z95"] = Z95,
+                                  _["Z100"] = Z100,
                                   _["fineRootBiomass"] = FRB,
                                   _["coarseRootSoilVolume"] = CRSV);
       belowLayers = List::create(_["V"] = V,
@@ -658,6 +660,7 @@ List paramsBelow(DataFrame above, NumericVector Z50, NumericVector Z95, DataFram
     if(rhizosphereOverlap!="total") {
       belowdf = DataFrame::create(_["Z50"]=Z50,
                                   _["Z95"]=Z95,
+                                  _["Z100"] = Z100,
                                   _["fineRootBiomass"] = FRB,
                                   _["coarseRootSoilVolume"] = CRSV,
                                   _["poolProportions"] = poolProportions);
@@ -669,6 +672,7 @@ List paramsBelow(DataFrame above, NumericVector Z50, NumericVector Z95, DataFram
     } else {
       belowdf = DataFrame::create(_["Z50"]=Z50,
                                   _["Z95"]=Z95,
+                                  _["Z100"] = Z100,
                                   _["fineRootBiomass"] = FRB,
                                   _["coarseRootSoilVolume"] = CRSV);
     }
@@ -1048,6 +1052,7 @@ DataFrame internalWaterDataFrame(DataFrame above, String transpirationMode) {
   return(df);
 }
 
+
 DataFrame paramsCanopy(DataFrame above, List control) {
   NumericVector LAI_live = above["LAI_live"];
   NumericVector LAI_expanded = above["LAI_expanded"];
@@ -1079,8 +1084,10 @@ DataFrame paramsCanopy(DataFrame above, List control) {
   return(paramsCanopy);
 }
 
+
 // [[Rcpp::export(".spwbInput")]]
-List spwbInputInner(DataFrame above, NumericVector Z50, NumericVector Z95, DataFrame soil, DataFrame FCCSprops, 
+List spwbInputInner(DataFrame above, NumericVector Z50, NumericVector Z95, NumericVector Z100, 
+                    DataFrame soil, DataFrame FCCSprops, 
                     DataFrame SpParams, List control) {
   
   String VG_PTF = control["VG_PTF"]; 
@@ -1098,6 +1105,8 @@ List spwbInputInner(DataFrame above, NumericVector Z50, NumericVector Z95, DataF
   NumericVector H = above["H"];
   NumericVector DBH = above["DBH"];
   NumericVector CR = above["CR"];
+  CharacterVector ObsID = (SP.size(), NA_STRING);
+  if(above.containsElementNamed("ObsID")) ObsID = above["ObsID"];
   
   String transpirationMode = control["transpirationMode"];
   if((transpirationMode!="Granier") && (transpirationMode!="Sperry") && (transpirationMode!="Sureau")) stop("Wrong Transpiration mode ('transpirationMode' should be 'Granier', 'Sperry' or 'Sureau')");
@@ -1123,7 +1132,8 @@ List spwbInputInner(DataFrame above, NumericVector Z50, NumericVector Z95, DataF
   DataFrame plantsdf = DataFrame::create(_["H"]=H, _["CR"]=CR,
                                          _["LAI_live"]=LAI_live, 
                                          _["LAI_expanded"] = LAI_expanded, 
-                                         _["LAI_dead"] = LAI_dead);
+                                         _["LAI_dead"] = LAI_dead,
+                                         _["ObsID"] = ObsID);
   if(control["fireHazardResults"]) plantsdf.push_back(above["Loading"], "Loading");
   plantsdf.attr("row.names") = above.attr("row.names");
   
@@ -1138,11 +1148,11 @@ List spwbInputInner(DataFrame above, NumericVector Z50, NumericVector Z95, DataF
     paramsTranspirationdf = paramsTranspirationSureau(above, Z95, soil_out, SpParams, paramsAnatomydf, control);
   }
 
-  List below = paramsBelow(above, Z50, Z95, soil_out, 
+  List below = paramsBelow(above, Z50, Z95, Z100, soil_out, 
                            paramsAnatomydf, paramsTranspirationdf, control);
   List belowLayers = below["belowLayers"];
   DataFrame belowdfComplete = Rcpp::as<Rcpp::DataFrame>(below["below"]);
-  DataFrame belowdf = DataFrame::create(_["Z50"] = Z50, _["Z95"] = Z95);
+  DataFrame belowdf = DataFrame::create(_["Z50"] = Z50, _["Z95"] = Z95, _["Z100"] = Z100);
   if(belowdfComplete.containsElementNamed("poolProportions")) {
     belowdf.push_back(belowdfComplete["poolProportions"], "poolProportions");
   }
@@ -1184,7 +1194,9 @@ List spwbInputInner(DataFrame above, NumericVector Z50, NumericVector Z95, DataF
                             _["internalPhenology"] = internalPhenologyDataFrame(above),
                             _["internalWater"] = internalWaterDataFrame(above, transpirationMode),
                             _["internalFCCS"] = FCCSprops);
-  
+  List internalCommunication = List::create();
+  input.push_back(internalCommunication, "internalCommunication");                       
+
   input.attr("class") = CharacterVector::create("spwbInput","list");
   return(input);
 }
@@ -1192,7 +1204,8 @@ List spwbInputInner(DataFrame above, NumericVector Z50, NumericVector Z95, DataF
 
 
 // [[Rcpp::export(".growthInput")]]
-List growthInputInner(DataFrame above, NumericVector Z50, NumericVector Z95, DataFrame soil, DataFrame FCCSprops,
+List growthInputInner(DataFrame above, NumericVector Z50, NumericVector Z95, NumericVector Z100,
+                      DataFrame soil, DataFrame FCCSprops,
                       DataFrame SpParams, List control) {
 
   String VG_PTF = control["VG_PTF"]; 
@@ -1207,12 +1220,15 @@ List growthInputInner(DataFrame above, NumericVector Z50, NumericVector Z95, Dat
   NumericVector LAI_live = above["LAI_live"];
   NumericVector LAI_expanded = above["LAI_expanded"];
   NumericVector LAI_dead = above["LAI_dead"];
+  NumericVector LAI_nocomp = above["LAI_nocomp"];
   NumericVector N = above["N"];
   NumericVector DBH = above["DBH"];
   NumericVector Cover = above["Cover"];
   NumericVector H = above["H"];
   NumericVector CR = above["CR"];
   NumericVector Loading = above["Loading"];
+  CharacterVector ObsID = (SP.size(), NA_STRING);
+  if(above.containsElementNamed("ObsID")) ObsID = above["ObsID"];
   
   String transpirationMode = control["transpirationMode"];
   if((transpirationMode!="Granier") && (transpirationMode!="Sperry") && (transpirationMode!="Sureau")) stop("Wrong Transpiration mode ('transpirationMode' should be 'Granier', 'Sperry' or 'Sureau')");
@@ -1273,7 +1289,9 @@ List growthInputInner(DataFrame above, NumericVector Z50, NumericVector Z95, Dat
                                          _["LAI_live"]=LAI_live, 
                                          _["LAI_expanded"]=LAI_expanded, 
                                          _["LAI_dead"] = LAI_dead,
-                                         _["Loading"] = Loading);
+                                         _["LAI_nocomp"] = LAI_nocomp,
+                                         _["Loading"] = Loading,
+                                         _["ObsID"] = ObsID);
   plantsdf.attr("row.names") = above.attr("row.names");
   
 
@@ -1281,7 +1299,7 @@ List growthInputInner(DataFrame above, NumericVector Z50, NumericVector Z95, Dat
   // for(int i=0;i<numCohorts;i++) ringList[i] = initialize_ring();
   // ringList.attr("names") = above.attr("row.names");
   
-  List below = paramsBelow(above, Z50, Z95, soil_out, 
+  List below = paramsBelow(above, Z50, Z95, Z100, soil_out, 
                            paramsAnatomydf, paramsTranspirationdf, control);
   List belowLayers = below["belowLayers"];
   DataFrame belowdf = Rcpp::as<Rcpp::DataFrame>(below["below"]);
@@ -1334,7 +1352,8 @@ List growthInputInner(DataFrame above, NumericVector Z50, NumericVector Z95, Dat
   
   input.push_back(internalMortalityDataFrame(plantsdf), "internalMortality");
   input.push_back(FCCSprops, "internalFCCS");
-  
+  List internalCommunication = List::create();
+  input.push_back(internalCommunication, "internalCommunication");                       
   input.attr("class") = CharacterVector::create("growthInput","list");
   return(input);
 }
@@ -1344,16 +1363,19 @@ List cloneInput(List input) {
   return(clone(input));
 }
 
-List rootDistributionComplete(List x, DataFrame SpParams, bool fillMissingRootParams){
+// [[Rcpp::export(".rootDistributionComplete")]]
+DataFrame rootDistributionComplete(List x, DataFrame SpParams, bool fillMissingRootParams){
   DataFrame treeData = Rcpp::as<Rcpp::DataFrame>(x["treeData"]);
   DataFrame shrubData = Rcpp::as<Rcpp::DataFrame>(x["shrubData"]);
   int ntree = treeData.nrows();
   int nshrub = shrubData.nrows();
-  NumericVector Z95(ntree+nshrub), Z50(ntree+nshrub);
+  NumericVector Z95(ntree+nshrub), Z50(ntree+nshrub), Z100(ntree+nshrub);
 
   NumericVector treeZ95 = treeData["Z95"];
   NumericVector treeZ50 = treeData["Z50"];
-
+  NumericVector treeZ100(ntree, NA_REAL);
+  if(treeData.containsElementNamed("Z100")) treeZ100 = Rcpp::as<Rcpp::NumericVector>(treeData["Z100"]);
+  
   IntegerVector treeSP, shrubSP;
   if((TYPEOF(treeData["Species"]) == INTSXP) || (TYPEOF(treeData["Species"]) == REALSXP)) {
     treeSP = Rcpp::as<Rcpp::IntegerVector>(treeData["Species"]);
@@ -1373,6 +1395,7 @@ List rootDistributionComplete(List x, DataFrame SpParams, bool fillMissingRootPa
   for(int i=0;i<ntree;i++) {
     Z50[i] = treeZ50[i];
     Z95[i] = treeZ95[i];
+    Z100[i] = treeZ100[i];
     if(fillMissingRootParams) {
       if(NumericVector::is_na(Z50[i])) Z50[i] = treeSPZ50[i];
       if(NumericVector::is_na(Z95[i])) Z95[i] = treeSPZ95[i];
@@ -1381,11 +1404,15 @@ List rootDistributionComplete(List x, DataFrame SpParams, bool fillMissingRootPa
   }
   NumericVector shrubZ95 = shrubData["Z95"];  
   NumericVector shrubZ50 = shrubData["Z50"];  
+  NumericVector shrubZ100(nshrub, NA_REAL);
+  if(shrubData.containsElementNamed("Z100")) shrubZ100 = Rcpp::as<Rcpp::NumericVector>(shrubData["Z100"]);
+  
   NumericVector shrubSPZ50 = speciesNumericParameterFromIndex(shrubSP, SpParams, "Z50");
   NumericVector shrubSPZ95 = speciesNumericParameterFromIndex(shrubSP, SpParams, "Z95");
   for(int i=0;i<nshrub;i++) {
     Z50[ntree+i] = shrubZ50[i]; 
     Z95[ntree+i] = shrubZ95[i]; 
+    Z100[ntree+i] = shrubZ100[i]; 
     if(fillMissingRootParams) {
       if(NumericVector::is_na(Z50[ntree+i])) Z50[ntree+i] = shrubSPZ50[i];
       if(NumericVector::is_na(Z95[ntree+i])) Z95[ntree+i] = shrubSPZ95[i];
@@ -1393,7 +1420,7 @@ List rootDistributionComplete(List x, DataFrame SpParams, bool fillMissingRootPa
     }
   }
 
-  return(List::create(_["Z50"] = Z50, _["Z95"] = Z95));  
+  return(DataFrame::create(_["Z50"] = Z50, _["Z95"] = Z95, _["Z100"] = Z100));  
 }
 
 //' Input for simulation models
@@ -1644,14 +1671,16 @@ List rootDistributionComplete(List x, DataFrame SpParams, bool fillMissingRootPa
 //' @name modelInput
 // [[Rcpp::export("spwbInput")]]
 List spwbInput(List x, DataFrame soil, DataFrame SpParams, List control) {
-  List rdc = rootDistributionComplete(x, SpParams, control["fillMissingRootParams"]);
+  DataFrame rdc = rootDistributionComplete(x, SpParams, control["fillMissingRootParams"]);
   bool fireHazardResults = control["fireHazardResults"];
   DataFrame above = forest2aboveground(x, SpParams, NA_REAL, fireHazardResults);
   NumericVector LAIlive = above["LAI_live"];
   double woodyLAI = sum(LAIlive);
+  
   DataFrame FCCSprops = R_NilValue;
   if(fireHazardResults) FCCSprops = FCCSproperties(x, SpParams);
-  List s = spwbInputInner(above, rdc["Z50"], rdc["Z95"], soil, FCCSprops, SpParams, control);
+  List s = spwbInputInner(above, rdc["Z50"], rdc["Z95"], rdc["Z100"], 
+                          soil, FCCSprops, SpParams, control);
   s["herbLAImax"] = herbLAIAllometric(x["herbCover"], x["herbHeight"], 0.0);
   s["herbLAI"] = herbLAIAllometric(x["herbCover"], x["herbHeight"], woodyLAI);
   return(s);
@@ -1660,13 +1689,14 @@ List spwbInput(List x, DataFrame soil, DataFrame SpParams, List control) {
 //' @rdname modelInput
 // [[Rcpp::export("growthInput")]]
 List growthInput(List x, DataFrame soil, DataFrame SpParams, List control) {
-   List rdc = rootDistributionComplete(x, SpParams, control["fillMissingRootParams"]);
+  DataFrame rdc = rootDistributionComplete(x, SpParams, control["fillMissingRootParams"]);
    // Loading and FCCS properties are needed if fire hazard results are true or fires are simulated 
    DataFrame above = forest2aboveground(x, SpParams, NA_REAL, true);
    NumericVector LAIlive = above["LAI_live"];
    double woodyLAI = sum(LAIlive);
    DataFrame FCCSprops = FCCSproperties(x, SpParams);
-   List g = growthInputInner(above,  rdc["Z50"], rdc["Z95"], soil, FCCSprops, SpParams, control);
+   List g = growthInputInner(above,  rdc["Z50"], rdc["Z95"], rdc["Z100"],
+                             soil, FCCSprops, SpParams, control);
    g["herbLAImax"] = herbLAIAllometric(x["herbCover"], x["herbHeight"], 0.0);
    g["herbLAI"] = herbLAIAllometric(x["herbCover"], x["herbHeight"], woodyLAI);
    return(g);
@@ -1811,12 +1841,13 @@ void updateFineRootDistribution(List x) {
   DataFrame belowdf =  Rcpp::as<Rcpp::DataFrame>(x["below"]);
   NumericVector Z50 = belowdf["Z50"];
   NumericVector Z95 = belowdf["Z95"];
+  NumericVector Z100 = belowdf["Z100"];
   List belowLayers = x["belowLayers"];
   NumericMatrix V = belowLayers["V"];
   int numCohorts = V.nrow();
   int nlayers = V.ncol();
   for(int c=0;c<numCohorts;c++) {
-    NumericVector PC = ldrRS_one(Z50[c], Z95[c], widths);
+    NumericVector PC = ldrRS_one(Z50[c], Z95[c], Z100[c], widths);
     for(int l=0;l<nlayers;l++) V(c,l) = PC[l]; 
   }
   updateBelowgroundConductances(x);
@@ -1833,7 +1864,8 @@ void updateBelow(List x) {
   DataFrame paramsTranspirationdf = Rcpp::as<Rcpp::DataFrame>(x["paramsTranspiration"]);
   NumericVector Z50 = belowdf["Z50"];
   NumericVector Z95 = belowdf["Z95"];
-  List newBelowList = paramsBelow(above, Z50, Z95, soil, 
+  NumericVector Z100 = belowdf["Z100"];
+  List newBelowList = paramsBelow(above, Z50, Z95, Z100, soil, 
                                paramsAnatomydf, paramsTranspirationdf, control);
   x["below"] = newBelowList["below"];
   x["belowLayers"] = newBelowList["belowLayers"];
