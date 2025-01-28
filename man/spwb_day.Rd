@@ -129,9 +129,6 @@ x2 <- spwbInput(exampleforest, examplesoil, SpParamsMED, control)
 sd2 <-spwb_day(x2, date, meteovec,
               latitude = 41.82592, elevation = 100, slope=0, aspect=0)
 
-#Plot plant transpiration (see function 'plot.swb.day()')
-plot(sd2)
-
 #Simulate water balance for one day only (Sureau mode)
 control <- defaultControl("Sureau")
 x3 <- spwbInput(exampleforest, examplesoil, SpParamsMED, control)
@@ -143,6 +140,18 @@ sd3 <-spwb_day(x3, date, meteovec,
 control <- defaultControl("Granier")
 x4  <- growthInput(exampleforest,examplesoil, SpParamsMED, control)
 sd4 <- growth_day(x4, date, meteovec,
+                latitude = 41.82592, elevation = 100, slope=0, aspect=0)
+
+#Simulate water and carbon balance for one day only (Sperry mode)
+control <- defaultControl("Sperry")
+x5  <- growthInput(exampleforest,examplesoil, SpParamsMED, control)
+sd5 <- growth_day(x5, date, meteovec,
+                latitude = 41.82592, elevation = 100, slope=0, aspect=0)
+
+#Simulate water and carbon balance for one day only (Sureau mode)
+control <- defaultControl("Sureau")
+x6  <- growthInput(exampleforest,examplesoil, SpParamsMED, control)
+sd6 <- growth_day(x6, date, meteovec,
                 latitude = 41.82592, elevation = 100, slope=0, aspect=0)
 
 }

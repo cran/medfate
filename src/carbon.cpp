@@ -1,5 +1,4 @@
 #include <Rcpp.h>
-#include "communication_structures.h"
 #include "tissuemoisture.h"
 #include "biophysicsutils.h"
 using namespace Rcpp;
@@ -260,18 +259,14 @@ double sapwoodStarchCapacity(double SA, double H, NumericVector L, NumericVector
 void fillCarbonCompartments(DataFrame cc, List x, String biomassUnits) {
   
   if((biomassUnits!="g_m2") && (biomassUnits !="g_ind")) stop("Wrong biomass units");
-  //Cohort info
-  DataFrame cohorts = Rcpp::as<Rcpp::DataFrame>(x["cohorts"]);
-  IntegerVector SP = Rcpp::as<Rcpp::IntegerVector>(cohorts["SP"]);
-  int numCohorts = SP.size();
-  
   //Aboveground parameters  
   DataFrame above = Rcpp::as<Rcpp::DataFrame>(x["above"]);
   NumericVector H = above["H"];
   NumericVector N = above["N"];
   NumericVector LAI_expanded = above["LAI_expanded"];
   NumericVector SA = above["SA"];
-  
+  int numCohorts = above.nrow();
+
   DataFrame belowdf = Rcpp::as<Rcpp::DataFrame>(x["below"]);
   NumericVector fineRootBiomassIn = Rcpp::as<Rcpp::NumericVector>(belowdf["fineRootBiomass"]);
   List belowLayers = Rcpp::as<Rcpp::List>(x["belowLayers"]);
@@ -353,7 +348,24 @@ void fillCarbonCompartments(DataFrame cc, List x, String biomassUnits) {
 // [[Rcpp::export("carbon_carbonCompartments")]]
 DataFrame carbonCompartments(List x, String biomassUnits = "g_m2") {
   DataFrame above = as<DataFrame>(x["above"]);
-  DataFrame cc = internalCarbonCompartments(above);
+  int numCohorts = above.nrow();
+  DataFrame cc = DataFrame::create(
+    _["LeafStorageVolume"] = NumericVector(numCohorts, NA_REAL),
+    _["SapwoodStorageVolume"] = NumericVector(numCohorts, NA_REAL),
+    _["LeafStarchMaximumConcentration"] = NumericVector(numCohorts, NA_REAL),
+    _["SapwoodStarchMaximumConcentration"] = NumericVector(numCohorts, NA_REAL),
+    _["LeafStarchCapacity"] = NumericVector(numCohorts, NA_REAL),
+    _["SapwoodStarchCapacity"] = NumericVector(numCohorts, NA_REAL),
+    _["LeafStructuralBiomass"] = NumericVector(numCohorts, NA_REAL),
+    _["SapwoodStructuralBiomass"] = NumericVector(numCohorts, NA_REAL),
+    _["SapwoodLivingStructuralBiomass"] = NumericVector(numCohorts, NA_REAL),
+    _["FineRootBiomass"] = NumericVector(numCohorts, NA_REAL),
+    _["StructuralBiomass"] = NumericVector(numCohorts, NA_REAL),
+    _["LabileBiomass"] = NumericVector(numCohorts, NA_REAL),
+    _["TotalLivingBiomass"] = NumericVector(numCohorts, NA_REAL),
+    _["TotalBiomass"] = NumericVector(numCohorts, NA_REAL)
+  );
+  cc.attr("row.names") = above.attr("row.names");
   fillCarbonCompartments(cc, x, biomassUnits);
   return(cc);
 }

@@ -6,6 +6,9 @@ data(examplemeteo)
 examplemeteo2 <- examplemeteo
 row.names(examplemeteo2) <- as.character(examplemeteo2$dates)
 examplemeteo2$dates <- NULL
+d <- 100
+meteovec <- unlist(examplemeteo[d,-1])
+date <- as.character(examplemeteo$dates[d])
 
 control_granier <- defaultControl("Granier")
 control_granier$verbose <- FALSE
@@ -84,4 +87,77 @@ test_that("spwb can be run using truncated root systems",{
   expect_s3_class(spwb(spwbInput(f, examplesoil, SpParamsMED, control_sureau), 
                        examplemeteo2[1:10,],
                        latitude = 41.82592, elevation = 100), "spwb")
+})
+
+test_that("spwb can be run with less output",{
+  control_less <- control_granier
+  control_less$standResults <- FALSE
+  control_less$soilResults <- FALSE
+  control_less$plantResults <- FALSE
+  expect_s3_class(spwb(spwbInput(exampleforest, examplesoil, SpParamsMED, control_less), 
+                       examplemeteo[1:2,],
+                       latitude = 41.82592, elevation = 100), "spwb")
+})
+
+test_that("spwb_day gives same result with inner and direct calls",{
+  x1 <- spwbInput(exampleforest, examplesoil, SpParamsMED, control_granier)
+  ic <- medfate:::instance_communication_structures(x1, "spwb")
+  s_dir <- medfate::spwb_day(x1, date, meteovec, latitude = 41.82592, elevation = 100, slope=0, aspect=0, modifyInput = FALSE)
+  medfate::spwb_day_inner(ic, x1, date, meteovec, latitude = 41.82592, elevation = 100, slope=0, aspect=0, modifyInput = FALSE)
+  expect_equal(medfate::copy_model_output(ic, x1, "spwb"), s_dir)
+  # Second call (after modifying ic)
+  medfate::spwb_day_inner(ic, x1, date, meteovec, latitude = 41.82592, elevation = 100, slope=0, aspect=0, modifyInput = FALSE)
+  expect_equal(medfate::copy_model_output(ic, x1, "spwb"), s_dir)
+  
+  x2 <- spwbInput(exampleforest, examplesoil, SpParamsMED, control_sperry)
+  ic <- medfate:::instance_communication_structures(x2, "spwb")
+  s_dir <- medfate::spwb_day(x2, date, meteovec, latitude = 41.82592, elevation = 100, slope=0, aspect=0, modifyInput = FALSE)
+  medfate::spwb_day_inner(ic, x2, date, meteovec, latitude = 41.82592, elevation = 100, slope=0, aspect=0, modifyInput = FALSE)
+  expect_equal(medfate::copy_model_output(ic, x2, "spwb"), s_dir)
+  # Second call (after modifying ic)
+  medfate::spwb_day_inner(ic, x2, date, meteovec, latitude = 41.82592, elevation = 100, slope=0, aspect=0, modifyInput = FALSE)
+  expect_equal(medfate::copy_model_output(ic, x2, "spwb"), s_dir)
+  
+  x3 <- spwbInput(exampleforest, examplesoil, SpParamsMED, control_sureau)
+  ic <- medfate:::instance_communication_structures(x3, "spwb")
+  s_dir <- medfate::spwb_day(x3, date, meteovec, latitude = 41.82592, elevation = 100, slope=0, aspect=0, modifyInput = FALSE)
+  medfate::spwb_day_inner(ic, x3, date, meteovec, latitude = 41.82592, elevation = 100, slope=0, aspect=0, modifyInput = FALSE)
+  expect_equal(medfate::copy_model_output(ic, x3, "spwb"), s_dir)
+  # Second call (after modifying ic)
+  medfate::spwb_day_inner(ic, x3, date, meteovec, latitude = 41.82592, elevation = 100, slope=0, aspect=0, modifyInput = FALSE)
+  expect_equal(medfate::copy_model_output(ic, x3, "spwb"), s_dir)
+})
+
+test_that("spwb_day gives same result with inner and direct calls with general communication",{
+  x1i <- spwbInput(exampleforest, examplesoil, SpParamsMED, control_granier)
+  x1d <- spwbInput(exampleforest, examplesoil, SpParamsMED, control_granier)
+  expect_equal(x1i, x1d)
+  numCohorts <- nrow(x1i$cohorts)
+  nlayers <- nrow(examplesoil)
+  ncanlayers <- nrow(x1i$canopy)
+  ntimesteps <- control_granier$ndailysteps
+  ic <- medfate::general_communication_structures(numCohorts, nlayers, ncanlayers, ntimesteps, "spwb")
+  medfate::spwb_day_inner(ic, x1i, date, meteovec, latitude = 41.82592, elevation = 100, slope=0, aspect=0, modifyInput = TRUE)
+  s_dir <- medfate::spwb_day(x1d, date, meteovec, latitude = 41.82592, elevation = 100, slope=0, aspect=0, modifyInput = TRUE)
+  expect_equal(x1i, x1d)
+  expect_equal(medfate::copy_model_output(ic, x1i, "spwb"), s_dir)
+
+  x2i <- spwbInput(exampleforest, examplesoil, SpParamsMED, control_sperry)
+  x2d <- spwbInput(exampleforest, examplesoil, SpParamsMED, control_sperry)
+  expect_equal(x2i, x2d)
+  ic <- medfate::general_communication_structures(numCohorts, nlayers, ncanlayers, ntimesteps, "spwb")
+  medfate::spwb_day_inner(ic, x2i, date, meteovec, latitude = 41.82592, elevation = 100, slope=0, aspect=0, modifyInput = TRUE)
+  s_dir <- medfate::spwb_day(x2d, date, meteovec, latitude = 41.82592, elevation = 100, slope=0, aspect=0, modifyInput = TRUE)
+  expect_equal(x2i, x2d)
+  expect_equal(medfate::copy_model_output(ic, x2i, "spwb"), s_dir)
+
+  x3i <- spwbInput(exampleforest, examplesoil, SpParamsMED, control_sureau)
+  x3d <- spwbInput(exampleforest, examplesoil, SpParamsMED, control_sureau)
+  expect_equal(x3i, x3d)
+  ic <- medfate::general_communication_structures(numCohorts, nlayers, ncanlayers, ntimesteps, "spwb")
+  medfate::spwb_day_inner(ic, x3i, date, meteovec, latitude = 41.82592, elevation = 100, slope=0, aspect=0, modifyInput = TRUE)
+  s_dir <- medfate::spwb_day(x3d, date, meteovec, latitude = 41.82592, elevation = 100, slope=0, aspect=0, modifyInput = TRUE)
+  expect_equal(x3i, x3d)
+  expect_equal(medfate::copy_model_output(ic, x3i, "spwb"), s_dir)
+
 })

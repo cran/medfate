@@ -39,7 +39,7 @@ const double Cp_Jmol = 29.37152; // J * mol^-1 * ºC^-1
 // STEP 5.2 Leaf energy balance, stomatal conductance and plant hydraulics  (Sperry or Sureau inner functions)
 // STEP 5.3 Soil and canopy energy balances (single or multiple canopy layers)
 // STEP 6. Update plant drought stress (relative whole-plant conductance), cavitation and live fuel moisture
-List transpirationAdvanced(List x, NumericVector meteovec, 
+void transpirationAdvanced(List transpOutput, List x, NumericVector meteovec, 
                   double latitude, double elevation, double slope, double aspect, 
                   double solarConstant, double delta,
                   double canopyEvaporation = 0.0, double snowMelt = 0.0, double soilEvaporation = 0.0, double herbTranspiration = 0.0,
@@ -51,8 +51,6 @@ List transpirationAdvanced(List x, NumericVector meteovec,
     x = clone(x);
   }
   // Should have internal communication 
-  List internalCommunication = x["internalCommunication"];
-  List transpOutput = internalCommunication["transpirationOutput"];
   NumericVector outputStand = as<NumericVector>(transpOutput["Stand"]);
   DataFrame outputPlants = as<DataFrame>(transpOutput["Plants"]);
   NumericMatrix outputExtraction = as<NumericMatrix>(transpOutput["Extraction"]);
@@ -67,6 +65,7 @@ List transpirationAdvanced(List x, NumericVector meteovec,
   DataFrame outputSEBinst =  as<DataFrame>(outputEnergyBalance["SoilEnergyBalance"]);
   List lwrExtinctionList = transpOutput["LWRExtinction"];
   List supply = transpOutput["SupplyFunctions"]; 
+
   
   //Control parameters
   List control = x["control"];
@@ -115,12 +114,12 @@ List transpirationAdvanced(List x, NumericVector meteovec,
   NumericVector H = Rcpp::as<Rcpp::NumericVector>(above["H"]);
   NumericVector CR = Rcpp::as<Rcpp::NumericVector>(above["CR"]);
 
-  int numCohorts = LAIlive.size();
+  int numCohorts = above.nrow();
   
   //Soil input
   DataFrame soil = Rcpp::as<Rcpp::DataFrame>(x["soil"]);
+  int nlayers = soil.nrow();
   NumericVector widths = soil["widths"];
-  int nlayers = widths.length();
   NumericVector Water_FC = waterFC(soil, soilFunctions);
   NumericVector Theta_FC = thetaFC(soil, soilFunctions);
   NumericVector Theta_SAT = thetaSAT(soil, soilFunctions);
@@ -134,13 +133,16 @@ List transpirationAdvanced(List x, NumericVector meteovec,
 
   //Canopy params
   DataFrame canopyParams = Rcpp::as<Rcpp::DataFrame>(x["canopy"]);
+  int ncanlayers = canopyParams.nrow();
   NumericVector zlow = canopyParams["zlow"];
   NumericVector zmid = canopyParams["zmid"];
   NumericVector zup = canopyParams["zup"];
+  NumericVector LAIpx = canopyParams["LAIlive"];
+  NumericVector LAIpe = canopyParams["LAIexpanded"];
+  NumericVector LAIpd = canopyParams["LAIdead"];
   NumericVector Tair = canopyParams["Tair"];
   NumericVector VPair = canopyParams["VPair"];
   NumericVector Cair = canopyParams["Cair"];
-  int ncanlayers = Tair.size(); //Number of canopy layers
   for(int l=0;l<ncanlayers;l++) { //If canopy layers have missing values, then initialize with Catm
     if(!multiLayerBalance) Cair[l] = Catm;
     else {
@@ -217,6 +219,13 @@ List transpirationAdvanced(List x, NumericVector meteovec,
   NumericVector LeafPsiVEC = Rcpp::as<Rcpp::NumericVector>(internalWater["LeafPsi"]);
   NumericVector StemSympPsiVEC = Rcpp::as<Rcpp::NumericVector>(internalWater["StemSympPsi"]);
   NumericVector LeafSympPsiVEC = Rcpp::as<Rcpp::NumericVector>(internalWater["LeafSympPsi"]);
+  List internalLAIDistribution = x["internalLAIDistribution"];
+  NumericMatrix LAImx = internalLAIDistribution["live"];
+  NumericMatrix LAIme = internalLAIDistribution["expanded"];
+  NumericMatrix LAImd = internalLAIDistribution["dead"];
+  NumericVector PrevLAIexpanded = internalLAIDistribution["PrevLAIexpanded"];
+  NumericVector PrevLAIdead = internalLAIDistribution["PrevLAIdead"];
+  NumericVector PARcohort = internalLAIDistribution["PARcohort"];
   
   if(NumericVector::is_na(aspect)) aspect = 0.0;
   if(NumericVector::is_na(slope)) slope = 0.0;
@@ -263,7 +272,7 @@ List transpirationAdvanced(List x, NumericVector meteovec,
   //Transpiration and photosynthesis
   NumericMatrix minPsiRhizo = transpOutput["RhizoPsi"];
   
-  NumericVector PARcohort = outputPlants["FPAR"];
+  NumericVector outputFPAR = outputPlants["FPAR"];
   NumericVector SoilExtractCoh = outputPlants["Extraction"];
   NumericVector DDS = outputPlants["DDS"];
   NumericVector LFMC = outputPlants["LFMC"];
@@ -419,22 +428,44 @@ List transpirationAdvanced(List x, NumericVector meteovec,
     LAIcellexpanded +=LAI[c];
     if((canopyHeight<H[c]) && ((LAI[c]+LAIdead[c])>0.0)) canopyHeight = H[c];
   }
-  //Create z vector with all layer height limits
-  NumericVector z(ncanlayers+1,0.0);
-  for(int i=1;i<=ncanlayers;i++) z[i] = z[i-1] + verticalLayerSize;
   
-  NumericVector parC = parcohortC(H, LAI,  LAIdead, kPAR, CR);
-  for(int c=0; c<numCohorts;c++) PARcohort[c] = parC[c];
-  
-  //LAI distribution per layer and cohort
-  NumericMatrix LAIme = LAIdistributionVectors(z, LAI, H, CR); //Expanded leaves
-  NumericMatrix LAImd = LAIdistributionVectors(z, LAIdead, H, CR); //Dead (standing) leaves
-  NumericMatrix LAImx = LAIdistributionVectors(z, LAIlive, H, CR); //Maximum leaf expansion
-  //LAI profile per layer
-  NumericVector LAIpx = LAIprofileVectors(z, LAIlive, H, CR);
-  NumericVector LAIpe = LAIprofileVectors(z, LAI, H, CR);
-  NumericVector LAIpd = LAIprofileVectors(z, LAIdead, H, CR);
+  if(numCohorts>0) {
+    bool recalc_LAI = false;
+    if(NumericVector::is_na(PrevLAIexpanded[0]) || NumericVector::is_na(PrevLAIdead[0])) {
+      recalc_LAI = true; 
+    } else{
+      if(sum(abs(LAI - PrevLAIexpanded))>0.001) {
+        recalc_LAI = true; 
+      } else {
+        if(sum(abs(LAIdead - PrevLAIdead))>0.001) recalc_LAI = true;
+      }
+    }
+    if(recalc_LAI) {
+      NumericVector z(ncanlayers+1,0.0);
+      for(int i=1;i<=ncanlayers;i++) z[i] = z[i-1] + verticalLayerSize;
+      for(int i=0; i<numCohorts;i++) {
+        PARcohort[i] = availableLight(H[i]*(1.0-(1.0-CR[i])/2.0), H, LAI, LAIdead, kPAR, CR);
+        PrevLAIexpanded[i] = LAI[i];
+        PrevLAIdead[i] = LAIdead[i];
+      }
+      //Update LAI distribution if necessary
+      updateLAIdistributionVectors(LAIme, z, LAI, H, CR);
+      updateLAIdistributionVectors(LAImd, z, LAIdead, H, CR);
+      updateLAIdistributionVectors(LAImx, z, LAIlive, H, CR); //Maximum leaf expansion
+      //Update LAI profile per layer
+      for(int i=0;i<ncanlayers;i++) {
+        LAIpx[i] = sum(LAImx(i,_));
+        LAIpe[i] = sum(LAIme(i,_));
+        LAIpd[i] = sum(LAImd(i,_));
+      }
+    }
+  }
+
   NumericVector lad = 100.0*(LAIpe + LAIpd)/verticalLayerSize;
+  for(int i=0; i<numCohorts;i++) {
+    outputFPAR[i] = PARcohort[i];
+  }
+  
   ////////////////////////////////////////
   // STEP 2. Determine vertical wind speed profile
   ////////////////////////////////////////
@@ -449,6 +480,7 @@ List transpirationAdvanced(List x, NumericVector meteovec,
     dU = canopyTurbulence["du"];
     uw = canopyTurbulence["uw"];
   } 
+  
   ////////////////////////////////////////
   // STEP 3a. Direct and diffuse shorwave radiation for sub-steps
   ////////////////////////////////////////
@@ -504,7 +536,9 @@ List transpirationAdvanced(List x, NumericVector meteovec,
     VPcan_mat(0,j) = VPair[j];
   }
   //Take temperature soil vector 
-  Tsoil_mat(0,_) = Tsoil; 
+  for(int l=0;l<nlayers;l++) {
+    Tsoil_mat(0,l) = Tsoil[l]; 
+  }
   
   ////////////////////////////////////////
   // STEP 3c. Short-wave radiation extinction and absortion for sub-steps
@@ -526,9 +560,12 @@ List transpirationAdvanced(List x, NumericVector meteovec,
   NumericVector abs_SWR_can_LEA = lightExtinctionAbsortion["SWR_can"];
   NumericVector abs_SWR_soil_LEA = lightExtinctionAbsortion["SWR_soil"];
   //Copy to output data structures
+  double sum_abs_SWR_soil = 0.0, sum_abs_SWR_can = 0.0;
   for(int n=0; n<ntimesteps;n++) {
     abs_SWR_can[n] = abs_SWR_can_LEA[n];
     abs_SWR_soil[n] = abs_SWR_soil_LEA[n];
+    sum_abs_SWR_soil += abs_SWR_soil[n];
+    sum_abs_SWR_can += abs_SWR_can[n];
   }
 
   ////////////////////////////////////////
@@ -538,6 +575,7 @@ List transpirationAdvanced(List x, NumericVector meteovec,
   IntegerVector nlayerscon(numCohorts,0);
   LogicalMatrix layerConnected(numCohorts, nlayers);
   List layerConnectedPools(numCohorts);
+
 
 
   //Average sap fluidity
@@ -589,7 +627,8 @@ List transpirationAdvanced(List x, NumericVector meteovec,
                                     internalWater, paramsTranspiration, paramsWaterStorage,
                                     VCroot_kmaxc, VGrhizo_kmaxc,
                                     psic, VG_nc, VG_alphac,
-                                    sapFluidityDay, control);
+                                    control,
+                                    sapFluidityDay);
         hydraulicNetwork[c] = HN;
         supply[c] = supplyFunctionNetwork(HN, 0.0, 0.001); 
       } else if(transpirationMode == "Sureau") {
@@ -598,7 +637,7 @@ List transpirationAdvanced(List x, NumericVector meteovec,
                                                 paramsAnatomy, paramsTranspiration, paramsWaterStorage,
                                                 VCroot_kmaxc, VGrhizo_kmaxc,
                                                 psic, VG_nc, VG_alphac,
-                                                sapFluidityDay, control);
+                                                control, sapFluidityDay);
       }
       
     } else {
@@ -658,7 +697,8 @@ List transpirationAdvanced(List x, NumericVector meteovec,
                                     internalWater, paramsTranspiration, paramsWaterStorage,
                                     VCroot_kmaxc, VGrhizo_kmaxc,
                                     psic, VG_nc, VG_alphac,
-                                    sapFluidityDay, control);
+                                    control, 
+                                    sapFluidityDay);
         hydraulicNetwork[c] = HN;
         supply[c] = supplyFunctionNetwork(HN, 0.0, 0.001); 
       } else if(transpirationMode == "Sureau") {
@@ -667,11 +707,10 @@ List transpirationAdvanced(List x, NumericVector meteovec,
                                                 paramsAnatomy, paramsTranspiration, paramsWaterStorage,
                                                 VCroot_kmaxc, VGrhizo_kmaxc,
                                                 psic, VG_nc, VG_alphac,
-                                                sapFluidityDay, control);
+                                                control, sapFluidityDay);
       }
     }
   }
-  
   
   
   
@@ -705,19 +744,19 @@ List transpirationAdvanced(List x, NumericVector meteovec,
   for(int n=0;n<ntimesteps;n++) { //Time loop
     
     // Determine soil evaporation and snow melt for the corresponding step
-    double soilEvapStep = abs_SWR_soil[n]*(soilEvaporation/sum(abs_SWR_soil));
-    double snowMeltStep = abs_SWR_soil[n]*(snowMelt/sum(abs_SWR_soil));
+    double soilEvapStep = abs_SWR_soil[n]*(soilEvaporation/sum_abs_SWR_soil);
+    double snowMeltStep = abs_SWR_soil[n]*(snowMelt/sum_abs_SWR_soil);
     //Canopy evaporation (mm) in the current step and fraction of dry canopy
-    double canEvapStep = canopyEvaporation*(abs_SWR_can[n]/sum(abs_SWR_can));
+    double canEvapStep = canopyEvaporation*(abs_SWR_can[n]/sum_abs_SWR_can);
     double f_dry = 1.0;
     if(canEvapStep>0.0) {
       f_dry = 1.0 - std::min(1.0, canopyEvaporation/pet);
     }
-    if(sum(abs_SWR_soil)==0.0) { // avoid zero sums
+    if(sum_abs_SWR_soil==0.0) { // avoid zero sums
       soilEvapStep = 0.0; 
       snowMeltStep = 0.0;
     }
-    if(sum(abs_SWR_can)==0.0) { // avoid zero sums
+    if(sum_abs_SWR_can==0.0) { // avoid zero sums
       canEvapStep = 0.0;
       f_dry = 1.0;
     }
@@ -836,8 +875,12 @@ List transpirationAdvanced(List x, NumericVector meteovec,
         PAR_SH(c,n) = absPAR_SH_COH[c];
         SWR_SL(c,n) = absSWR_SL_COH[c];
         SWR_SH(c,n) = absSWR_SH_COH[c];
-        LWR_SL(c,n) = sum(Lnet_cohort_layer(_,c)*fsunlit);
-        LWR_SH(c,n) = sum(Lnet_cohort_layer(_,c)*(1.0 - fsunlit));
+        LWR_SL(c,n) = 0.0;
+        LWR_SH(c,n) = 0.0;
+        for(int i=0;i<ncanlayers;i++) {
+          LWR_SL(c,n) += Lnet_cohort_layer(i,c)*fsunlit[i];
+          LWR_SH(c,n) += Lnet_cohort_layer(i,c)*(1.0 - fsunlit[i]);
+        }
       }
     }
 
@@ -848,7 +891,7 @@ List transpirationAdvanced(List x, NumericVector meteovec,
       innerSureau(x, innerInput, innerOutput, n, tstep,
                    verbose);
     }
-
+    
     for(int c=0;c<numCohorts;c++) {
       if(LAIlive[c]>0.0 && (LeafPLCVEC[c] < 0.999)) {
         //Store (for output) instantaneous leaf, stem and root potential, plc and rwc values
@@ -941,10 +984,11 @@ List transpirationAdvanced(List x, NumericVector meteovec,
       net_LWR_soil[n] = 0.0; //Set net LWR to zero
     } 
     LEVsoil[n] = (1e6)*meteoland::utils_latentHeatVaporisation(Tsoil[0])*soilEvapStep/tstep;
+    // Rcout<<n<<" "<<sum_abs_SWR_soil<<" "<<soilEvapStep << " "<<Tsoil[0]<<" " << LEVsoil[n]<<"\n";
     LEFsnow[n] = (1e6)*(snowMeltStep*0.33355)/tstep; // 0.33355 = latent heat of fusion
 
     //Herbaceous transpiration (mm) in the current step
-    double herbTranspStep = herbTranspiration*(abs_SWR_can[n]/sum(abs_SWR_can));
+    double herbTranspStep = herbTranspiration*(abs_SWR_can[n]/sum_abs_SWR_can);
     
     //Canopy convective heat exchange
     double RAcan = aerodynamicResistance(canopyHeight,std::max(wind,1.0)); //Aerodynamic resistance to convective heat transfer
@@ -960,7 +1004,9 @@ List transpirationAdvanced(List x, NumericVector meteovec,
         Hcansoil[n] = (meteoland::utils_airDensity(Tcan[n],Patm)*Cp_JKG*(Tcan[n] - 0.0))/RAsoil; //Assumes a zero degree for soil surface (snow)
       } 
       //Latent heat (evaporation + transpiration)
-      double LEwat = (1e6)*meteoland::utils_latentHeatVaporisation(Tcan[n])*(sum(Einst(_,n)) + canEvapStep + herbTranspStep)/tstep;
+      double sum_Einst_n = 0.0;
+      for(int c=0;c<numCohorts;c++) sum_Einst_n +=Einst(c, n);
+      double LEwat = (1e6)*meteoland::utils_latentHeatVaporisation(Tcan[n])*(sum_Einst_n + canEvapStep + herbTranspStep)/tstep;
       LEVcan[n] = LEwat; 
       //Canopy temperature changes
       Ebal[n] = abs_SWR_can[n]+ net_LWR_can[n] - LEVcan[n] - LEFsnow[n] - Hcan_heat[n] - Hcansoil[n];
@@ -982,9 +1028,11 @@ List transpirationAdvanced(List x, NumericVector meteovec,
       
       //Soil temperature changes
       NumericVector soilTchange = temperatureChange(widths, Tsoil, sand, clay, Ws, Theta_SAT, Theta_FC, Ebalsoil[n], tstep);
-      for(int l=0;l<nlayers;l++) Tsoil[l] = Tsoil[l] + std::max(-3.0, std::min(3.0, soilTchange[l]));
-      if(n<(ntimesteps-1)) Tsoil_mat(n+1,_)= Tsoil;
-      
+      for(int l=0;l<nlayers;l++) {
+        Tsoil[l] = Tsoil[l] + std::max(-3.0, std::min(3.0, soilTchange[l])); 
+        if(n<(ntimesteps-1)) Tsoil_mat(n+1,l)= Tsoil[l];
+      }
+
     } else { //Multilayer canopy balance
       double moistureAtm = 0.622*(vpatm/Patm)*meteoland::utils_airDensity(Tatm[n],Patm);
       double CO2Atm = 0.409*Catm*44.01; //mg/m3
@@ -1131,17 +1179,32 @@ List transpirationAdvanced(List x, NumericVector meteovec,
   // STEP 6. Plant drought stress (relative whole-plant conductance), cavitation and live fuel moisture
   ////////////////////////////////////////
   for(int c=0;c<numCohorts;c++) {
-    SoilExtractCoh[c] =  sum(outputExtraction(c,_));
-    PLCsm[c] = sum(StemPLC(c,_))/((double)StemPLC.ncol());
-    PLClm[c] = sum(LeafPLC(c,_))/((double)LeafPLC.ncol());
-    RWCsm[c] = sum(StemRWCInst(c,_))/((double)StemRWCInst.ncol());
-    RWClm[c] = sum(LeafRWCInst(c,_))/((double)LeafRWCInst.ncol());
+    SoilExtractCoh[c] = 0.0;
+    for(int l=0;l<nlayers;l++) {
+      SoilExtractCoh[c] += outputExtraction(c,l);
+    }
+    PLCsm[c] = 0.0;
+    PLClm[c] = 0.0;
+    RWCsm[c] = 0.0;
+    RWClm[c] = 0.0;
+    dEdPm[c] = 0.0;
+    for(int n=0;n<ntimesteps;n++) {
+      PLCsm[c] += StemPLC(c,n);
+      PLClm[c] += LeafPLC(c,n);
+      RWCsm[c] += StemRWCInst(c,n);
+      RWClm[c] += LeafRWCInst(c,n);
+      dEdPm[c] += dEdPInst(c,n);
+    }
+    PLCsm[c] = PLCsm[c]/((double) ntimesteps);
+    PLClm[c] = PLClm[c]/((double) ntimesteps);
+    RWCsm[c] = RWCsm[c]/((double) ntimesteps);
+    RWClm[c] = RWClm[c]/((double) ntimesteps);
+    dEdPm[c] = dEdPm[c]/((double) ntimesteps);
     if(lfmcComponent=="fine") {
       LFMC[c] = maxFMC[c]*((1.0/r635[c])*RWClm[c]+(1.0 - (1.0/r635[c]))*RWCsm[c]);
     } else { //leaf
       LFMC[c] = maxFMC[c]*RWClm[c];
     }
-    dEdPm[c] = sum(dEdPInst(c,_))/((double)dEdPInst.ncol());  
     DDS[c] = (1.0 - (dEdPm[c]/(sapFluidityDay*Plant_kmax[c])));
     if(phenoType[c] == "winter-deciduous" || phenoType[c] == "winter-semideciduous") {
       DDS[c] = phi[c]*DDS[c];
@@ -1171,8 +1234,6 @@ List transpirationAdvanced(List x, NumericVector meteovec,
     outputLAI[c] = LAI[c];
     outputLAIlive[c] = LAIlive[c];
   }
-  
-  return(transpOutput);
 }
 
 //' @rdname transp_modes
@@ -1190,9 +1251,7 @@ List transpirationSperry(List x, DataFrame meteo, int day,
                         double canopyEvaporation = 0.0, double snowMelt = 0.0, double soilEvaporation = 0.0, double herbTranspiration = 0.0,
                         int stepFunctions = NA_INTEGER, 
                         bool modifyInput = true) {
-  //Add communication structures
-  addCommunicationStructures(x);
-  
+
   List control = x["control"];
   String transpirationMode = control["transpirationMode"];
   if(transpirationMode != "Sperry") stop("Transpiration mode in 'x' must be 'Sperry'");
@@ -1262,20 +1321,26 @@ List transpirationSperry(List x, DataFrame meteo, int day,
     Named("Patm") = Patm[day-1],
     Named("pet") = pet);
   
-  List transpOutput = transpirationAdvanced(x, meteovec,
-                                            latitude, elevation, slope, aspect,
-                                            solarConstant, delta,
-                                            canopyEvaporation, snowMelt, soilEvaporation, herbTranspiration,
-                                            false, stepFunctions, 
-                                            modifyInput);
+  DataFrame cohorts = Rcpp::as<Rcpp::DataFrame>(x["cohorts"]);
+  DataFrame above = Rcpp::as<Rcpp::DataFrame>(x["above"]);
+  DataFrame soil = Rcpp::as<Rcpp::DataFrame>(x["soil"]);
+  DataFrame canopyParams = Rcpp::as<Rcpp::DataFrame>(x["canopy"]);
+  int ncanlayers = canopyParams.nrow(); //Number of canopy layers
+  int nlayers = soil.nrow();
+  int numCohorts = cohorts.nrow();
+  int ntimesteps = control["ndailysteps"];
+  List transpOutput = advancedTranspirationCommunicationOutput(numCohorts, nlayers, ncanlayers, ntimesteps);
   
-  //Clear communication structures
-  bool clear_communications = true;
-  if(control.containsElementNamed("clearCommunications")) {
-    clear_communications = control["clearCommunications"];
-  }
-  if(clear_communications) clearCommunicationStructures(x);
-  return(transpOutput);
+  transpirationAdvanced(transpOutput, x, meteovec,
+                        latitude, elevation, slope, aspect,
+                        solarConstant, delta,
+                        canopyEvaporation, snowMelt, soilEvaporation, herbTranspiration,
+                        false, stepFunctions, 
+                        modifyInput);
+  
+  List transpAdvanced = copyAdvancedTranspirationOutput(transpOutput, x);
+  
+  return(transpAdvanced);
 } 
 
 //' @rdname transp_modes
@@ -1285,9 +1350,6 @@ List transpirationSureau(List x, DataFrame meteo, int day,
                          double latitude, double elevation, double slope, double aspect,
                          double canopyEvaporation = 0.0, double snowMelt = 0.0, double soilEvaporation = 0.0, double herbTranspiration = 0.0,
                          bool modifyInput = true) {
-  
-  //Add communication structures
-  addCommunicationStructures(x);
   
   List control = x["control"];
   String transpirationMode = control["transpirationMode"];
@@ -1358,20 +1420,25 @@ List transpirationSureau(List x, DataFrame meteo, int day,
     Named("pet") = pet);
   
   
-  List transpOutput = transpirationAdvanced(x, meteovec,
+  DataFrame cohorts = Rcpp::as<Rcpp::DataFrame>(x["cohorts"]);
+  DataFrame above = Rcpp::as<Rcpp::DataFrame>(x["above"]);
+  DataFrame soil = Rcpp::as<Rcpp::DataFrame>(x["soil"]);
+  DataFrame canopyParams = Rcpp::as<Rcpp::DataFrame>(x["canopy"]);
+  int ncanlayers = canopyParams.nrow(); //Number of canopy layers
+  int nlayers = soil.nrow();
+  int numCohorts = cohorts.nrow();
+  int ntimesteps = control["ndailysteps"];
+  List transpOutput = advancedTranspirationCommunicationOutput(numCohorts, nlayers, ncanlayers, ntimesteps);
+  transpirationAdvanced(transpOutput, x, meteovec,
                                             latitude, elevation, slope, aspect,
                                             solarConstant, delta,
                                             canopyEvaporation, snowMelt, soilEvaporation, herbTranspiration,
                                             false, NA_INTEGER, 
                                             modifyInput);
   
-  //Clear communication structures
-  bool clear_communications = true;
-  if(control.containsElementNamed("clearCommunications")) {
-    clear_communications = control["clearCommunications"];
-  }
-  if(clear_communications) clearCommunicationStructures(x);
-  return(transpOutput);
+  List transpAdvanced = copyAdvancedTranspirationOutput(transpOutput, x);
+  
+  return(transpAdvanced);
 } 
 
 

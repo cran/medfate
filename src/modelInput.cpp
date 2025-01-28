@@ -1,6 +1,4 @@
 #include <Rcpp.h>
-#include "spwb.h"
-#include "growth.h"
 #include "carbon.h"
 #include "root.h"
 #include "soil.h"
@@ -68,6 +66,7 @@ DataFrame paramsInterception(DataFrame above, DataFrame SpParams, List control) 
   DataFrame paramsInterceptiondf;
   if(transpirationMode=="Granier") {
     paramsInterceptiondf = DataFrame::create(_["kPAR"] = kPAR, 
+                                             _["kSWR"] = kPAR/1.35,
                                              _["g"] = g);
   } else {
     NumericVector alphaSWR = speciesNumericParameterWithImputation(SP, SpParams, "alphaSWR", fillMissingSpParams, fillWithGenus);
@@ -871,6 +870,7 @@ DataFrame internalPhenologyDataFrame(DataFrame above) {
   df.attr("row.names") = above.attr("row.names");
   return(df);
 }
+
 DataFrame internalCarbonDataFrame(DataFrame above, 
                                   DataFrame belowdf,
                                   List belowLayers,
@@ -1051,6 +1051,30 @@ DataFrame internalWaterDataFrame(DataFrame above, String transpirationMode) {
   df.attr("row.names") = above.attr("row.names");
   return(df);
 }
+List internalLAIDistribution(DataFrame above, DataFrame canopyParams) {
+  int numCohorts = above.nrow();
+  int ncanlayers = canopyParams.nrow(); //Number of canopy layers
+  NumericVector PARcohort(numCohorts,0.0);
+  NumericVector PrevLAIexpanded(numCohorts,0.0);
+  NumericVector PrevLAIdead(numCohorts,0.0);
+  
+  // double h1, h2;
+  NumericMatrix LAImx(ncanlayers, numCohorts);
+  NumericMatrix LAIme(ncanlayers, numCohorts);
+  NumericMatrix LAImd(ncanlayers, numCohorts);
+  LAImx.attr("dimnames") = List::create(seq(1,ncanlayers), above.attr("row.names"));
+  LAIme.attr("dimnames") = List::create(seq(1,ncanlayers), above.attr("row.names"));
+  LAImd.attr("dimnames") = List::create(seq(1,ncanlayers), above.attr("row.names"));
+  LAImx.fill(0.0);
+  LAIme.fill(0.0);
+  LAImd.fill(0.0);
+  return(List::create(_["PrevLAIexpanded"] = PrevLAIexpanded,
+                      _["PrevLAIdead"] = PrevLAIdead,
+                      _["PARcohort"] = PARcohort,
+                      _["live"] = LAImx,
+                      _["expanded"] = LAIme,
+                      _["dead"] = LAImd));
+}
 
 
 DataFrame paramsCanopy(DataFrame above, List control) {
@@ -1078,6 +1102,9 @@ DataFrame paramsCanopy(DataFrame above, List control) {
   DataFrame paramsCanopy = DataFrame::create(_["zlow"] = zlow,
                                              _["zmid"] = zmid,
                                              _["zup"] = zup,
+                                             _["LAIlive"]= NumericVector(nz, NA_REAL),
+                                             _["LAIexpanded"]= NumericVector(nz, NA_REAL),
+                                             _["LAIdead"]= NumericVector(nz, NA_REAL),
                                              _["Tair"] = NumericVector(nz, NA_REAL),
                                              _["Cair"] = NumericVector(nz, NA_REAL),
                                              _["VPair"] = NumericVector(nz, NA_REAL));
@@ -1163,12 +1190,9 @@ List spwbInputInner(DataFrame above, NumericVector Z50, NumericVector Z95, Numer
   //Initialize snowpack
   double SWE = 0.0;
   
-  DataFrame paramsCanopydf;
+  DataFrame paramsCanopydf = paramsCanopy(above, control);
   List ctl = clone(control);
-  if(transpirationMode=="Granier") {
-    paramsCanopydf = List::create();
-  } else {
-    paramsCanopydf = paramsCanopy(above, control);
+  if(transpirationMode!="Granier") {
     if(soilFunctions=="SX") {
       soilFunctions = "VG"; 
       ctl["soilFunctions"] = soilFunctions;
@@ -1193,9 +1217,8 @@ List spwbInputInner(DataFrame above, NumericVector Z50, NumericVector Z95, Numer
                             _["paramsWaterStorage"] = paramsWaterStoragedf,
                             _["internalPhenology"] = internalPhenologyDataFrame(above),
                             _["internalWater"] = internalWaterDataFrame(above, transpirationMode),
+                            _["internalLAIDistribution"] = internalLAIDistribution(above, paramsCanopydf),
                             _["internalFCCS"] = FCCSprops);
-  List internalCommunication = List::create();
-  input.push_back(internalCommunication, "internalCommunication");                       
 
   input.attr("class") = CharacterVector::create("spwbInput","list");
   return(input);
@@ -1309,12 +1332,9 @@ List growthInputInner(DataFrame above, NumericVector Z50, NumericVector Z95, Num
   //Initialize snowpack
   double SWE = 0.0;
   
-  DataFrame paramsCanopydf;
+  DataFrame paramsCanopydf = paramsCanopy(above, control);
   List ctl = clone(control);
-  if(transpirationMode=="Granier") {
-    paramsCanopydf = List::create();
-  } else {
-    paramsCanopydf = paramsCanopy(above, control);
+  if(transpirationMode!="Granier") {
     if(soilFunctions=="SX") {
       soilFunctions = "VG"; 
       ctl["soilFunctions"] = soilFunctions;
@@ -1342,6 +1362,7 @@ List growthInputInner(DataFrame above, NumericVector Z50, NumericVector Z95, Num
                        _["paramsAllometries"] = paramsAllometriesdf,
                        _["internalPhenology"] = internalPhenologyDataFrame(above),
                        _["internalWater"] = internalWaterDataFrame(above, transpirationMode));
+  input.push_back(internalLAIDistribution(above, paramsCanopydf),"internalLAIDistribution");
   input.push_back(internalCarbonDataFrame(plantsdf, belowdf, belowLayers,
                                           paramsAnatomydf, 
                                           paramsWaterStoragedf,
@@ -1352,8 +1373,6 @@ List growthInputInner(DataFrame above, NumericVector Z50, NumericVector Z95, Num
   
   input.push_back(internalMortalityDataFrame(plantsdf), "internalMortality");
   input.push_back(FCCSprops, "internalFCCS");
-  List internalCommunication = List::create();
-  input.push_back(internalCommunication, "internalCommunication");                       
   input.attr("class") = CharacterVector::create("growthInput","list");
   return(input);
 }

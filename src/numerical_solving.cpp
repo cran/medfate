@@ -3,10 +3,13 @@
 #include <Rcpp.h>
 using namespace Rcpp;
 
-NumericVector tridiagonalSolving(NumericVector a, NumericVector b, NumericVector c, NumericVector d) {
-  int n = a.size();
-  NumericVector e(n), f(n), u(n);
-  
+// a,b,c,d are input vectors
+// e,f are vectors used internally
+// sol is the output
+NumericVector tridiagonalSolving(NumericVector a, NumericVector b, NumericVector c, NumericVector d,
+                        NumericVector e, NumericVector f, int n) {
+
+  NumericVector sol(n);
   //Forward steps
   double e_prev = 0.0;
   double f_prev = 0.0;
@@ -18,10 +21,10 @@ NumericVector tridiagonalSolving(NumericVector a, NumericVector b, NumericVector
     f_prev = f[i];
   }
   //Backward steps
-  u[n-1] = f[n-1];
+  sol[n-1] = f[n-1];
   for(int i = (n - 2);i>=0;i--) {
-    u[i] = f[i] - e[i]*u[i + 1];
-  }  
-  return(u);
+    sol[i] = f[i] - e[i]*sol[i + 1];
+  }
+  return(sol);
 }
 

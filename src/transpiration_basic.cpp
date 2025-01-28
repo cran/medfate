@@ -47,7 +47,7 @@ double findNewPlantPsiConnected(double flowFromRoots, double plantPsi, double ro
 }
 
 
-List transpirationBasic(List x, NumericVector meteovec,  
+void transpirationBasic(List transpOutput, List x, NumericVector meteovec,  
                         double elevation, bool modifyInput = true) {
   
   //Will not modify input x 
@@ -55,13 +55,12 @@ List transpirationBasic(List x, NumericVector meteovec,
     x = clone(x);
   }
   // Should have internal communication 
-  List internalCommunication = x["internalCommunication"];
-  List transpOutput = internalCommunication["transpirationOutput"];
   NumericVector outputStand = as<NumericVector>(transpOutput["Stand"]);
   DataFrame outputPlants = as<DataFrame>(transpOutput["Plants"]);
   NumericMatrix outputExtraction = as<NumericMatrix>(transpOutput["Extraction"]);
   List outputExtractionPools = transpOutput["ExtractionPools"];
 
+  
   //Control parameters
   List control = x["control"];
   String stemCavitationRecovery = control["stemCavitationRecovery"];
@@ -95,6 +94,10 @@ List transpirationBasic(List x, NumericVector meteovec,
   double vpd = std::max(0.0, meteoland::utils_saturationVP((tmin+tmax)/2.0) - vpatm);
     
     
+  // Canopy
+  DataFrame canopyParams = Rcpp::as<Rcpp::DataFrame>(x["canopy"]);
+  int ncanlayers = canopyParams.nrow();
+  
   //Vegetation input
   DataFrame above = Rcpp::as<Rcpp::DataFrame>(x["above"]);
   DataFrame cohorts = Rcpp::as<Rcpp::DataFrame>(x["cohorts"]);
@@ -132,6 +135,7 @@ List transpirationBasic(List x, NumericVector meteovec,
   
   DataFrame paramsInterception = Rcpp::as<Rcpp::DataFrame>(x["paramsInterception"]);
   NumericVector kPAR = Rcpp::as<Rcpp::NumericVector>(paramsInterception["kPAR"]);
+  NumericVector kSWR = Rcpp::as<Rcpp::NumericVector>(paramsInterception["kSWR"]);
   
   DataFrame paramsTransp = Rcpp::as<Rcpp::DataFrame>(x["paramsTranspiration"]);
   NumericVector Gswmin = Rcpp::as<Rcpp::NumericVector>(paramsTransp["Gswmin"]);
@@ -183,34 +187,56 @@ List transpirationBasic(List x, NumericVector meteovec,
   NumericVector PlantPsi = Rcpp::as<Rcpp::NumericVector>(internalWater["PlantPsi"]);
   NumericVector StemPLC = Rcpp::as<Rcpp::NumericVector>(internalWater["StemPLC"]);
   NumericVector LeafPLC = Rcpp::as<Rcpp::NumericVector>(internalWater["LeafPLC"]);
-
+  //LAI distribution
+  List internalLAIDistribution = x["internalLAIDistribution"];
+  NumericMatrix LAIme = internalLAIDistribution["expanded"];
+  NumericMatrix LAImd = internalLAIDistribution["dead"];
+  NumericVector PrevLAIexpanded = internalLAIDistribution["PrevLAIexpanded"];
+  NumericVector PrevLAIdead = internalLAIDistribution["PrevLAIdead"];
+  NumericVector PARcohort = internalLAIDistribution["PARcohort"];
   
   //Determine whether leaves are out (phenology) and the adjusted Leaf area
-  double s = 0.0, LAIcell = 0.0, canopyHeight = 0.0, LAIcelllive = 0.0, LAIcellexpanded = 0.0,LAIcelldead = 0.0;
+  double s = 0.0, LAIcell = 0.0, LAIcelllive = 0.0, LAIcellexpanded = 0.0,LAIcelldead = 0.0;
   for(int c=0;c<numCohorts;c++) {
     s += (kPAR[c]*(LAIphe[c]+LAIdead[c]));
     LAIcell += LAIphe[c]+LAIdead[c];
     LAIcelldead += LAIdead[c];
     LAIcellexpanded +=LAIphe[c];
     LAIcelllive += LAIlive[c];
-    if(canopyHeight<H[c]) canopyHeight = H[c];
-  }
-  int nz = ceil(canopyHeight/verticalLayerSize); //Number of vertical layers
-  NumericVector z(nz+1,0.0);
-  NumericVector zmid(nz);
-  for(int i=1;i<=nz;i++) {
-    z[i] = z[i-1] + verticalLayerSize;
-    zmid[i-1] = (verticalLayerSize/2.0) + verticalLayerSize*((double) (i-1));
   }
   
-  NumericVector PARcohort = parcohortC(H, LAIphe,  LAIdead, kPAR, CR);
-  NumericVector CohASWRF = cohortAbsorbedSWRFraction(z, LAIphe,  LAIdead, H, CR, kPAR);
+
+  if(numCohorts>0) {
+    bool recalc_LAI = false;
+    if(NumericVector::is_na(PrevLAIexpanded[0]) || NumericVector::is_na(PrevLAIdead[0])) {
+      recalc_LAI = true; 
+    } else{
+      if(sum(abs(LAIphe - PrevLAIexpanded))>0.001) {
+        recalc_LAI = true; 
+      } else {
+        if(sum(abs(LAIdead - PrevLAIdead))>0.001) recalc_LAI = true;
+      }
+    }
+    if(recalc_LAI) {
+      NumericVector z(ncanlayers+1,0.0);
+      for(int i=1;i<=ncanlayers;i++) z[i] = z[i-1] + verticalLayerSize;
+      for(int i=0; i<numCohorts;i++) {
+        PARcohort[i] = availableLight(H[i]*(1.0-(1.0-CR[i])/2.0), H, LAIphe, LAIdead, kPAR, CR);
+        PrevLAIexpanded[i] = LAIphe[i];
+        PrevLAIdead[i] = LAIdead[i];
+      }
+      //Update LAI distribution if necessary
+      updateLAIdistributionVectors(LAIme, z, LAIphe, H, CR);
+      updateLAIdistributionVectors(LAImd, z, LAIdead, H, CR);
+    }
+  }
+  NumericVector CohASWRF = cohortAbsorbedSWRFraction(LAIme, LAImd, kSWR);
   CohASWRF = pow(CohASWRF, 0.75);
   
   //Apply fractions to potential evapotranspiration
   //Maximum canopy transpiration
   //    Tmax = PET[i]*(-0.006*pow(LAIcell[i],2.0)+0.134*LAIcell[i]+0.036); //From Granier (1999)
-  NumericVector Tmax = pet*(Tmax_LAIsq*pow(LAIcell,2.0)+ Tmax_LAI*LAIcell); //From Granier (1999)
+  NumericVector Tmax = pet*(Tmax_LAIsq*(LAIcell*LAIcell)+ Tmax_LAI*LAIcell); //From Granier (1999)
   
   //Fraction of Tmax attributed to each plant cohort
   double pabs = std::accumulate(CohASWRF.begin(),CohASWRF.end(),0.0);
@@ -280,7 +306,7 @@ List transpirationBasic(List x, NumericVector meteovec,
         if(stemCavitationRecovery!="total") {
           Klc[l] = std::min(Klc[l], 1.0-StemPLC[c]); 
         }
-        Kunlc[l] = pow(Kunsat[l],0.5)*V(c,l);
+        Kunlc[l] = std::sqrt(Kunsat[l])*V(c,l);
       }
       double sumKunlc = sum(Kunlc);
       double Klcmean = sum(Klc*V(c,_));
@@ -312,7 +338,7 @@ List transpirationBasic(List x, NumericVector meteovec,
           Klc(j,l) = Psi2K(psiSoilM(c,l), Psi_Extract[c], Exp_Extract[c]);
           //Limit Mean Kl due to previous cavitation
           if(stemCavitationRecovery!="total") Klc(j,l) = std::min(Klc(j,l), 1.0-StemPLC[c]); 
-          Kunlc(j,l) = pow(KunsatM(j,l),0.5)*RHOPcohV(j,l);
+          Kunlc(j,l) = std::sqrt(KunsatM(j,l))*RHOPcohV(j,l);
         }
       }
       double sumKunlc = sum(Kunlc);
@@ -490,7 +516,6 @@ List transpirationBasic(List x, NumericVector meteovec,
     outputWaterBalance[c] = PWB[c];
   }
 
-  return(transpOutput);
 }
 
 //' Transpiration modes
@@ -681,9 +706,8 @@ List transpirationBasic(List x, NumericVector meteovec,
 List transpirationGranier(List x, DataFrame meteo, int day,
                           double latitude, double elevation, double slope, double aspect, 
                           bool modifyInput = true) {
-  //Add communication structures
-  addCommunicationStructures(x);
-  
+
+
   List control = x["control"];
   if(!meteo.containsElementNamed("MinTemperature")) stop("Please include variable 'MinTemperature' in weather input.");
   NumericVector MinTemperature = meteo["MinTemperature"];
@@ -736,15 +760,16 @@ List transpirationGranier(List x, DataFrame meteo, int day,
     Named("Catm") = Catm,
     Named("Patm") = Patm[day-1]);
   
-  List transpOutput = transpirationBasic(x, meteovec, elevation, modifyInput);
-  
-  //Clear communication structures
-  bool clear_communications = true;
-  if(control.containsElementNamed("clearCommunications")) {
-    clear_communications = control["clearCommunications"];
-  }
-  if(clear_communications) clearCommunicationStructures(x);
-  return(transpOutput);
+  DataFrame cohorts = Rcpp::as<Rcpp::DataFrame>(x["cohorts"]);
+  DataFrame soil = Rcpp::as<Rcpp::DataFrame>(x["soil"]);
+  int nlayers = soil.nrow();
+  int numCohorts = cohorts.nrow();
+  List transpOutput = basicTranspirationCommunicationOutput(numCohorts, nlayers);
+  transpirationBasic(transpOutput, x, meteovec, elevation, modifyInput);
+
+  List transpBasic = copyBasicTranspirationOutput(transpOutput, x);
+    
+  return(transpBasic);
 } 
 
 

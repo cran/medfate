@@ -1,5 +1,4 @@
 #include <Rcpp.h>
-#include "communication_structures.h"
 #include "forestutils.h"
 #include "paramutils.h"
 #include "incbeta.h"
@@ -526,7 +525,6 @@ void longwaveRadiationSHAW_inner(List internalLWR, NumericMatrix LAIme, NumericM
                                  double LWRatm, double Tsoil, NumericVector Tair, double trunkExtinctionFraction = 0.1) {
   int ncoh = LAIme.ncol();
   int ncanlayers = Tair.size();
-  
   DataFrame LWR_layer = as<Rcpp::DataFrame>(internalLWR["LWR_layer"]);
   
   NumericVector Lup = as<NumericVector>(LWR_layer["Lup"]);
@@ -590,7 +588,8 @@ void longwaveRadiationSHAW_inner(List internalLWR, NumericMatrix LAIme, NumericM
     }
   }
   double Lnet_g = eps_g*(Ldown[0] - sigma_pow_Tsoil);
-  double Lnet_c = sum(Lnet);
+  double Lnet_c = 0.0;
+  for(int i=0;i<ncanlayers;i++) Lnet_c += Lnet[i];
 
   internalLWR["Ldown_ground"] = Ldown[0];
   internalLWR["Lup_ground"] = Lup_g;
@@ -613,9 +612,24 @@ void longwaveRadiationSHAW_inner(List internalLWR, NumericMatrix LAIme, NumericM
 // [[Rcpp::export("light_longwaveRadiationSHAW")]]
 List longwaveRadiationSHAW(NumericMatrix LAIme, NumericMatrix LAImd, NumericMatrix LAImx, 
                             double LWRatm, double Tsoil, NumericVector Tair, double trunkExtinctionFraction = 0.1) {
-   List internalLWR = internalLongWaveRadiation(Tair.size());
-   longwaveRadiationSHAW_inner(internalLWR, LAIme, LAImd, LAImx,
+  int ncanlayers = Tair.size();
+  NumericVector Lup(ncanlayers, NA_REAL), Ldown(ncanlayers, NA_REAL), Lnet(ncanlayers, NA_REAL);
+  NumericVector tau(ncanlayers, NA_REAL), sumTauComp(ncanlayers, NA_REAL);
+  DataFrame LWR_layer = DataFrame::create(_["tau"] = tau,
+                                          _["sumTauComp"] = sumTauComp,
+                                          _["Ldown"] = Ldown, 
+                                          _["Lup"] = Lup,
+                                          _["Lnet"] = Lnet);
+  List lwr_struct = List::create(_["LWR_layer"] = LWR_layer,
+                                 _["Ldown_ground"] = NA_REAL,
+                                 _["Lup_ground"] = NA_REAL,
+                                 _["Lnet_ground"] = NA_REAL,
+                                 _["Ldown_canopy"] = NA_REAL,
+                                 _["Lup_canopy"] = NA_REAL,
+                                 _["Lnet_canopy"] = NA_REAL,
+                                 _["Lnet_cohort_layer"] = NA_REAL);
+   longwaveRadiationSHAW_inner(lwr_struct, LAIme, LAImd, LAImx,
                                LWRatm, Tsoil, Tair, trunkExtinctionFraction);
-   return(internalLWR);
+   return(lwr_struct);
  }
 

@@ -171,8 +171,7 @@ double lnec(double x) {
 //   chepolsum=a(0)/2.0_r8-r+h*x
 //   ENDIF
 //   END FUNCTION chepolsum
-double chepolsum(double x, NumericVector a) {
-  int n = a.size() - 1;
+double chepolsum(double x, NumericVector a, int n) {
   if(n==0) {
     return(a[0]/2.0);
   } else if (n==1) {
@@ -245,7 +244,7 @@ double auxgam(double x) {
     dr[16]= 0.347e-19;
     dr[17]= -0.9e-21;
     double t=2*x-1.0;
-    auxgamm=chepolsum(t,dr);
+    auxgamm=chepolsum(t,dr, 17);
   }
   return(auxgamm);
 }
@@ -350,7 +349,7 @@ double  stirling(double x) {
     a[16]=0.332e-19;
     a[17]=-0.58e-20;
     z=18.0/(x*x)-1.0;
-    stirling=chepolsum(z,a)/(12.0*x);
+    stirling=chepolsum(z,a, 17)/(12.0*x);
   } else {
     z=1.0/(x*x);
     if(x<1000.0) {
@@ -482,7 +481,7 @@ double dompart(double a, double x, bool qt) {
  //    ENDDO
  //    fractio=a/b
  //    END FUNCTION fractio
-double fractio(double x, int n, NumericVector r, NumericVector s) {
+double fractio(double x, int n, double r[9], double s[9]) {
   double a=r[n];
   double b=1.0;
   for(int k=n-1;k>=0;k--) {
@@ -585,7 +584,7 @@ double fractio(double x, int n, NumericVector r, NumericVector s) {
 //   END FUNCTION errorfunction
 double errorfunction(double x, bool erfcc, bool expo){
   double y, z, errfu;
-  NumericVector r(9), s(9); 
+  double r[9], s[9];
   if(erfcc) {
     if(x<-6.5) {
       y = 2.0;
@@ -656,15 +655,15 @@ double errorfunction(double x, bool erfcc, bool expo){
     } else if(x < -0.5) {
       y=errorfunction(-x, true, false)-1.0;
     } else {
-      r(0)=3.209377589138469473e3;
-      r(1)=3.774852376853020208e2;
-      r(2)=1.138641541510501556e2;
-      r(3)=3.161123743870565597e0;
-      r(4)=1.857777061846031527e-1;
-      s(0)=2.844236833439170622e3;
-      s(1)=1.282616526077372276e3;
-      s(2)=2.440246379344441733e2;
-      s(3)=2.360129095234412093e1;
+      r[0]=3.209377589138469473e3;
+      r[1]=3.774852376853020208e2;
+      r[2]=1.138641541510501556e2;
+      r[3]=3.161123743870565597e0;
+      r[4]=1.857777061846031527e-1;
+      s[0]=2.844236833439170622e3;
+      s[1]=1.282616526077372276e3;
+      s[2]=2.440246379344441733e2;
+      s[3]=2.360129095234412093e1;
       z=x*x;
       y=x*fractio(z,4,r,s);
     }
@@ -727,7 +726,7 @@ double errorfunction(double x, bool erfcc, bool expo){
 double saeta(double a, double eta){
   double saeta, y, s, t, eps;
   int m;
-  NumericVector fm(27), bm(27);
+  double fm[27], bm[27];
   eps=epss;
   fm[0]=1.0;
   fm[1]=-1.0/3.0;
@@ -761,7 +760,7 @@ double saeta(double a, double eta){
   for(m=24;m>=1; m--) {
     bm[m-1]=fm[m]+(((double)m)+1.0)*bm[m+1]/a;
   }
-  s=bm(0);
+  s=bm[0];
   t=s;
   y=eta;
   m=1;
@@ -1093,8 +1092,6 @@ double qfraction(double a, double x, double dp){
 //     ENDIF
 //   ENDIF
 //   END SUBROUTINE incgam
-  
-// [[Rcpp::export(".incgam")]]
 NumericVector incgam(double a, double x) {
   double lnx, p = NA_REAL, q = NA_REAL;
   double dp;
@@ -1215,7 +1212,7 @@ double inverfc(double x)  {
 // q= bk(0)+x*(bk(1)+x*(bk(2)+x*(bk(3)+x*bk(4))));
 // ratfun=p/q
 //   END FUNCTION ratfun
-double ratfun(double x, NumericVector ak, NumericVector bk){
+double ratfun(double x, double ak[5], double bk[5]){
   double p= ak[0]+x*(ak[1]+x*(ak[2]+x*(ak[3]+x*ak[4])));
   double q= bk[0]+x*(bk[1]+x*(bk[2]+x*(bk[3]+x*bk[4])));
   return(p/q);
@@ -1279,7 +1276,7 @@ double ratfun(double x, NumericVector ak, NumericVector bk){
   //     
 double lambdaeta(double eta) {
   double q, r, s, L, la;
-  NumericVector ak(6);
+  double ak[6];
   double L2, L3, L4, L5;
   s=eta*eta*0.5;
   if(eta==0.0) {
@@ -1347,7 +1344,7 @@ double lambdaeta(double eta) {
 //     END FUNCTION eps1
 double eps1(double eta) {
   double eps1, la;
-  NumericVector ak(5), bk(5);
+  double ak[5], bk[5];
   if(std::abs(eta)<1.0) {
     ak[0]=-3.333333333438e-1;  bk[0]= 1.000000000000e+0;
     ak[1]=-2.070740359969e-1;  bk[1]= 7.045554412463e-1;
@@ -1398,7 +1395,7 @@ double eps1(double eta) {
 //           END FUNCTION
 double eps2(double eta) {
   double eps2, x, lnmeta;
-  NumericVector ak(5), bk(5);
+  double ak[5], bk[5];
   if(eta < -5.0) {
     x=eta*eta;
     lnmeta=log(-eta);
@@ -1484,7 +1481,7 @@ double eps2(double eta) {
 //             END FUNCTION eps3
 double eps3(double eta) {
   double eps3, eta3, x, y;
-  NumericVector ak(5), bk(5);
+  double ak[5], bk[5];
   if(eta<-8.0) {
     x=eta*eta;
     y=log(-eta)/eta;
@@ -1726,7 +1723,7 @@ double invincgam(double a, double p, double q) {
   double porq, s, dlnr, logr, r, a2, a3, a4, ap1, ap12, ap13, ap14;
   double ap2, ap22, x0, b, eta, L, L2, L3, L4;
   double b2, b3, x, x2, t, px, qx, y, fp;
-  NumericVector ck(5); //ck(1:5)
+  double ck[5]; //ck(1:5)
   int n, m;
   bool pcase;
     

@@ -184,11 +184,18 @@ NumericVector temperatureChange(NumericVector widths, NumericVector Temp,
                                           W, Theta_SAT, Theta_FC, 
                                           Temp);
   int nlayers = Temp.length();
-
-  NumericVector dZ_m = widths*0.001; //mm to m
+  
+  NumericVector a(nlayers, 0.0), b(nlayers, 0.0), c(nlayers, 0.0), d(nlayers, 0.0), e(nlayers, 0.0), f(nlayers, 0.0);
 
   //Estimate layer interfaces
-  NumericVector dZUp(nlayers), dZDown(nlayers), Zcent(nlayers), Zup(nlayers), Zdown(nlayers);
+  NumericVector dZ_m(nlayers);
+  for(int l=0;l<nlayers;l++) dZ_m[l] = widths[l]*0.001; //mm to m
+  
+  NumericVector dZUp(nlayers,0.0);
+  NumericVector dZDown(nlayers,0.0);
+  NumericVector Zcent(nlayers,0.0);
+  NumericVector Zup(nlayers,0.0);
+  NumericVector Zdown(nlayers,0.0);
   for(int l=0;l<nlayers;l++) {
     if(l==0) { //first layer
       dZUp[l] = dZ_m[0]/2.0; //Distance from ground to mid-layer
@@ -207,9 +214,11 @@ NumericVector temperatureChange(NumericVector widths, NumericVector Temp,
       dZDown[l] = dZ_m[l]/2.0;
     }
   }
-  NumericVector k_up(nlayers), k_down(nlayers);
-  NumericVector a(nlayers),  b(nlayers),  c(nlayers),  d(nlayers);
+  NumericVector k_up(nlayers,0.0);
+  NumericVector k_down(nlayers,0.0);
   for(int l=0;l<nlayers;l++) {
+    k_up[l] = 0.0;
+    k_down[l] = 0.0;
     if(l==0) { //first layer
       k_down[l] = (k[l]*k[l+1]*(Zcent[l]-Zcent[l+1]))/(k[l]*(Zdown[l] - Zcent[l+1]) + k[l+1]*(Zcent[l] - Zdown[l]));
       a[l] = 0.0;
@@ -230,7 +239,7 @@ NumericVector temperatureChange(NumericVector widths, NumericVector Temp,
       d[l] = (k_up[l]/dZUp[l])*(Temp[l-1] - Temp[l]);
     }
   }
-  NumericVector tempch = tridiagonalSolving(a,b,c,d);
+  NumericVector tempch = tridiagonalSolving(a,b,c,d, e,f, nlayers);
   return(tempch);
 }
 // NumericVector temperatureChange(NumericVector widths, NumericVector Temp,

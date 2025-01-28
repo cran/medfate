@@ -1,8 +1,8 @@
 Package: medfate
 Type: Package
 Title: Mediterranean Forest Simulation
-Version: 4.7.0
-Date: 2024-10-18
+Version: 4.8.0
+Date: 2025-01-28
 Authors@R: c(
 	person('Miquel', 'De Cáceres', role=c('aut','cre', 'cph'),
 	email='miquelcaceres@gmail.com', comment = c(ORCID = "0000-0001-7132-2080")),
@@ -21,7 +21,9 @@ Authors@R: c(
 	)
 Description: Simulate Mediterranean forest functioning and dynamics using cohort-based description of vegetation [De Caceres et al. (2015) <doi:10.1016/j.agrformet.2015.06.012>; De Caceres et al. (2021) <doi:10.1016/j.agrformet.2020.108233>].
 License: GPL (>= 2) | LGPL (>= 3)
-URL: https://emf-creaf.github.io/medfate/
+URL: https://emf-creaf.github.io/medfate/,
+        https://github.com/emf-creaf/medfate
+BugReports: https://github.com/emf-creaf/medfate/issues
 LazyLoad: yes
 Depends: R (>= 3.5.0)
 Imports: ggplot2 (>= 3.0.0), meteoland (>= 2.0.0), Rcpp (>= 1.0.6),
@@ -31,10 +33,9 @@ LinkingTo: Rcpp, meteoland
 Encoding: UTF-8
 NeedsCompilation: yes
 RoxygenNote: 7.3.2
-BugReports: https://github.com/emf-creaf/medfate/issues
 Config/testthat/edition: 3
 LazyData: true
-Packaged: 2024-10-18 11:10:16 UTC; miquel
+Packaged: 2025-01-28 12:03:30 UTC; miquel
 Author: Miquel De Cáceres [aut, cre, cph]
     (<https://orcid.org/0000-0001-7132-2080>),
   Nicolas Martin-StPaul [aut] (<https://orcid.org/0000-0001-7574-0108>),
@@ -51,4 +52,4 @@ Author: Miquel De Cáceres [aut, cre, cph]
   John Burkardt [cph] (Copyright holder of C++ code in 'incgamma.cpp')
 Maintainer: Miquel De Cáceres <miquelcaceres@gmail.com>
 Repository: CRAN
-Date/Publication: 2024-10-18 14:20:02 UTC
+Date/Publication: 2025-01-28 13:40:05 UTC
