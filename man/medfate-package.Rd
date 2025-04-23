@@ -10,48 +10,50 @@ Simulate Mediterranean forest functioning and dynamics using cohort-based descri
 }
 \references{
 \itemize{
-   \item{De Cáceres et al. (2015) (\doi{10.1016/j.agrformet.2015.06.012})}
-   \item{De Cáceres et al. (2021) (\doi{10.1016/j.agrformet.2020.108233})}
-   \item{Ruffault et al. (2022) (\doi{10.5194/gmd-15-5593-2022})}
+\item{De Cáceres et al. (2015) (\doi{10.1016/j.agrformet.2015.06.012})}
+\item{De Cáceres et al. (2021) (\doi{10.1016/j.agrformet.2020.108233})}
+\item{Ruffault et al. (2022) (\doi{10.5194/gmd-15-5593-2022})}
 }
 }
 \seealso{
-Useful links: 
-\itemize{ 
- \item{\url{https://emf-creaf.github.io/medfate/}} 
- \item{\url{https://emf-creaf.github.io/medfatebook/}} 
+Useful links:
+\itemize{
+\item{\url{https://emf-creaf.github.io/medfate/}}
+\item{\url{https://emf-creaf.github.io/medfatebook/}}
 }
 }
 \author{
 \strong{Maintainer}: Miquel De Cáceres
 \email{miquelcaceres@gmail.com}
-[\href{https://orcid.org/0000-0001-7132-2080}{ORCID}]
+\href{https://orcid.org/0000-0001-7132-2080}{ORCID}
 
 Authors: \itemize{
 \item{ Nicolas Martin-StPaul
-[\href{https://orcid.org/0000-0001-7574-0108}{ORCID}]}
+\href{https://orcid.org/0000-0001-7574-0108}{ORCID}}
 \item{ Víctor Granda
-[\href{https://orcid.org/0000-0002-0469-1991}{ORCID}]}
+\href{https://orcid.org/0000-0002-0469-1991}{ORCID}}
 \item{ Antoine Cabon
-[\href{https://orcid.org/0000-0001-6426-1726}{ORCID}]}
+\href{https://orcid.org/0000-0001-6426-1726}{ORCID}}
+\item{ Arsène Druel
+\href{https://orcid.org/0000-0002-3938-0085}{ORCID}}
+\item{ Julien Ruffault
+\href{https://orcid.org/0000-0003-3647-8172}{ORCID}}
 }
 Contributors: \itemize{
 \item{ Jordi Martínez-Vilalta
-[\href{https://orcid.org/0000-0002-2332-7298}{ORCID}]}
+\href{https://orcid.org/0000-0002-2332-7298}{ORCID}}
 \item{ Maurizio Mencuccini
-[\href{https://orcid.org/0000-0003-0840-1477}{ORCID}]}
-\item{ Julien Ruffault
-[\href{https://orcid.org/0000-0003-3647-8172}{ORCID}]}
+\href{https://orcid.org/0000-0003-0840-1477}{ORCID}}
 \item{ François Pimont
-[\href{https://orcid.org/0000-0002-9842-6207}{ORCID}]}
+\href{https://orcid.org/0000-0002-9842-6207}{ORCID}}
 \item{ Hervé Cochard
-[\href{https://orcid.org/0000-0002-2727-7072}{ORCID}]}
+\href{https://orcid.org/0000-0002-2727-7072}{ORCID}}
 \item{ Aitor Améztegui
-[\href{https://orcid.org/0000-0001-6426-1726}{ORCID}]}
+\href{https://orcid.org/0000-0001-6426-1726}{ORCID}}
 \item{ Léa Veuillen
-[\href{https://orcid.org/0000-0002-2790-3627}{ORCID}]}
+\href{https://orcid.org/0000-0002-2790-3627}{ORCID}}
 \item{ Shengli Huang
-[\href{https://orcid.org/0003-3927-7042}{ORCID}]}
+\href{https://orcid.org/0003-3927-7042}{ORCID}}
 }
 }
 \keyword{internal}

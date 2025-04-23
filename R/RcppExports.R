@@ -369,14 +369,14 @@ instance_communication_structures <- function(x, model) {
 #'   \item{\code{CrownFire$Ic_ratio}: Crown initiation ratio.}
 #'   \item{\code{CrownFire$`I_b [kW/m]`}: Fireline intensity of the crown fire.}
 #'   \item{\code{CrownFire$`FL [m]`}: Flame length of the crown fire.}
-#'   \item{\code{FirePotentials$RP}: Surface fire reaction potential ([0-9]).}
-#'   \item{\code{FirePotentials$SP}: Surface fire spread rate potential ([0-9]).}
-#'   \item{\code{FirePotentials$FP}: Surface fire flame length potential ([0-9]).}
-#'   \item{\code{FirePotentials$SFP}: Surface fire potential ([0-9]).}
-#'   \item{\code{FirePotentials$IC}: Crown initiation potential ([0-9]).}
-#'   \item{\code{FirePotentials$TC}: Crown-to-crown transmission potential ([0-9]).}
-#'   \item{\code{FirePotentials$RC}: Crown fire spread rate potential ([0-9]).}
-#'   \item{\code{FirePotentials$CFC}: Crown fire potential ([0-9]).}
+#'   \item{\code{FirePotentials$RP}: Surface fire reaction potential (\[0-9\]).}
+#'   \item{\code{FirePotentials$SP}: Surface fire spread rate potential (\[0-9\]).}
+#'   \item{\code{FirePotentials$FP}: Surface fire flame length potential (\[0-9\]).}
+#'   \item{\code{FirePotentials$SFP}: Surface fire potential (\[0-9\]).}
+#'   \item{\code{FirePotentials$IC}: Crown initiation potential (\[0-9\]).}
+#'   \item{\code{FirePotentials$TC}: Crown-to-crown transmission potential (\[0-9\]).}
+#'   \item{\code{FirePotentials$RC}: Crown fire spread rate potential (\[0-9\]).}
+#'   \item{\code{FirePotentials$CFC}: Crown fire potential (\[0-9\]).}
 #' }
 #' 
 #' @references
@@ -440,7 +440,7 @@ fire_Rothermel <- function(modeltype, wSI, sSI, delta, mx_dead, hSI, mSI, u, win
 #' @param T_necrosis Temperature of tissue necrosis (degrees Celsius).
 #' @param rho_air Air density (kg/m3).
 #' @param rho_bark Bark density (kg/m3).
-#' @param fmc_bark Bark moisture content (\% dry weight).
+#' @param fmc_bark Bark moisture content (% dry weight).
 #' @param z height (m).
 #' @param SLA Specific leaf area (m2/kg).
 #' @param h Heat transfer coefficient
@@ -1071,7 +1071,7 @@ fuel_FCCS <- function(object, SpParams, cohortFMC = as.numeric( c()), loadingOff
 #'
 #' @param stressValue Current value of the stress variable (0 to 1, 
 #'                    with higher values indicate stronger stress).
-#' @param stressThreshold Threshold to indicate 50\% annual mortality probability.
+#' @param stressThreshold Threshold to indicate 50% annual mortality probability.
 #' 
 #' @return Returns a probability (between 0 and 1)
 #' 
@@ -1247,7 +1247,7 @@ growth <- function(x, meteo, latitude, elevation, slope = NA_real_, aspect = NA_
 #'
 #' @param psi A scalar (or a vector, depending on the function) with water potential (in MPa).
 #' @param K Whole-plant relative conductance (0-1).
-#' @param psi_extract Soil water potential (in MPa) corresponding to 50\% whole-plant relative transpiration.
+#' @param psi_extract Soil water potential (in MPa) corresponding to 50% whole-plant relative transpiration.
 #' @param exp_extract Exponent of the whole-plant relative transpiration Weibull function.
 #' @param v Proportion of fine roots within each soil layer.
 #' @param krhizomax Maximum rhizosphere hydraulic conductance (defined as flow per leaf surface unit and per pressure drop).
@@ -1256,7 +1256,7 @@ growth <- function(x, meteo, latitude, elevation, slope = NA_real_, aspect = NA_
 #' @param n,alpha Parameters of the Van Genuchten function (rhizosphere vulnerability curve).
 #' @param kxylem Xylem hydraulic conductance (defined as flow per surface unit and per pressure drop).
 #' @param pCrit Proportion of maximum conductance considered critical for hydraulic functioning.
-#' @param psi50,psi88,psi12 Water potentials (in MPa) corresponding to 50\%, 88\% and 12\% percent conductance loss.
+#' @param psi50,psi88,psi12 Water potentials (in MPa) corresponding to 50%, 88% and 12% percent conductance loss.
 #' @param temp Temperature (in degrees Celsius).
 #' 
 #' @details Details of plant hydraulic models are given the medfate book. 
@@ -1581,9 +1581,9 @@ hydraulics_regulatedPsiTwoElements <- function(Emax, psiSoil, krhizomax, kxylemm
 #' @param psiRhizo Water potential (in MPa) in the rhizosphere (root surface).
 #' @param psiStem Water potential (in MPa) in the stem.
 #' @param psiLeaf Water potential (in MPa) in the leaf.
-#' @param PLCstem Percent loss of conductance (in \%) in the stem.
+#' @param PLCstem Percent loss of conductance (in %) in the stem.
 #' @param L Vector with the length of coarse roots (mm) for each soil layer.
-#' @param V Vector with the proportion [0-1] of fine roots within each soil layer.
+#' @param V Vector with the proportion \[0-1\] of fine roots within each soil layer.
 #' @param krhizomax Maximum rhizosphere hydraulic conductance (defined as flow per leaf surface unit and per pressure drop).
 #' @param kleafmax Maximum leaf hydraulic conductance (defined as flow per leaf surface unit and per pressure drop).
 #' @param kstemmax Maximum stem xylem hydraulic conductance (defined as flow per leaf surface unit and per pressure drop).
@@ -1855,7 +1855,7 @@ hydrology_infiltrationGreenAmpt <- function(t, psi_w, Ksat, theta_sat, theta_dry
 #' 
 #' @param I Soil infiltration (in mm of water).
 #' @param widths Width of soil layers (in mm).
-#' @param macro Macroporosity of soil layers (in \%).
+#' @param macro Macroporosity of soil layers (in %).
 #' @param a,b Parameters of the extinction function used for water infiltration.
 #' 
 #' @keywords internal
@@ -2086,9 +2086,9 @@ hydraulics_initSperryNetworks <- function(x) {
 #' @return
 #' Function \code{transp_profitMaximization} returns a list with the following elements:
 #' \itemize{
-#'   \item{\code{Cost}: Cost function [0-1].}
-#'   \item{\code{Gain}: Gain function [0-1].}
-#'   \item{\code{Profit}: Profit function [0-1].}
+#'   \item{\code{Cost}: Cost function \[0-1\].}
+#'   \item{\code{Gain}: Gain function \[0-1\].}
+#'   \item{\code{Profit}: Profit function \[0-1\].}
 #'   \item{\code{iMaxProfit}: Index corresponding to maximum profit (starting from 0).}
 #' }
 #' 
@@ -2459,11 +2459,11 @@ light_cohortAbsorbedSWRFraction <- function(z, x, SpParams, gdd = NA_real_) {
 #'         \item{\code{Gswmin}: Minimum stomatal conductance to water vapor (in mol H2O·m-2·s-1).}
 #'         \item{\code{Tmax_LAI}: Coefficient relating LAI with the ratio of maximum transpiration over potential evapotranspiration.}
 #'         \item{\code{Tmax_LAIsq}: Coefficient relating squared LAI with the ratio of maximum transpiration over potential evapotranspiration.}
-#'         \item{\code{Psi_Extract}: Water potential corresponding to 50\% relative transpiration (in MPa).}
+#'         \item{\code{Psi_Extract}: Water potential corresponding to 50% relative transpiration (in MPa).}
 #'         \item{\code{Exp_Extract}: Parameter of the Weibull function regulating transpiration reduction.}
 #'         \item{\code{VCstem_c}, \code{VCstem_d}: Parameters of the stem xylem vulnerability curve (Weibull).}
 #'         \item{\code{WUE}: Daily water use efficiency (gross photosynthesis over transpiration) under no light, water or CO2 limitations and VPD = 1kPa (g C/mm water).}
-#'         \item{\code{WUE_par}: Coefficient regulating the influence of \% PAR on gross photosynthesis.}
+#'         \item{\code{WUE_par}: Coefficient regulating the influence of % PAR on gross photosynthesis.}
 #'         \item{\code{WUE_co2}: Coefficient regulating the influence of atmospheric CO2 concentration on gross photosynthesis.}
 #'         \item{\code{WUE_vpd}: Coefficient regulating the influence of vapor pressure deficit (VPD) on gross photosynthesis.}
 #'       }
@@ -2930,9 +2930,9 @@ photo_multilayerPhotosynthesisFunction <- function(E, psiLeaf, Catm, Patm, Tair,
 #' 
 #' Functions to calculate properties of fine/coarse roots within the soil, given root system parameters and soil layer definition.
 #' 
-#' @param Z50 A vector of depths (in mm) corresponding to 50\% of roots.
-#' @param Z95 A vector of depths (in mm) corresponding to 95\% of roots.
-#' @param Z100 A vector of depths (in mm) corresponding to 100\% of roots.
+#' @param Z50 A vector of depths (in mm) corresponding to 50% of roots.
+#' @param Z95 A vector of depths (in mm) corresponding to 95% of roots.
+#' @param Z100 A vector of depths (in mm) corresponding to 100% of roots.
 #' @param Zcone A vector of depths (in mm) corresponding to the root cone tip.
 #' @param d The width (in mm) corresponding to each soil layer.
 #' @param v Vector of proportions of fine roots in each soil layer.
@@ -3619,13 +3619,13 @@ soil_temperatureChange <- function(widths, Temp, sand, clay, W, Theta_SAT, Theta
 #'     \item{\code{"Transpiration"}: A data frame with the amount of daily transpiration (in mm) for each plant cohort.}
 #'     \item{\code{"GrossPhotosynthesis"}: A data frame with the amount of daily gross photosynthesis (in g C·m-2) for each plant cohort. }
 #'     \item{\code{"PlantPsi"}: A data frame with the average daily water potential of each plant (in MPa).}
-#'     \item{\code{"LeafPLC"}: A data frame with the average daily proportion of leaf conductance loss of each plant ([0-1]).}
-#'     \item{\code{"StemPLC"}: A data frame with the average daily proportion of stem conductance loss of each plant ([0-1]).}
+#'     \item{\code{"LeafPLC"}: A data frame with the average daily proportion of leaf conductance loss of each plant (\[0-1\]).}
+#'     \item{\code{"StemPLC"}: A data frame with the average daily proportion of stem conductance loss of each plant (\[0-1\]).}
 #'     \item{\code{"PlantWaterBalance"}: A data frame with the daily balance between transpiration and soil water extraction for each plant cohort. }
 #'     \item{\code{"LeafRWC"}: A data frame with the average daily leaf relative water content of each plant (in percent).}
 #'     \item{\code{"StemRWC"}: A data frame with the average daily stem relative water content of each plant (in percent). }
 #'     \item{\code{"LFMC"}: A data frame with the daily live fuel moisture content (in percent of dry weight).}
-#'     \item{\code{"PlantStress"}: A data frame with the amount of daily stress [0-1] suffered by each plant cohort (relative whole-plant conductance).}
+#'     \item{\code{"PlantStress"}: A data frame with the amount of daily stress \[0-1\] suffered by each plant cohort (relative whole-plant conductance).}
 #'   }
 #' If \code{transpirationMode="Sperry"} or \code{transpirationMode="Sureau"}, element \code{"Plants"} is a list with the following subelements:
 #'   \itemize{
@@ -3649,11 +3649,11 @@ soil_temperatureChange <- function(widths, Temp, sand, clay, W, Theta_SAT, Theta
 #'     \item{\code{"StemRWC"}: A data frame with the average daily stem relative water content of each plant (in percent). }
 #'     \item{\code{"LFMC"}: A data frame with the daily live fuel moisture content (in percent of dry weight).}
 #'     \item{\code{"StemPsi"}: A data frame with the minimum daily stem water potential of each plant (in MPa). }
-#'     \item{\code{"LeafPLC"}: A data frame with the average daily proportion of leaf conductance loss of each plant ([0-1]).}
-#'     \item{\code{"StemPLC"}: A data frame with the average daily proportion of stem conductance loss of each plant ([0-1]).}
+#'     \item{\code{"LeafPLC"}: A data frame with the average daily proportion of leaf conductance loss of each plant (\[0-1\]).}
+#'     \item{\code{"StemPLC"}: A data frame with the average daily proportion of stem conductance loss of each plant (\[0-1\]).}
 #'     \item{\code{"RootPsi"}: A data frame with the minimum daily root water potential of each plant (in MPa). }
 #'     \item{\code{"RhizoPsi"}: A list of data frames (one per plant cohort) with the minimum daily root water potential of each plant (in MPa).}
-#'     \item{\code{"PlantStress"}: A data frame with the amount of daily stress [0-1] suffered by each plant cohort (relative whole-plant conductance).}
+#'     \item{\code{"PlantStress"}: A data frame with the amount of daily stress \[0-1\] suffered by each plant cohort (relative whole-plant conductance).}
 #'   }
 #' 
 #' @references
@@ -3890,13 +3890,13 @@ spwb_day <- function(x, date, meteovec, latitude, elevation, slope = NA_real_, a
 #' Set of functions used to calculate tissue moisture from water potential and viceversa.
 #' 
 #' @param psiSym,psiApo Symplastic or apoplastic water potential (MPa).
-#' @param RWC Relative water content [0-1].
+#' @param RWC Relative water content \[0-1\].
 #' @param pi0 Full turgor osmotic potential (MPa).
 #' @param epsilon Bulk modulus of elasticity (MPa).
 #' @param c,d Parameters of the xylem vulnerability curve.
 #' @param af Apoplastic fraction (proportion) in the segment (e.g. leaf or stem).
 #' @param L Vector with the length of coarse roots (mm) for each soil layer.
-#' @param V Vector with the proportion [0-1] of fine roots within each soil layer.
+#' @param V Vector with the proportion \[0-1\] of fine roots within each soil layer.
 #' @param Al2As Leaf area to sapwood area (in m2·m-2).
 #' @param height Plant height (in cm).
 #' @param SLA Specific leaf area (mm2·mg-1).
@@ -3906,12 +3906,12 @@ spwb_day <- function(x, date, meteovec, latitude, elevation, slope = NA_real_, a
 #' @return
 #' Values returned for each function are:
 #' \itemize{
-#'   \item{\code{moisture_symplasticRWC}: Relative water content [0-1] of the symplastic fraction.}
-#'   \item{\code{moisture_apoplasticRWC}: Relative water content [0-1] of the apoplastic fraction.}
+#'   \item{\code{moisture_symplasticRWC}: Relative water content \[0-1\] of the symplastic fraction.}
+#'   \item{\code{moisture_apoplasticRWC}: Relative water content \[0-1\] of the apoplastic fraction.}
 #'   \item{\code{moisture_symplasticWaterPotential}: Water potential (in MPa) of the symplastic fraction.}
 #'   \item{\code{moisture_apoplasticWaterPotential}: Water potential (in MPa) of the apoplastic fraction.}
 #'   \item{\code{moisture_turgorLossPoint}: Water potential (in MPa) corresponding to turgor loss point.}
-#'   \item{\code{moisture_segmentRWC}: Segment relative water content [0-1].}
+#'   \item{\code{moisture_segmentRWC}: Segment relative water content \[0-1\].}
 #'   \item{\code{water_plant}: A vector of water content (mm) per plant cohort.}
 #' }
 #' 
@@ -4040,7 +4040,7 @@ transp_transpirationSureau <- function(x, meteo, day, latitude, elevation, slope
 #'       \item{\code{"Transpiration"}: Transpirated water (in mm) corresponding to each cohort.}
 #'       \item{\code{"GrossPhotosynthesis"}: Gross photosynthesis (in gC/m2) corresponding to each cohort.}
 #'       \item{\code{"psi"}: Water potential (in MPa) of the plant cohort (average over soil layers).}
-#'       \item{\code{"DDS"}: Daily drought stress [0-1] (relative whole-plant conductance).}
+#'       \item{\code{"DDS"}: Daily drought stress \[0-1\] (relative whole-plant conductance).}
 #'     }
 #'   When using \code{transp_transpirationSperry} or \code{transp_transpirationSureau}, element \code{"Plants"} includes:
 #'     \itemize{
@@ -4060,7 +4060,7 @@ transp_transpirationSureau <- function(x, meteo, day, latitude, elevation, slope
 #'       \item{\code{"LeafPsiMin_SH"}: Minimum (predawn) water potential (in MPa) at shade leaves.}
 #'       \item{\code{"LeafPsiMax_SH"}: Maximum (midday) water potential (in MPa) at shade leaves.}
 #'       \item{\code{"dEdP"}: Overall soil-plant conductance (derivative of the supply function).}
-#'       \item{\code{"DDS"}: Daily drought stress [0-1] (relative whole-plant conductance).}
+#'       \item{\code{"DDS"}: Daily drought stress \[0-1\] (relative whole-plant conductance).}
 #'       \item{\code{"StemRWC"}: Relative water content of stem tissue (including symplasm and apoplasm).}
 #'       \item{\code{"LeafRWC"}: Relative water content of leaf tissue (including symplasm and apoplasm).}
 #'       \item{\code{"LFMC"}: Live fuel moisture content (in percent of dry weight).}
@@ -4107,11 +4107,11 @@ transp_transpirationSureau <- function(x, meteo, day, latitude, elevation, slope
 #'       \item{\code{"RootPsi"}: A data frame with root crown water potential (in MPa) for each plant cohort during each time step.}
 #'       \item{\code{"StemPsi"}: A data frame with stem water potential (in MPa) for each plant cohort during each time step.}
 #'       \item{\code{"LeafPsi"}: A data frame with leaf (average) water potential (in MPa) for each plant cohort during each time step. }
-#'       \item{\code{"StemPLC"}: A data frame with the proportion loss of conductance [0-1] for each plant cohort during each time step. }
-#'       \item{\code{"StemRWC"}: A data frame with the (average) relative water content of stem tissue [0-1] for each plant cohort during each time step. }
-#'       \item{\code{"LeafRWC"}: A data frame with the relative water content of leaf tissue [0-1] for each plant cohort during each time step. }
-#'       \item{\code{"StemSympRWC"}: A data frame with the (average) relative water content of symplastic stem tissue [0-1] for each plant cohort during each time step. }
-#'       \item{\code{"LeafSympRWC"}: A data frame with the relative water content of symplastic leaf tissue [0-1] for each plant cohort during each time step. }
+#'       \item{\code{"StemPLC"}: A data frame with the proportion loss of conductance \[0-1\] for each plant cohort during each time step. }
+#'       \item{\code{"StemRWC"}: A data frame with the (average) relative water content of stem tissue \[0-1\] for each plant cohort during each time step. }
+#'       \item{\code{"LeafRWC"}: A data frame with the relative water content of leaf tissue \[0-1\] for each plant cohort during each time step. }
+#'       \item{\code{"StemSympRWC"}: A data frame with the (average) relative water content of symplastic stem tissue \[0-1\] for each plant cohort during each time step. }
+#'       \item{\code{"LeafSympRWC"}: A data frame with the relative water content of symplastic leaf tissue \[0-1\] for each plant cohort during each time step. }
 #'       \item{\code{"PWB"}: A data frame with plant water balance (extraction - transpiration).}
 #'     }
 #'   }
@@ -4218,7 +4218,7 @@ transp_transpirationGranier <- function(x, meteo, day, latitude, elevation, slop
 #'   \item{\code{dU1}: dUdz/u*, where dUdz is mean velocity gradient and u* is friction velocity.}
 #'   \item{\code{epsilon1}: epsilon/(u^3/h) where epsilon is the turbulent kinetic dissipation rate, u* is friction velocity and h is canopy height.}
 #'   \item{\code{k1}: k/(u*^2), where k is the turbulent kinetic energy and u* is friction velocity.}
-#'   \item{\code{uw1}: <uw>/(u*^2), where <uw> is the Reynolds stress and u* is friction velocity.}
+#'   \item{\code{uw1}: uw/(u*^2), where uw is the Reynolds stress and u* is friction velocity.}
 #'   \item{\code{Lmix1}: Mixing length.}
 #' }
 #' 

@@ -61,9 +61,9 @@
 #'   \item{Function \code{evaluation_stats} returns evaluation statistics (a vector or a data frame depending on \code{type}):
 #'     \itemize{
 #'       \item{\code{Bias}: Mean deviation (positive values correspond to model overestimations).}
-#'       \item{\code{Bias.rel}: Bias in relative terms (\%).}
+#'       \item{\code{Bias.rel}: Bias in relative terms (%).}
 #'       \item{\code{MAE}: Mean absolute error.}
-#'       \item{\code{MAE.rel}: Mean absolute error in relative terms (\%).}
+#'       \item{\code{MAE.rel}: Mean absolute error in relative terms (%).}
 #'       \item{\code{r}: Pearson's linear correlation coefficient.}
 #'       \item{\code{NSE}: Nash-Sutcliffe model efficiency coefficient.}
 #'       \item{\code{NSE.abs}: Modified Nash-Sutcliffe model efficiency coefficient (L1 norm) (Legates & McCabe 1999).}
@@ -240,10 +240,16 @@ evaluation_table<-function(out, measuredData, type = "SWC", cohort = NULL,
     if(pderrcolumn %in% names(measuredData))  {
       df$PD_obs_lower[d %in% rownames(measuredData)] = df$PD_obs[d %in% rownames(measuredData)] - 1.96*measuredData[[pderrcolumn]][seld]
       df$PD_obs_upper[d %in% rownames(measuredData)] = df$PD_obs[d %in% rownames(measuredData)] + 1.96*measuredData[[pderrcolumn]][seld]
+    } else {
+      df$PD_obs_lower[d %in% rownames(measuredData)] = df$PD_obs[d %in% rownames(measuredData)]
+      df$PD_obs_upper[d %in% rownames(measuredData)] = df$PD_obs[d %in% rownames(measuredData)]
     }
     if(mderrcolumn %in% names(measuredData))  {
       df$MD_obs_lower[d %in% rownames(measuredData)] = df$MD_obs[d %in% rownames(measuredData)] - 1.96*measuredData[[mderrcolumn]][seld]
       df$MD_obs_upper[d %in% rownames(measuredData)] = df$MD_obs[d %in% rownames(measuredData)] + 1.96*measuredData[[mderrcolumn]][seld]
+    } else {
+      df$MD_obs_lower[d %in% rownames(measuredData)] = df$MD_obs[d %in% rownames(measuredData)]
+      df$MD_obs_upper[d %in% rownames(measuredData)] = df$MD_obs[d %in% rownames(measuredData)]
     }
   }
   else if(type=="LFMC") {

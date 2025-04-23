@@ -82,13 +82,13 @@ moisture_pressureVolumeCurvePlot(
 \value{
 Values returned for each function are:
 \itemize{
-  \item{\code{moisture_symplasticRWC}: Relative water content [0-1] of the symplastic fraction.}
-  \item{\code{moisture_apoplasticRWC}: Relative water content [0-1] of the apoplastic fraction.}
-  \item{\code{moisture_symplasticWaterPotential}: Water potential (in MPa) of the symplastic fraction.}
-  \item{\code{moisture_apoplasticWaterPotential}: Water potential (in MPa) of the apoplastic fraction.}
-  \item{\code{moisture_turgorLossPoint}: Water potential (in MPa) corresponding to turgor loss point.}
-  \item{\code{moisture_segmentRWC}: Segment relative water content [0-1].}
-  \item{\code{water_plant}: A vector of water content (mm) per plant cohort.}
+\item{\code{moisture_symplasticRWC}: Relative water content [0-1] of the symplastic fraction.}
+\item{\code{moisture_apoplasticRWC}: Relative water content [0-1] of the apoplastic fraction.}
+\item{\code{moisture_symplasticWaterPotential}: Water potential (in MPa) of the symplastic fraction.}
+\item{\code{moisture_apoplasticWaterPotential}: Water potential (in MPa) of the apoplastic fraction.}
+\item{\code{moisture_turgorLossPoint}: Water potential (in MPa) corresponding to turgor loss point.}
+\item{\code{moisture_segmentRWC}: Segment relative water content [0-1].}
+\item{\code{water_plant}: A vector of water content (mm) per plant cohort.}
 }
 }
 \description{

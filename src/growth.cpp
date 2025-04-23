@@ -29,7 +29,7 @@ using namespace Rcpp;
 //'
 //' @param stressValue Current value of the stress variable (0 to 1, 
 //'                    with higher values indicate stronger stress).
-//' @param stressThreshold Threshold to indicate 50\% annual mortality probability.
+//' @param stressThreshold Threshold to indicate 50% annual mortality probability.
 //' 
 //' @return Returns a probability (between 0 and 1)
 //' 
@@ -404,7 +404,6 @@ void growthDay_private(List internalCommunication, List x, NumericVector meteove
                      runon, lateralFlows, waterTableDepth,
                      verbose);
   }
-
   
   String soilFunctions = control["soilFunctions"];
   String mortalityMode = control["mortalityMode"];

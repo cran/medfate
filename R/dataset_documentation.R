@@ -17,8 +17,8 @@
 #'         \item{\code{Height}: Total tree height (in cm).}
 #'         \item{\code{DBH}: Tree diameter at breast height (in cm).}
 #'         \item{\code{N}: Density (number of individuals/hectare) that the measured tree represents.}
-#'         \item{\code{Z50}: Depth (in mm) corresponding to 50\% of fine roots.}
-#'         \item{\code{Z95}: Depth (in mm) corresponding to 95\% of fine roots.}
+#'         \item{\code{Z50}: Depth (in mm) corresponding to 50% of fine roots.}
+#'         \item{\code{Z95}: Depth (in mm) corresponding to 95% of fine roots.}
 #'      }
 #'   }
 #'   \item{\code{shrubData}: A data frame of shrub cohorts (in rows) and the following columns:
@@ -26,8 +26,8 @@
 #'         \item{\code{Species}: String with species (taxon) name or a non-negative integer for shrub species identity (i.e., 0,1,2,...) matching SpParams.}
 #'         \item{\code{Height}: Average total height of plants (in cm).}
 #'         \item{\code{Cover}: Percent cover.}
-#'         \item{\code{Z50}: Depth (in mm) corresponding to 50\% of fine roots.}
-#'         \item{\code{Z95}: Depth (in mm) corresponding to 95\% of fine roots.}
+#'         \item{\code{Z50}: Depth (in mm) corresponding to 50% of fine roots.}
+#'         \item{\code{Z95}: Depth (in mm) corresponding to 95% of fine roots.}
 #'       }
 #'   }
 #'   \item{\code{herbCover}: Percent cover of the herb layer (optional).}
@@ -35,7 +35,7 @@
 #'   \item{\code{seedBank}: A data frame containing seed bank information with the following columns:
 #'       \itemize{
 #'         \item{\code{Species}: String with species (taxon) name or a non-negative integer for tree species identity (i.e., 0,1,2,...) matching SpParams.}
-#'         \item{\code{Percent}: Amount of seeds in relation to full seed bank (in \%).}
+#'         \item{\code{Percent}: Amount of seeds in relation to full seed bank (in %).}
 #'      }
 #'   }
 #' }
@@ -44,11 +44,11 @@
 #' A \code{forest} object can contain additional information when this is available. Data frames \code{treeData} 
 #' and \code{shrubData} can contain additional columns:
 #' \itemize{
-#'   \item{\code{LAI}: Leaf area index (m2/m2)}
-#'   \item{\code{FoliarBiomass}: Standing dry biomass of leaves (kg/m2)}
-#'   \item{\code{FuelLoading}: Fine fuel loading (kg/m2)}
+#'   \item{\code{LAI}: Leaf area index (m2/m2).}
+#'   \item{\code{FoliarBiomass}: Standing dry biomass of leaves (kg/m2).}
+#'   \item{\code{FuelLoading}: Fine fuel loading (kg/m2).}
 #'   \item{\code{CrownRatio}: The ratio between crown length and total height (between 0 and 1)}
-#'   \item{\code{Z100}: Depth (in mm) corresponding to 100\% of fine roots (to specify a truncated root distribution).}
+#'   \item{\code{Z100}: Depth (in mm) corresponding to 100% of fine roots (to specify a truncated root distribution).}
 #'   \item{\code{ObsID}: A string identifying plant cohorts at the stage of forest sampling. Used to track the fate of particular plant cohorts through simulations.
 #'   In \code{\link{fordyn}}, the use of these identifiers can be combined with the control option \code{keepCohortsWithObsID} so that these cohorts are not merged 
 #'   or removed during simulations.}
@@ -160,23 +160,23 @@ NULL
 #'   A data frame including standard fuel models as in Albini (1976) and Scott and Burgan (2005), to be used as input of \code{\link{fire_Rothermel}} function. All values converted to metric format.
 #'  \describe{
 #'     \item{\code{Fuel_Model_Type}}{A factor with levels \code{D} (for dynamic) or \code{S} (for static).}
-#'     \item{\code{Load_1h}}{Loading of 1h fuel class [t/ha].}
-#'     \item{\code{Load_10h}}{Loading of 10h fuel class [t/ha].}
-#'     \item{\code{Load_100h}}{Loading of 100h fuel class [t/ha]}
-#'     \item{\code{Load_Live_Herb}}{Loading of herbaceous fuels [t/ha]}
-#'     \item{\code{Load_Live_Woody}}{Loading of woody fuels [t/ha]}
-#'     \item{\samp{SA/V_1h}}{Surface area to volume ratio of 1h fuel class [m2/m3]}
-#'     \item{\samp{SA/V_10h}}{Surface area to volume ratio of 10h fuel class [m2/m3]}
-#'     \item{\samp{SA/V_100h}}{Surface area to volume ratio of 100h fuel class [m2/m3]}
-#'     \item{\samp{SA/V_Live_Herb}}{Surface area to volume ratio of herbaceous fuels [m2/m3]}
-#'     \item{\samp{SA/V_Live_Woody}}{Surface area to volume ratio of woody fuels [m2/m3]}
-#'     \item{\code{Fuel_Bed_Depth}}{Fuel bed depth [cm]}
-#'     \item{\code{Mx_dead}}{Dead fuel moisture of extinction [percent]}
-#'     \item{\code{Heat_1h}}{Heat content of 1h fuel class [kJ/kg]}
-#'     \item{\code{Heat_10h}}{Heat content of 10h fuel class [kJ/kg]}
-#'     \item{\code{Heat_100h}}{Heat content of 100h fuel class [kJ/kg]}
-#'     \item{\code{Heat_Live_Herb}}{Heat content of herbaceous fuels [kJ/kg]}
-#'     \item{\code{Heat_Live_Woody}}{Heat content of woody fuels [kJ/kg]}
+#'     \item{\code{Load_1h}}{Loading of 1h fuel class \[t/ha\].}
+#'     \item{\code{Load_10h}}{Loading of 10h fuel class \[t/ha\].}
+#'     \item{\code{Load_100h}}{Loading of 100h fuel class \[t/ha\]}
+#'     \item{\code{Load_Live_Herb}}{Loading of herbaceous fuels \[t/ha\]}
+#'     \item{\code{Load_Live_Woody}}{Loading of woody fuels \[t/ha\]}
+#'     \item{\samp{SA/V_1h}}{Surface area to volume ratio of 1h fuel class \[m2/m3\]}
+#'     \item{\samp{SA/V_10h}}{Surface area to volume ratio of 10h fuel class \[m2/m3\]}
+#'     \item{\samp{SA/V_100h}}{Surface area to volume ratio of 100h fuel class \[m2/m3\]}
+#'     \item{\samp{SA/V_Live_Herb}}{Surface area to volume ratio of herbaceous fuels \[m2/m3\]}
+#'     \item{\samp{SA/V_Live_Woody}}{Surface area to volume ratio of woody fuels \[m2/m3\]}
+#'     \item{\code{Fuel_Bed_Depth}}{Fuel bed depth \[cm\]}
+#'     \item{\code{Mx_dead}}{Dead fuel moisture of extinction \[percent\]}
+#'     \item{\code{Heat_1h}}{Heat content of 1h fuel class \[kJ/kg\]}
+#'     \item{\code{Heat_10h}}{Heat content of 10h fuel class \[kJ/kg\]}
+#'     \item{\code{Heat_100h}}{Heat content of 100h fuel class \[kJ/kg\]}
+#'     \item{\code{Heat_Live_Herb}}{Heat content of herbaceous fuels \[kJ/kg\]}
+#'     \item{\code{Heat_Live_Woody}}{Heat content of woody fuels \[kJ/kg\]}
 #'  }
 #' @source
 #' Albini, F. A. (1976). Computer-based models of wildland fire behavior: A users' manual. Ogden, UT: US Department of Agriculture, Forest Service, Intermountain Forest and Range Experiment Station.

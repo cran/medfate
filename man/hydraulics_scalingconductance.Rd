@@ -162,10 +162,10 @@ hydraulics_rootxylemConductanceProportions(L, V)
 \value{
 Values returned for each function are:
 \itemize{
-  \item{\code{hydraulics_maximumSoilPlantConductance}: The maximum soil-plant conductance, in the same units as the input segment conductances.}
-  \item{\code{hydraulics_averageRhizosphereResistancePercent}: The average percentage of resistance due to the rhizosphere, calculated across water potential values.}
-  \item{\code{hydraulics_findRhizosphereMaximumConductance}: The maximum rhizosphere conductance value given an average rhizosphere resistance and the vulnerability curves of rhizosphere, root and stem elements.}
-  \item{\code{hydraulics_taperFactorSavage}: Taper factor according to Savage et al. (2010).}
+\item{\code{hydraulics_maximumSoilPlantConductance}: The maximum soil-plant conductance, in the same units as the input segment conductances.}
+\item{\code{hydraulics_averageRhizosphereResistancePercent}: The average percentage of resistance due to the rhizosphere, calculated across water potential values.}
+\item{\code{hydraulics_findRhizosphereMaximumConductance}: The maximum rhizosphere conductance value given an average rhizosphere resistance and the vulnerability curves of rhizosphere, root and stem elements.}
+\item{\code{hydraulics_taperFactorSavage}: Taper factor according to Savage et al. (2010).}
 }
 }
 \description{
