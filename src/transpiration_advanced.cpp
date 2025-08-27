@@ -39,7 +39,7 @@ const double Cp_Jmol = 29.37152; // J * mol^-1 * ºC^-1
 // STEP 5.2 Leaf energy balance, stomatal conductance and plant hydraulics  (Sperry or Sureau inner functions)
 // STEP 5.3 Soil and canopy energy balances (single or multiple canopy layers)
 // STEP 6. Update plant drought stress (relative whole-plant conductance), cavitation and live fuel moisture
-void transpirationAdvanced(List transpOutput, List x, NumericVector meteovec, 
+void transpirationAdvanced(List SEBcommunication, List transpOutput, List x, NumericVector meteovec, 
                   double latitude, double elevation, double slope, double aspect, 
                   double solarConstant, double delta,
                   double canopyEvaporation = 0.0, double snowMelt = 0.0, double soilEvaporation = 0.0, double herbTranspiration = 0.0,
@@ -72,9 +72,12 @@ void transpirationAdvanced(List transpOutput, List x, NumericVector meteovec,
   String transpirationMode = control["transpirationMode"];
   String soilFunctions = control["soilFunctions"];
 
+  
   int ntimesteps = control["ndailysteps"];
   int nsubsteps = control["nsubsteps_canopy"];
   String rhizosphereOverlap = control["rhizosphereOverlap"];
+  double fullRhizosphereOverlapConductivity = 0.01; //For backwards compatibility
+  if(control.containsElementNamed("fullRhizosphereOverlapConductivity")) fullRhizosphereOverlapConductivity = control["fullRhizosphereOverlapConductivity"];
   bool plantWaterPools = (rhizosphereOverlap!="total");
   double verticalLayerSize = control["verticalLayerSize"];
   double windMeasurementHeight  = control["windMeasurementHeight"];
@@ -254,6 +257,7 @@ void transpirationAdvanced(List transpOutput, List x, NumericVector meteovec,
   ////////////////////////////////////////
   NumericVector psiSoil = psi(soil, soilFunctions); //Get soil water potential
   NumericMatrix psiSoilM(numCohorts, nlayers);
+  NumericMatrix KunsatM(numCohorts, nlayers);
   if(plantWaterPools){
     //Copy soil water potentials from pools
     List soil_pool = clone(soil);
@@ -261,6 +265,8 @@ void transpirationAdvanced(List transpOutput, List x, NumericVector meteovec,
     for(int j = 0; j<numCohorts;j++) {
       //Copy values of soil moisture from pool of cohort j
       for(int l = 0; l<nlayers;l++) Ws_pool[l] = Wpool(j,l);
+      //Calculate unsaturated conductivity (mmolH20·m-1·s-1·MPa-1)
+      KunsatM(j,_) = conductivity(soil_pool, soilFunctions, true);
       //Calculate soil water potential
       psiSoilM(j,_) = psi(soil_pool, soilFunctions);
     }
@@ -587,7 +593,7 @@ void transpirationAdvanced(List transpOutput, List x, NumericVector meteovec,
   if(sapFluidityVariation) sapFluidityDay = 1.0/waterDynamicViscosity((tmin+tmax)/2.0);
   
   //Hydraulics: Define supply functions
-  List hydraulicNetwork(numCohorts);
+  SureauNetwork* sureauNetworks = new SureauNetwork[numCohorts];
   List supplyAboveground(numCohorts);
   for(int c=0;c<numCohorts;c++) {
     
@@ -633,15 +639,14 @@ void transpirationAdvanced(List transpOutput, List x, NumericVector meteovec,
                                     psic, VG_nc, VG_alphac,
                                     control,
                                     sapFluidityDay);
-        hydraulicNetwork[c] = HN;
         supply[c] = supplyFunctionNetwork(HN, 0.0, 0.001); 
       } else if(transpirationMode == "Sureau") {
-        hydraulicNetwork[c] = initSureauNetwork(c, LAI,
-                                                internalWater, 
-                                                paramsAnatomy, paramsTranspiration, paramsWaterStorage,
-                                                VCroot_kmaxc, VGrhizo_kmaxc,
-                                                psic, VG_nc, VG_alphac,
-                                                control, sapFluidityDay);
+        initSureauNetwork_inner(sureauNetworks[c], c, LAI,
+                                internalWater, 
+                                paramsAnatomy, paramsTranspiration, paramsWaterStorage,
+                                VCroot_kmaxc, VGrhizo_kmaxc,
+                                psic, VG_nc, VG_alphac,
+                                control, sapFluidityDay);
       }
       
     } else {
@@ -651,10 +656,10 @@ void transpirationAdvanced(List transpOutput, List x, NumericVector meteovec,
       NumericMatrix RHOPcohDyn(numCohorts, nlayers);
       nlayerscon[c] = 0;
       for(int l=0;l<nlayers;l++) {
-        double overlapFactor = Psi2K(psiSoil[l], -1.0, 4.0);
         RHOPcohDyn(c,l) = RHOPcoh(c,l);
         for(int j=0; j<numCohorts;j++) {
           if(j!=c) {
+            double overlapFactor = std::min(1.0, KunsatM(j,l)/(cmdTOmmolm2sMPa*fullRhizosphereOverlapConductivity));
             RHOPcohDyn(j,l) = RHOPcoh(j,l)*overlapFactor;
             RHOPcohDyn(c,l) = RHOPcohDyn(c,l) + (RHOPcoh(j,l) - RHOPcohDyn(j,l));
           } 
@@ -703,15 +708,14 @@ void transpirationAdvanced(List transpOutput, List x, NumericVector meteovec,
                                     psic, VG_nc, VG_alphac,
                                     control, 
                                     sapFluidityDay);
-        hydraulicNetwork[c] = HN;
         supply[c] = supplyFunctionNetwork(HN, 0.0, 0.001); 
       } else if(transpirationMode == "Sureau") {
-        hydraulicNetwork[c] = initSureauNetwork(c, LAI,
-                                                internalWater, 
-                                                paramsAnatomy, paramsTranspiration, paramsWaterStorage,
-                                                VCroot_kmaxc, VGrhizo_kmaxc,
-                                                psic, VG_nc, VG_alphac,
-                                                control, sapFluidityDay);
+        initSureauNetwork_inner(sureauNetworks[c], c, LAI,
+                                internalWater, 
+                                paramsAnatomy, paramsTranspiration, paramsWaterStorage,
+                                VCroot_kmaxc, VGrhizo_kmaxc,
+                                psic, VG_nc, VG_alphac,
+                                control, sapFluidityDay);
       }
     }
   }
@@ -851,11 +855,9 @@ void transpirationAdvanced(List transpOutput, List x, NumericVector meteovec,
                                 _["layerConnected"] = layerConnected,
                                 _["layerConnectedPools"] = layerConnectedPools,
                                 _["psiSoil"] = psiSoil,
-                                _["psiSoilM"] = psiSoilM,
-                                _["networks"] = hydraulicNetwork);
+                                _["psiSoilM"] = psiSoilM);
     }
-    
-    
+
     ////////////////////////////////////////
     // STEP 5.1 Long-wave radiation balance
     ////////////////////////////////////////
@@ -893,8 +895,8 @@ void transpirationAdvanced(List transpOutput, List x, NumericVector meteovec,
       innerSperry(x, innerInput, innerOutput, n, tstep, 
                   verbose, stepFunctions);
     } else if(transpirationMode == "Sureau"){
-      innerSureau(x, innerInput, innerOutput, n, tstep,
-                   verbose);
+      innerSureau(x, sureauNetworks, innerInput, innerOutput, n, tstep,
+                  verbose);
     }
     
     for(int c=0;c<numCohorts;c++) {
@@ -1032,7 +1034,7 @@ void transpirationAdvanced(List transpOutput, List x, NumericVector meteovec,
       }
       
       //Soil temperature changes
-      NumericVector soilTchange = temperatureChange(widths, Tsoil, sand, clay, Ws, Theta_SAT, Theta_FC, Ebalsoil[n], tstep);
+      NumericVector soilTchange = temperatureChange_inner(SEBcommunication, widths, Tsoil, sand, clay, Ws, Theta_SAT, Theta_FC, Ebalsoil[n], tstep);
       for(int l=0;l<nlayers;l++) {
         Tsoil[l] = Tsoil[l] + std::max(-3.0, std::min(3.0, soilTchange[l])); 
         if(n<(ntimesteps-1)) Tsoil_mat(n+1,l)= Tsoil[l];
@@ -1155,7 +1157,7 @@ void transpirationAdvanced(List transpOutput, List x, NumericVector meteovec,
         Ebalsoil[n] +=Ebalsoils;
         Hcansoil[n] +=Hcansoils;
         //Soil temperature changes
-        NumericVector soilTchange = temperatureChange(widths, Tsoil, sand, clay, Ws, Theta_SAT, Theta_FC, Ebalsoils, tsubstep);
+        NumericVector soilTchange = temperatureChange_inner(SEBcommunication, widths, Tsoil, sand, clay, Ws, Theta_SAT, Theta_FC, Ebalsoils, tsubstep);
         for(int l=0;l<nlayers;l++) Tsoil[l] = Tsoil[l] + soilTchange[l];
       }
       Hcansoil[n] = Hcansoil[n]/((double) nsubsteps);
@@ -1180,6 +1182,14 @@ void transpirationAdvanced(List transpOutput, List x, NumericVector meteovec,
     }
   } //End of timestep loop
 
+  //Delete Sureau Networks
+  if(transpirationMode == "Sureau") {
+    for(int c=0;c<numCohorts;c++) {
+      deleteSureauNetworkPointers(sureauNetworks[c]);
+    }
+  }
+  delete[] sureauNetworks;
+  
   ////////////////////////////////////////
   // STEP 6. Plant drought stress (relative whole-plant conductance), cavitation and live fuel moisture
   ////////////////////////////////////////
@@ -1334,9 +1344,10 @@ List transpirationSperry(List x, DataFrame meteo, int day,
   int nlayers = soil.nrow();
   int numCohorts = cohorts.nrow();
   int ntimesteps = control["ndailysteps"];
+  List SEBcommunication = communicationSoilEnergyBalance(nlayers);
   List transpOutput = advancedTranspirationCommunicationOutput(numCohorts, nlayers, ncanlayers, ntimesteps);
   
-  transpirationAdvanced(transpOutput, x, meteovec,
+  transpirationAdvanced(SEBcommunication, transpOutput, x, meteovec,
                         latitude, elevation, slope, aspect,
                         solarConstant, delta,
                         canopyEvaporation, snowMelt, soilEvaporation, herbTranspiration,
@@ -1433,13 +1444,14 @@ List transpirationSureau(List x, DataFrame meteo, int day,
   int nlayers = soil.nrow();
   int numCohorts = cohorts.nrow();
   int ntimesteps = control["ndailysteps"];
+  List SEBcommunication = communicationSoilEnergyBalance(nlayers);
   List transpOutput = advancedTranspirationCommunicationOutput(numCohorts, nlayers, ncanlayers, ntimesteps);
-  transpirationAdvanced(transpOutput, x, meteovec,
-                                            latitude, elevation, slope, aspect,
-                                            solarConstant, delta,
-                                            canopyEvaporation, snowMelt, soilEvaporation, herbTranspiration,
-                                            false, NA_INTEGER, 
-                                            modifyInput);
+  transpirationAdvanced(SEBcommunication, transpOutput, x, meteovec,
+                        latitude, elevation, slope, aspect,
+                        solarConstant, delta,
+                        canopyEvaporation, snowMelt, soilEvaporation, herbTranspiration,
+                        false, NA_INTEGER, 
+                        modifyInput);
   
   List transpAdvanced = copyAdvancedTranspirationOutput(transpOutput, x);
   

@@ -18,22 +18,36 @@
 #include <meteoland.h>
 using namespace Rcpp;
 
+struct ParamsVolume{
+  double leafpi0;
+  double leafeps;
+  double leafaf;
+  double stempi0;
+  double stemeps;
+  double stem_c;
+  double stem_d;
+  double stemaf;
+  double Vsapwood;
+  double Vleaf;
+  double LAI;
+  double LAIlive;
+}; 
 
 //Plant volume in l·m-2 ground = mm
-double plantVol(double plantPsi, NumericVector pars) {
+double plantVol(double plantPsi, ParamsVolume pars) {
   
-  double leafrwc = tissueRelativeWaterContent(plantPsi, pars["leafpi0"], pars["leafeps"], 
-                                              plantPsi, pars["stem_c"], pars["stem_d"], 
-                                              pars["leafaf"]);
-  double stemrwc = tissueRelativeWaterContent(plantPsi, pars["stempi0"], pars["stemeps"], 
-                                              plantPsi, pars["stem_c"], pars["stem_d"], 
-                                              pars["stemaf"]);
-  return(((pars["Vleaf"] * leafrwc)*pars["LAI"]) + ((pars["Vsapwood"] * stemrwc)*pars["LAIlive"]));
+  double leafrwc = tissueRelativeWaterContent(plantPsi, pars.leafpi0, pars.leafeps, 
+                                              plantPsi, pars.stem_c, pars.stem_d, 
+                                              pars.leafaf);
+  double stemrwc = tissueRelativeWaterContent(plantPsi, pars.stempi0, pars.stemeps, 
+                                              plantPsi, pars.stem_c, pars.stem_d, 
+                                              pars.stemaf);
+  return((pars.Vleaf * leafrwc * pars.LAI) + (pars.Vsapwood * stemrwc * pars.LAIlive));
 }
 
 
 double findNewPlantPsiConnected(double flowFromRoots, double plantPsi, double rootCrownPsi,
-                                NumericVector parsVol){
+                                ParamsVolume parsVol){
   if(plantPsi==rootCrownPsi) return(plantPsi);
   double V = plantVol(plantPsi, parsVol);
   //More negative rootCrownPsi causes increased flow due to water being removed
@@ -60,7 +74,6 @@ void transpirationBasic(List transpOutput, List x, NumericVector meteovec,
   NumericMatrix outputExtraction = as<NumericMatrix>(transpOutput["Extraction"]);
   List outputExtractionPools = transpOutput["ExtractionPools"];
 
-  
   //Control parameters
   List control = x["control"];
   String stemCavitationRecovery = control["stemCavitationRecovery"];
@@ -69,6 +82,8 @@ void transpirationBasic(List transpOutput, List x, NumericVector meteovec,
   String soilFunctions = control["soilFunctions"];
   double verticalLayerSize = control["verticalLayerSize"];
   String rhizosphereOverlap = control["rhizosphereOverlap"];
+  double fullRhizosphereOverlapConductivity = 0.01; //For backwards compatibility
+  if(control.containsElementNamed("fullRhizosphereOverlapConductivity")) fullRhizosphereOverlapConductivity = control["fullRhizosphereOverlapConductivity"];
   bool plantWaterPools = (rhizosphereOverlap!="total");
   double hydraulicRedistributionFraction = control["hydraulicRedistributionFraction"];
   String lfmcComponent = control["lfmcComponent"];
@@ -252,8 +267,8 @@ void transpirationBasic(List transpOutput, List x, NumericVector meteovec,
   NumericVector PWB(numCohorts,0.0);
   NumericVector Kl, epc, Vl;
   
-  //Calculate unsaturated conductivity
-  NumericVector Kunsat = conductivity(soil);
+  //Calculate unsaturated conductivity (mmolH20·m-1·s-1·MPa-1)
+  NumericVector Kunsat = conductivity(soil, soilFunctions, true);
   //Calculate soil water potential
   NumericVector psiSoil = psi(soil,soilFunctions);
 
@@ -262,13 +277,13 @@ void transpirationBasic(List transpOutput, List x, NumericVector meteovec,
   NumericMatrix KunsatM(numCohorts, nlayers);
   NumericMatrix psiSoilM(numCohorts, nlayers);
   if(plantWaterPools) {
-    List soil_pool = clone(soil);
+    DataFrame soil_pool = clone(soil);
     NumericVector Ws_pool = soil_pool["W"];
     for(int j = 0; j<numCohorts;j++) {
       //Copy values of soil moisture from pool of cohort j
       for(int l = 0; l<nlayers;l++) Ws_pool[l] = Wpool(j,l);
-      //Calculate unsaturated conductivity
-      KunsatM(j,_) = conductivity(soil_pool);
+      //Calculate unsaturated conductivity (mmolH20·m-1·s-1·MPa-1)
+      KunsatM(j,_) = conductivity(soil_pool, soilFunctions, true);
       //Calculate soil water potential
       psiSoilM(j,_) = psi(soil_pool, soilFunctions);
       // Rcout<< Ws_pool[3]<< " "<< psiSoilM(j,3)<<"\n";
@@ -277,14 +292,23 @@ void transpirationBasic(List transpOutput, List x, NumericVector meteovec,
     }
   }
   // for(int i= 0;i<psiSoil.size();i++) Rcout<< "S "<<i<<" "<<psiSoil[i]<<"\n";
-    
+  
+  ParamsVolume parsVol;
+  
   for(int c=0;c<numCohorts;c++) {
     
-    NumericVector parsVol = NumericVector::create(_["stem_c"] = VCstem_c[c], _["stem_d"] = VCstem_d[c],
-                                                  _["leafpi0"] = LeafPI0[c], _["leafeps"] = LeafEPS[c],
-                                                  _["leafaf"] = LeafAF[c],_["stempi0"] = StemPI0[c],_["stemeps"] = StemEPS[c],
-                                                  _["stemaf"] = StemAF[c],_["Vsapwood"] = Vsapwood[c],_["Vleaf"] = Vleaf[c],
-                                                  _["LAI"] = LAIphe[c],_["LAIlive"] = LAIlive[c]);
+    parsVol.stem_c = VCstem_c[c];
+    parsVol.stem_d = VCstem_d[c];
+    parsVol.leafpi0 = LeafPI0[c];
+    parsVol.leafeps = LeafEPS[c];
+    parsVol.leafaf = LeafAF[c];
+    parsVol.stempi0 = StemPI0[c];
+    parsVol.stemeps = StemEPS[c];
+    parsVol.stemaf = StemAF[c];
+    parsVol.Vsapwood = Vsapwood[c];
+    parsVol.Vleaf = Vleaf[c];
+    parsVol.LAI = LAIphe[c];
+    parsVol.LAIlive = LAIlive[c];
     
     double rootCrownPsi = NA_REAL;
     
@@ -320,10 +344,10 @@ void transpirationBasic(List transpOutput, List x, NumericVector meteovec,
       NumericMatrix RHOPcoh = Rcpp::as<Rcpp::NumericMatrix>(RHOP[c]);
       NumericMatrix RHOPcohDyn(numCohorts, nlayers);
       for(int l=0;l<nlayers;l++) {
-        double overlapFactor = Psi2K(psiSoil[l], -1.0, 4.0);
         RHOPcohDyn(c,l) = RHOPcoh(c,l);
         for(int j=0; j<numCohorts;j++) {
           if(j!=c) {
+            double overlapFactor = std::min(1.0, KunsatM(j,l)/(cmdTOmmolm2sMPa*fullRhizosphereOverlapConductivity));
             RHOPcohDyn(j,l) = RHOPcoh(j,l)*overlapFactor;
             RHOPcohDyn(c,l) = RHOPcohDyn(c,l) + (RHOPcoh(j,l) - RHOPcohDyn(j,l));
           } 
@@ -579,7 +603,8 @@ void transpirationBasic(List transpOutput, List x, NumericVector meteovec,
 //'       \item{\code{"WaterBalance"}: Plant water balance (extraction - transpiration).}
 //'     }
 //'   }
-//'   \item{\code{"Extraction"}: A data frame with mm of water extracted from each soil layer (in columns) by each cohort (in rows).}
+//'   \item{\code{"Extraction"}: A data frame with mm of water extracted from each soil layer (in columns) by each cohort (in rows). The sum of a given row is equal to the total extraction of the corresponding plant cohort.}
+//'   \item{\code{"ExtractionPools"}: A named list with as many elements as plant cohorts, where each element is a matrix data with mm of water extracted from each layer (in columns) of the water pool of each cohort (in rows). The sum of a given matrix is equal to the total extraction of the corresponding plant cohort.}
 //' 
 //'   The remaining items are only given by \code{transp_transpirationSperry} or \code{transp_transpirationSureau}:
 //'   \item{\code{"EnergyBalance"}: A list with the following elements:

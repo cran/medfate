@@ -2,8 +2,14 @@
 #'
 #' Creates a list control parameters default values for simulations
 #' 
-#' @param transpirationMode Transpiration model (either 'Granier', 'Sperry' or 'Sureau'). See \code{\link{spwbInput}}.
-#' @param soilDomains Soil hydrology model (either 'buckets', 'single' or 'dual'). See \code{\link{hydrology_soilWaterBalance}}.
+#' @param transpirationMode String containing transpiration model (either 'Granier', 'Sperry' or 'Sureau'). See \code{\link{spwbInput}}.
+#' @param soilDomains String containing soil hydrology model (either 'buckets', 'single' or 'dual'). See \code{\link{hydrology_soilWaterBalance}}.
+#' @param rhizosphereOverlap String indicating the assumption with respect to rhizosphere overlap:
+#'   \itemize{
+#'      \item{\code{total}: All plants extract water from the same pools.}
+#'      \item{\code{partial}: Plants partially share water pools, depending on soil moisture.}
+#'      \item{\code{none}: Plants extract water from totally-independent water pools.}
+#'   }
 #' 
 #' @details The function returns a list with default parameters. 
 #' Users can change those defaults that need to be set to other values and use the list as input for model functions. 
@@ -20,6 +26,7 @@
 #'       \item{\code{fillMissingWithGenusParams [=TRUE]}: Boolean flag to indicate that initializing functions should provide estimates from genus value, if species-level values are missing in the species parameter table \code{\link{SpParams}} but genus-level ones are not.}
 #'       \item{\code{standResults [= TRUE]}: Boolean flag to keep stand-level results (in a data frame called 'Stand').}
 #'       \item{\code{soilResults [= TRUE]}: Boolean flag to keep soil-level results (in a list called 'Soil').}
+#'       \item{\code{soilPoolResults [= FALSE]}: Boolean flag to keep soil pool-level results (in a list called 'SoilPools'), if \code{rhizosphereOverlap!="total"}.}
 #'       \item{\code{snowResults [= TRUE]}: Boolean flag to keep snow results (in a data frame called 'Snow').}
 #'       \item{\code{plantResults [= TRUE]}: Boolean flag to keep plant-level water/energy/photosynthesis results (in a list called 'Plants').}
 #'       \item{\code{labileCarbonBalanceResults [= TRUE]}: Boolean flag to keep plant-level labile carbon balance results (in a list called 'LabileCarbonBalance').}
@@ -60,6 +67,7 @@
 #'             \item{"total" - total overlap (plants extract from common soil pools).}
 #'           }
 #'       }
+#'       \item{\code{fullRhizosphereOverlapConductivity [= 0.01]}: The minimum soil hydraulic conductivity (in cm/day) allowing a full connectivity of water pools, when \code{rhizosphereOverlap = "partial"}.}
 #'       \item{\code{verticalLayerSize [= 100]}: Size of vertical layers (in cm) for the calculation of light extinction (and photosynthesis).}
 #'       \item{\code{windMeasurementHeight [= 200]}: Height (in cm) over the canopy corresponding to wind measurements.}
 #'       \item{\code{segmentedXylemVulnerability [= TRUE/FALSE]}: If \code{FALSE} leaf and root vulnerability curves will be equal to those of stem. By default, \code{segmentedXylemVulnerability = TRUE} for \code{transpirationMode = "Sperry"} and \code{segmentedXylemVulnerability = FALSE} for \code{transpirationMode = "Sureau"}.}
@@ -181,10 +189,13 @@
 #' @seealso \code{\link{spwbInput}}, \code{\link{spwb}}, \code{\link{growth}}, \code{\link{fordyn}}
 #' 
 #' @name defaultControl
-defaultControl<-function(transpirationMode = "Granier", soilDomains = "buckets") {
+defaultControl<-function(transpirationMode = "Granier", 
+                         soilDomains = "buckets", 
+                         rhizosphereOverlap = "total") {
   transpirationMode <- match.arg(transpirationMode, c("Granier", "Sperry", "Cochard", "Sureau"))
-  soilDomains <- match.arg(soilDomains, c("buckets", "single", "dual"))
   if(transpirationMode=="Cochard") transpirationMode = "Sureau"
+  soilDomains <- match.arg(soilDomains, c("buckets", "single", "dual"))
+  rhizosphereOverlap <- match.arg(rhizosphereOverlap, c("total", "partial", "none"))
   l <- list(
     #For all functions
     fillMissingRootParams = TRUE,
@@ -194,6 +205,7 @@ defaultControl<-function(transpirationMode = "Granier", soilDomains = "buckets")
     subdailyResults = FALSE,
     standResults = TRUE,
     soilResults = TRUE,
+    soilPoolResults = FALSE,
     snowResults = TRUE,
     plantResults = TRUE,
     plantWaterBalanceResults = TRUE,
@@ -208,6 +220,9 @@ defaultControl<-function(transpirationMode = "Granier", soilDomains = "buckets")
 
     # For water balance
     transpirationMode = transpirationMode,
+    soilDomains = soilDomains,
+    rhizosphereOverlap = rhizosphereOverlap,
+    fullRhizosphereOverlapConductivity = 0.01,
     soilFunctions = "VG",
     VG_PTF = "Toth",
     ndailysteps = 24,
@@ -221,8 +236,6 @@ defaultControl<-function(transpirationMode = "Granier", soilDomains = "buckets")
     interceptionMode = "Gash1995",
     infiltrationMode = "GreenAmpt1911",
     infiltrationCorrection = 5.0,
-    soilDomains = soilDomains,
-    rhizosphereOverlap = "total",
     unfoldingDD = 300,
     verticalLayerSize = 100,
     windMeasurementHeight = 200,

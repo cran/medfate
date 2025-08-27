@@ -1,4 +1,5 @@
 #include <Rcpp.h>
+#include "struct_photosynthesis.h"
 
 #ifndef PHOTOSYNTHESIS_H
 #define PHOTOSYNTHESIS_H
@@ -10,7 +11,7 @@ double gCrown(double u, double gCrown0 = 0.150);
 
 NumericVector leafphotosynthesis(double Q, double Catm, double Gc, double Tleaf, double Vmax298, double Jmax298, bool verbose=false);
 
-void photosynthesisBaldocchi_inner(NumericVector photoOut,
+void photosynthesisBaldocchi_inner(BaldocchiPhoto &photoOut,
                                    double Q, 
                                    double Catm, 
                                    double Tleaf, 

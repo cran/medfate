@@ -1,8 +1,8 @@
 Package: medfate
 Type: Package
 Title: Mediterranean Forest Simulation
-Version: 4.8.1
-Date: 2025-04-22
+Version: 4.8.3
+Date: 2025-08-27
 Authors@R: c(
 	person('Miquel', 'De Cáceres', role=c('aut','cre', 'cph'),
 	email='miquelcaceres@gmail.com', comment = c(ORCID = "0000-0001-7132-2080")),
@@ -36,22 +36,25 @@ NeedsCompilation: yes
 RoxygenNote: 7.3.2
 Config/testthat/edition: 3
 LazyData: true
-Packaged: 2025-04-23 06:53:24 UTC; miquel
-Author: Miquel De Cáceres [aut, cre, cph]
-    (<https://orcid.org/0000-0001-7132-2080>),
-  Nicolas Martin-StPaul [aut] (<https://orcid.org/0000-0001-7574-0108>),
-  Víctor Granda [aut] (<https://orcid.org/0000-0002-0469-1991>),
-  Antoine Cabon [aut] (<https://orcid.org/0000-0001-6426-1726>),
-  Arsène Druel [aut] (<https://orcid.org/0000-0002-3938-0085>),
-  Julien Ruffault [aut] (<https://orcid.org/0000-0003-3647-8172>),
-  Jordi Martínez-Vilalta [ctb] (<https://orcid.org/0000-0002-2332-7298>),
-  Maurizio Mencuccini [ctb] (<https://orcid.org/0000-0003-0840-1477>),
-  François Pimont [ctb] (<https://orcid.org/0000-0002-9842-6207>),
-  Hervé Cochard [ctb] (<https://orcid.org/0000-0002-2727-7072>),
-  Aitor Améztegui [ctb] (<https://orcid.org/0000-0003-2006-1559>),
-  Léa Veuillen [ctb] (<https://orcid.org/0000-0002-2790-3627>),
-  Shengli Huang [ctb] (<https://orcid.org/0000-0003-3927-7042>),
+Packaged: 2025-08-27 13:57:50 UTC; miquel
+Author: Miquel De Cáceres [aut, cre, cph] (ORCID:
+    <https://orcid.org/0000-0001-7132-2080>),
+  Nicolas Martin-StPaul [aut] (ORCID:
+    <https://orcid.org/0000-0001-7574-0108>),
+  Víctor Granda [aut] (ORCID: <https://orcid.org/0000-0002-0469-1991>),
+  Antoine Cabon [aut] (ORCID: <https://orcid.org/0000-0001-6426-1726>),
+  Arsène Druel [aut] (ORCID: <https://orcid.org/0000-0002-3938-0085>),
+  Julien Ruffault [aut] (ORCID: <https://orcid.org/0000-0003-3647-8172>),
+  Jordi Martínez-Vilalta [ctb] (ORCID:
+    <https://orcid.org/0000-0002-2332-7298>),
+  Maurizio Mencuccini [ctb] (ORCID:
+    <https://orcid.org/0000-0003-0840-1477>),
+  François Pimont [ctb] (ORCID: <https://orcid.org/0000-0002-9842-6207>),
+  Hervé Cochard [ctb] (ORCID: <https://orcid.org/0000-0002-2727-7072>),
+  Aitor Améztegui [ctb] (ORCID: <https://orcid.org/0000-0003-2006-1559>),
+  Léa Veuillen [ctb] (ORCID: <https://orcid.org/0000-0002-2790-3627>),
+  Shengli Huang [ctb] (ORCID: <https://orcid.org/0000-0003-3927-7042>),
   John Burkardt [cph] (Copyright holder of C++ code in 'incgamma.cpp')
 Maintainer: Miquel De Cáceres <miquelcaceres@gmail.com>
 Repository: CRAN
-Date/Publication: 2025-04-23 07:40:02 UTC
+Date/Publication: 2025-08-27 15:30:02 UTC

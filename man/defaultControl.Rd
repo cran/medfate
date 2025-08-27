@@ -4,12 +4,23 @@
 \alias{defaultControl}
 \title{Control parameters for simulation models}
 \usage{
-defaultControl(transpirationMode = "Granier", soilDomains = "buckets")
+defaultControl(
+  transpirationMode = "Granier",
+  soilDomains = "buckets",
+  rhizosphereOverlap = "total"
+)
 }
 \arguments{
-\item{transpirationMode}{Transpiration model (either 'Granier', 'Sperry' or 'Sureau'). See \code{\link{spwbInput}}.}
+\item{transpirationMode}{String containing transpiration model (either 'Granier', 'Sperry' or 'Sureau'). See \code{\link{spwbInput}}.}
 
-\item{soilDomains}{Soil hydrology model (either 'buckets', 'single' or 'dual'). See \code{\link{hydrology_soilWaterBalance}}.}
+\item{soilDomains}{String containing soil hydrology model (either 'buckets', 'single' or 'dual'). See \code{\link{hydrology_soilWaterBalance}}.}
+
+\item{rhizosphereOverlap}{String indicating the assumption with respect to rhizosphere overlap:
+\itemize{
+\item{\code{total}: All plants extract water from the same pools.}
+\item{\code{partial}: Plants partially share water pools, depending on soil moisture.}
+\item{\code{none}: Plants extract water from totally-independent water pools.}
+}}
 }
 \value{
 A list, with the following options (default values in brackets):
@@ -22,6 +33,7 @@ A list, with the following options (default values in brackets):
 \item{\code{fillMissingWithGenusParams [=TRUE]}: Boolean flag to indicate that initializing functions should provide estimates from genus value, if species-level values are missing in the species parameter table \code{\link{SpParams}} but genus-level ones are not.}
 \item{\code{standResults [= TRUE]}: Boolean flag to keep stand-level results (in a data frame called 'Stand').}
 \item{\code{soilResults [= TRUE]}: Boolean flag to keep soil-level results (in a list called 'Soil').}
+\item{\code{soilPoolResults [= FALSE]}: Boolean flag to keep soil pool-level results (in a list called 'SoilPools'), if \code{rhizosphereOverlap!="total"}.}
 \item{\code{snowResults [= TRUE]}: Boolean flag to keep snow results (in a data frame called 'Snow').}
 \item{\code{plantResults [= TRUE]}: Boolean flag to keep plant-level water/energy/photosynthesis results (in a list called 'Plants').}
 \item{\code{labileCarbonBalanceResults [= TRUE]}: Boolean flag to keep plant-level labile carbon balance results (in a list called 'LabileCarbonBalance').}
@@ -62,6 +74,7 @@ By default synoptic storms (1.5 mm/h) are assumed between December and June, and
 \item{"total" - total overlap (plants extract from common soil pools).}
 }
 }
+\item{\code{fullRhizosphereOverlapConductivity [= 0.01]}: The minimum soil hydraulic conductivity (in cm/day) allowing a full connectivity of water pools, when \code{rhizosphereOverlap = "partial"}.}
 \item{\code{verticalLayerSize [= 100]}: Size of vertical layers (in cm) for the calculation of light extinction (and photosynthesis).}
 \item{\code{windMeasurementHeight [= 200]}: Height (in cm) over the canopy corresponding to wind measurements.}
 \item{\code{segmentedXylemVulnerability [= TRUE/FALSE]}: If \code{FALSE} leaf and root vulnerability curves will be equal to those of stem. By default, \code{segmentedXylemVulnerability = TRUE} for \code{transpirationMode = "Sperry"} and \code{segmentedXylemVulnerability = FALSE} for \code{transpirationMode = "Sureau"}.}

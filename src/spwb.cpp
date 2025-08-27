@@ -50,6 +50,14 @@ CharacterVector getWeatherDates(DataFrame meteo){
         dS[i] = d.format("%Y-%m-%d");
       }
       dateStrings = dS;
+    } else if(vector.inherits("Date")) {
+      DateVector dateVector = Rcpp::as<Rcpp::DateVector>(vector);
+      CharacterVector dS(dateVector.size(), NA_STRING);
+      for(int i=0;i< dateVector.size();i++) {
+        Date d = dateVector[i];
+        dS[i] = d.format("%Y-%m-%d");
+      }
+      dateStrings = dS;
     } else if(is<DatetimeVector>(vector)) {
       DatetimeVector datetimeVector = Rcpp::as<Rcpp::DatetimeVector>(vector);
       CharacterVector dS(datetimeVector.size(), NA_STRING);
@@ -231,7 +239,31 @@ List defineSoilDailyOutput(CharacterVector dateStrings, DataFrame soil, bool inc
   }
   return(Soil);  
 }
+List defineSoilPoolDailyOutput(CharacterVector dateStrings, DataFrame above, DataFrame soil) {
+  int numDays = dateStrings.length();
+  NumericVector W = soil["W"];
+  int nlayers = W.length();
+  int numCohorts = above.nrow();
+  
+  List REWpool(numCohorts);
+  for(int c=0;c<numCohorts;c++) {
+    NumericMatrix nm = NumericMatrix(numDays, nlayers);
+    nm.attr("dimnames") = List::create(dateStrings, seq(1,nlayers)) ;
+    REWpool[c] = nm;
+  }
+  REWpool.attr("names") = above.attr("row.names");
 
+  List Psipool(numCohorts);
+  for(int c=0;c<numCohorts;c++) {
+    NumericMatrix nm = NumericMatrix(numDays, nlayers);
+    nm.attr("dimnames") = List::create(dateStrings, seq(1,nlayers)) ;
+    Psipool[c] = nm;
+  }
+  Psipool.attr("names") = above.attr("row.names");
+  List soilPool = List::create(_["REW"] = REWpool,
+                               _["Psi"] = Psipool);
+  return(soilPool);
+}
 DataFrame defineEnergyBalanceDailyOutput(CharacterVector dateStrings) {
   int numDays = dateStrings.length();
   NumericVector SWRcan(numDays, NA_REAL);
@@ -448,8 +480,11 @@ List defineSPWBDailyOutput(double latitude, double elevation, double slope, doub
   DataFrame soil = Rcpp::as<Rcpp::DataFrame>(x["soil"]);
   DataFrame above = Rcpp::as<Rcpp::DataFrame>(x["above"]);
   String transpirationMode = control["transpirationMode"];
+  String rhizosphereOverlap = control["rhizosphereOverlap"];
+  bool plantWaterPools = (rhizosphereOverlap!="total");
   DataFrame DWB = defineWaterBalanceDailyOutput(dateStrings, transpirationMode);
   List Soil = defineSoilDailyOutput(dateStrings, soil, true);
+  List soilPool = defineSoilPoolDailyOutput(dateStrings, above, soil);
   DataFrame Snow = defineSnowDailyOutput(dateStrings);
   List sunlitDO = defineSunlitShadeLeavesDailyOutput(dateStrings, above);
   List shadeDO = defineSunlitShadeLeavesDailyOutput(dateStrings, above);
@@ -469,6 +504,7 @@ List defineSPWBDailyOutput(double latitude, double elevation, double slope, doub
                      Named("spwbOutput") = x,
                      Named("WaterBalance")= DWB);
     if(control["soilResults"]) l.push_back(Soil, "Soil");
+    if(control["soilPoolResults"] && plantWaterPools) l.push_back(soilPool, "SoilPools");
     if(control["snowResults"]) l.push_back(Snow, "Snow");
     if(control["standResults"]) l.push_back(Stand, "Stand");
     if(control["plantResults"]) l.push_back(plantDWOL, "Plants");
@@ -493,6 +529,7 @@ List defineSPWBDailyOutput(double latitude, double elevation, double slope, doub
         if(control["multiLayerBalance"]) l.push_back(DLT,"TemperatureLayers");
       }
     if(control["soilResults"]) l.push_back(Soil, "Soil");
+    if(control["soilPoolResults"] && plantWaterPools) l.push_back(soilPool, "SoilPools");
     if(control["snowResults"]) l.push_back(Snow, "Snow");
     if(control["standResults"]) l.push_back(Stand, "Stand");
     if(control["plantResults"]) l.push_back(plantDWOL, "Plants");
@@ -623,6 +660,21 @@ void fillSoilDailyOutput(List SWB, DataFrame soil, List sDay,
       Eplantdays(iday,nlayers) += EplantVec[l];
       HydrIndays(iday,nlayers) += HydrIndays[l];
     }
+  }
+}
+void fillSoilPoolDailyOutput(List soilPools, DataFrame soil, NumericMatrix Wpool, int iday, String soilFunctions) {
+  List REWpool = soilPools["REW"];
+  List Psipool = soilPools["Psi"];
+  int numCohorts = Psipool.size();
+  int nlayers = soil.nrow();
+  for(int c=0;c<numCohorts;c++) {
+    NumericMatrix rewM = Rcpp::as<Rcpp::NumericMatrix>(REWpool[c]);
+    rewM(iday,_) = Wpool(c,_);
+    NumericMatrix psiM = Rcpp::as<Rcpp::NumericMatrix>(Psipool[c]);
+    DataFrame soil_pool = clone(soil);
+    NumericVector soil_pool_W = soil_pool["W"];
+    for(int l=0;l<nlayers;l++) soil_pool_W[l] = Wpool(c,l);
+    psiM(iday,_) = psi(soil_pool, soilFunctions);
   }
 }
 void fillSnowDailyOutput(DataFrame Snow, List x, int iday) {
@@ -878,20 +930,28 @@ void fillSPWBDailyOutput(List l, List x, List sDay, int iday) {
   int numCohorts = above.nrow();
   int ntimesteps = control["ndailysteps"];
   DataFrame canopyParams = Rcpp::as<Rcpp::DataFrame>(x["canopy"]);
+  DataFrame soil = Rcpp::as<Rcpp::DataFrame>(x["soil"]);
   int ncanlayers = canopyParams.nrow(); //Number of canopy layers
   String transpirationMode = control["transpirationMode"];
-
+  String rhizosphereOverlap = control["rhizosphereOverlap"];
+  String soilFunctions = control["soilFunctions"];
+  bool plantWaterPools = (rhizosphereOverlap!="total");
+  
   DataFrame DWB = Rcpp::as<Rcpp::DataFrame>(l["WaterBalance"]);
   int numDays = DWB.nrow();
   fillWaterBalanceDailyOutput(DWB, sDay, iday, transpirationMode);
-
+  
   if(control["soilResults"]) {
-    String soilFunctions = control["soilFunctions"];
     List Soil = Rcpp::as<Rcpp::List>(l["Soil"]);
-    DataFrame soil = Rcpp::as<Rcpp::DataFrame>(x["soil"]);
     fillSoilDailyOutput(Soil, soil, sDay, 
                                     iday, numDays, soilFunctions,
                                     true);
+  }
+  if(control["soilPoolResults"] && plantWaterPools) {
+    List soilPools = Rcpp::as<Rcpp::List>(l["SoilPools"]);
+    List belowLayers = Rcpp::as<Rcpp::List>(x["belowLayers"]);
+    NumericMatrix Wpool = Rcpp::as<Rcpp::NumericMatrix>(belowLayers["Wpool"]);
+    fillSoilPoolDailyOutput(soilPools, soil, Wpool, iday, soilFunctions);
   }
   if(control["snowResults"]) {
     DataFrame Snow = Rcpp::as<Rcpp::DataFrame>(l["Snow"]);
@@ -1753,6 +1813,7 @@ List pwb(List x, DataFrame meteo, NumericMatrix W,
     
     
   List internalCommunication = instanceCommunicationStructures(x, "spwb");
+  List SEBcommunication = internalCommunication["SEBcommunication"];
   List transpOutput;
   if(transpirationMode == "Granier") {
     transpOutput  = internalCommunication["basicTranspirationOutput"];
@@ -1919,7 +1980,7 @@ List pwb(List x, DataFrame meteo, NumericMatrix W,
         Named("Catm") = Catm,
         Named("Patm") = Patm[i]);
       try{
-        transpirationAdvanced(transpOutput, x, meteovec, 
+        transpirationAdvanced(SEBcommunication, transpOutput, x, meteovec, 
                                 latitude, elevation, slope, aspect,
                                 solarConstant, delta,
                                 canopyEvaporation[i], snowMelt[i], soilEvaporation[i], herbTranspiration[i],
