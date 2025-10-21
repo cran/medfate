@@ -174,18 +174,24 @@ DataFrame paramsWaterStorage(DataFrame above, List belowLayers,
   NumericVector maxFMC = speciesNumericParameterWithImputation(SP, SpParams, "maxFMC", fillMissingSpParams, fillWithGenus);
   
   NumericVector Vsapwood(numCohorts), Vleaf(numCohorts);
+  NumericVector maxMCleaf(numCohorts), maxMCstem(numCohorts);
   
   NumericVector WoodDensity = paramsAnatomydf["WoodDensity"];
   NumericVector LeafDensity = paramsAnatomydf["LeafDensity"];
   NumericVector SLA = paramsAnatomydf["SLA"];
   NumericVector Al2As = paramsAnatomydf["Al2As"];
-
+  NumericVector r635 = paramsAnatomydf["r635"];
+  
   //Calculate stem and leaf capacity per leaf area (in l·m-2)
   for(int c=0;c<numCohorts;c++){
     Vsapwood[c] = sapwoodWaterCapacity(Al2As[c], H[c], V, L, WoodDensity[c]); 
     Vleaf[c] = leafWaterCapacity(SLA[c], LeafDensity[c]); 
+    maxMCstem[c] = 100*((1.0/std::max(0.5,WoodDensity[c])) - (1.0/1.53)); // Minimum 0.4 density to avoid overestimation
+    maxMCleaf[c] = (maxFMC[c] - maxMCstem[c]*(1.0 - (1.0/r635[c])))*r635[c];
   }
   DataFrame paramsWaterStoragedf = DataFrame::create(_["maxFMC"] = maxFMC,
+                                                     _["maxMCleaf"] = maxMCleaf,
+                                                     _["maxMCstem"] = maxMCstem,
       _["LeafPI0"] = LeafPI0, _["LeafEPS"] = LeafEPS, _["LeafAF"] = LeafAF, _["Vleaf"] = Vleaf,
       _["StemPI0"] = StemPI0, _["StemEPS"] = StemEPS, _["StemAF"] = StemAF, _["Vsapwood"] = Vsapwood);
   paramsWaterStoragedf.attr("row.names") = above.attr("row.names");
@@ -1399,7 +1405,7 @@ List cloneInput(List input) {
 }
 
 // [[Rcpp::export(".rootDistributionComplete")]]
-DataFrame rootDistributionComplete(List x, DataFrame SpParams, bool fillMissingRootParams){
+DataFrame rootDistributionComplete(List x, DataFrame SpParams, bool fillMissingRootParams, bool truncateRootDistribution){
   DataFrame treeData = Rcpp::as<Rcpp::DataFrame>(x["treeData"]);
   DataFrame shrubData = Rcpp::as<Rcpp::DataFrame>(x["shrubData"]);
   int ntree = treeData.nrows();
@@ -1435,6 +1441,7 @@ DataFrame rootDistributionComplete(List x, DataFrame SpParams, bool fillMissingR
       if(NumericVector::is_na(Z50[i])) Z50[i] = treeSPZ50[i];
       if(NumericVector::is_na(Z95[i])) Z95[i] = treeSPZ95[i];
       if(NumericVector::is_na(Z50[i]) && !NumericVector::is_na(Z95[i])) Z50[i] = exp(log(Z95[i])/1.4);
+      if(NumericVector::is_na(Z100[i]) && !NumericVector::is_na(Z95[i]) && truncateRootDistribution) Z100[i] = exp(log(Z95[i])/0.95);
     }
   }
   NumericVector shrubZ95 = shrubData["Z95"];  
@@ -1452,6 +1459,7 @@ DataFrame rootDistributionComplete(List x, DataFrame SpParams, bool fillMissingR
       if(NumericVector::is_na(Z50[ntree+i])) Z50[ntree+i] = shrubSPZ50[i];
       if(NumericVector::is_na(Z95[ntree+i])) Z95[ntree+i] = shrubSPZ95[i];
       if(NumericVector::is_na(Z50[ntree+i]) && !NumericVector::is_na(Z95[ntree+i])) Z50[ntree+i] = exp(log(Z95[ntree+i])/1.4);
+      if(NumericVector::is_na(Z100[ntree+i]) && !NumericVector::is_na(Z95[ntree+i]) && truncateRootDistribution) Z100[ntree+i] = exp(log(Z95[ntree+i])/0.95);
     }
   }
 
@@ -1706,7 +1714,7 @@ DataFrame rootDistributionComplete(List x, DataFrame SpParams, bool fillMissingR
 //' @name modelInput
 // [[Rcpp::export("spwbInput")]]
 List spwbInput(List x, DataFrame soil, DataFrame SpParams, List control) {
-  DataFrame rdc = rootDistributionComplete(x, SpParams, control["fillMissingRootParams"]);
+  DataFrame rdc = rootDistributionComplete(x, SpParams, control["fillMissingRootParams"], control["truncateRootDistribution"]);
   bool fireHazardResults = control["fireHazardResults"];
   DataFrame above = forest2aboveground(x, SpParams, NA_REAL, fireHazardResults);
   NumericVector LAIlive = above["LAI_live"];
@@ -1724,7 +1732,7 @@ List spwbInput(List x, DataFrame soil, DataFrame SpParams, List control) {
 //' @rdname modelInput
 // [[Rcpp::export("growthInput")]]
 List growthInput(List x, DataFrame soil, DataFrame SpParams, List control) {
-  DataFrame rdc = rootDistributionComplete(x, SpParams, control["fillMissingRootParams"]);
+  DataFrame rdc = rootDistributionComplete(x, SpParams, control["fillMissingRootParams"], control["truncateRootDistribution"]);
    // Loading and FCCS properties are needed if fire hazard results are true or fires are simulated 
    DataFrame above = forest2aboveground(x, SpParams, NA_REAL, true);
    NumericVector LAIlive = above["LAI_live"];

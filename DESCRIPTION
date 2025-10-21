@@ -1,8 +1,8 @@
 Package: medfate
 Type: Package
 Title: Mediterranean Forest Simulation
-Version: 4.8.3
-Date: 2025-08-27
+Version: 4.8.4
+Date: 2025-10-21
 Authors@R: c(
 	person('Miquel', 'De Cáceres', role=c('aut','cre', 'cph'),
 	email='miquelcaceres@gmail.com', comment = c(ORCID = "0000-0001-7132-2080")),
@@ -33,10 +33,10 @@ Suggests: testthat (>= 3.0.0), knitr, rmarkdown
 LinkingTo: Rcpp, meteoland
 Encoding: UTF-8
 NeedsCompilation: yes
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
 Config/testthat/edition: 3
 LazyData: true
-Packaged: 2025-08-27 13:57:50 UTC; miquel
+Packaged: 2025-10-21 09:54:42 UTC; miquel
 Author: Miquel De Cáceres [aut, cre, cph] (ORCID:
     <https://orcid.org/0000-0001-7132-2080>),
   Nicolas Martin-StPaul [aut] (ORCID:
@@ -57,4 +57,4 @@ Author: Miquel De Cáceres [aut, cre, cph] (ORCID:
   John Burkardt [cph] (Copyright holder of C++ code in 'incgamma.cpp')
 Maintainer: Miquel De Cáceres <miquelcaceres@gmail.com>
 Repository: CRAN
-Date/Publication: 2025-08-27 15:30:02 UTC
+Date/Publication: 2025-10-21 22:20:02 UTC

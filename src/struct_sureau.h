@@ -17,6 +17,7 @@ struct SureauParams {
   double k_SLApoInit;
   double k_CSApoInit; 
   double* k_RCApoInit;
+  double* VGrhizo_kmax;
   double slope_gs;
   double P50_gs;
   double Tgs_optim;
