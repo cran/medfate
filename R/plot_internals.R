@@ -37,7 +37,8 @@
   if(model %in% c("growth", "fordyn")) {
     TYPES = c(TYPES, 
               "Carbon balance" = "CarbonBalance",
-              "Biomass balance" = "BiomassBalance")
+              "Biomass balance" = "BiomassBalance",
+              "Decomposition pools" = "DecompositionPools")
   }
   return(TYPES)
 }
@@ -199,6 +200,7 @@
 .getUniqueDailyGROWTHPlotTypes<-function(transpirationMode = "Granier"){
   TYPES = c("Carbon balance" = "CarbonBalance",
             "Biomass balance" = "BiomassBalance",
+            "Decomposition pools" = "DecompositionPools",
             .getLabileGROWTHPlotTypes(transpirationMode),
             .getCohortBiomassBalanceGROWTHPlotTypes(transpirationMode),
             .getStructuralGROWTHPlotTypes(transpirationMode),
@@ -538,21 +540,22 @@
     if("HerbTranspiration" %in% names(WaterBalance)) {
       df[["Herbaceous transpiration"]] <- WaterBalance$HerbTranspiration
     }
-    if(!is.null(dates)) df = df[row.names(df) %in% as.character(dates),]
+    if(!is.null(dates)) df = df[row.names(df) %in% as.character(dates), , drop = FALSE]
     if(!is.null(summary.freq)) {
       date.factor = cut(as.Date(row.names(df)), breaks=summary.freq)
-      df = data.frame(row.names = as.Date(as.character(levels(date.factor))),
+      df_summary = data.frame(row.names = as.Date(as.character(levels(date.factor))),
                       "Total evapotranspiration" = tapply(df[["Total evapotranspiration"]],INDEX=date.factor, FUN=sum, na.rm=TRUE),
                       "Interception evaporation" = NA,
                       "Woody transpiration" = tapply(df[["Woody transpiration"]],INDEX=date.factor, FUN=sum, na.rm=TRUE),
                       "Bare soil evaporation" = tapply(df[["Bare soil evaporation"]],INDEX=date.factor, FUN=sum, na.rm=TRUE),
-                      "Herbaceous transpiration" = NA)
+                      "Herbaceous transpiration" = NA, check.names = FALSE)
       if("Interception" %in% names(WaterBalance))  {
-        df[["Interception evaporation"]] = tapply(df[["Interception evaporation"]],INDEX=date.factor, FUN=sum, na.rm=TRUE)
+        df_summary[["Interception evaporation"]] = tapply(df[["Interception evaporation"]],INDEX=date.factor, FUN=sum, na.rm=TRUE)
       }
       if("HerbTranspiration" %in% names(WaterBalance))  {
-        df[["Herbaceous transpiration"]] = tapply(df[["Herbaceous transpiration"]],INDEX=date.factor, FUN=sum, na.rm=TRUE)
+        df_summary[["Herbaceous transpiration"]] = tapply(df[["Herbaceous transpiration"]],INDEX=date.factor, FUN=sum, na.rm=TRUE)
       }
+      df <- df_summary
     }
     return(.multiple_dynamics(as.matrix(df), ylab=ylab, xlab=xlab, ylim = ylim))
   } 
@@ -844,7 +847,23 @@
   df<-as.data.frame(CarbonBalance)
   df[,2] = - df[,2]
   df[,3] = - df[,3]
-  names(df)<-c("Gross primary production", "Maintenance respiration","Synthesis respiration", "Net primary production")
+  df[,5] = - df[,5]
+  df[,6] = - df[,6]
+  names(df)<-c("Gross primary production", "Maintenance respiration","Synthesis respiration", "Net primary production",
+               "Heterotrophic respiration", "Fire combustion", "Net ecosystem production")
+  if(is.null(ylab))  ylab = expression(gC%.%m^{-2})    
+  if(!is.null(dates)) df = df[row.names(df) %in% as.character(dates),,drop = FALSE]
+  if(!is.null(summary.freq)) df = .temporalSummary(df, summary.freq, sum, na.rm=TRUE)
+  return(.multiple_dynamics(as.matrix(df), ylab = ylab, ylim = ylim))
+}
+.plot_decompositionpools<-function(DecompositionPools, type,  
+                       dates = NULL, 
+                       xlim = NULL, ylim=NULL, xlab=NULL, ylab=NULL, 
+                       summary.freq = NULL, ...) {
+  df<-as.data.frame(DecompositionPools)
+  names(df)<-c("Surface snags", "Surface litter","Belowground litter", "Surface metabolic",
+               "Belowground metabolic", "Surface active", "Belowground active", "Surface slow",
+               "Belowground slow", "Belowground passive")
   if(is.null(ylab))  ylab = expression(gC%.%m^{-2})    
   if(!is.null(dates)) df = df[row.names(df) %in% as.character(dates),,drop = FALSE]
   if(!is.null(summary.freq)) df = .temporalSummary(df, summary.freq, mean, na.rm=TRUE)

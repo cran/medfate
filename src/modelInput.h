@@ -1,13 +1,18 @@
-#include <Rcpp.h>
+#include <RcppArmadillo.h>
 
 #ifndef MODELINPUT_H
 #define MODELINPUT_H
-#endif
 using namespace Rcpp;
 
 List forest2spwbInput(List x, DataFrame soil, DataFrame SpParams, List control);
 List forest2growthInput(List x, DataFrame soil, DataFrame SpParams, List control);
 
+String medfateVersionString();
+bool isLowerVersion(List x);
+void spwbInputVersionUpdate(List x);
+void growthInputVersionUpdate(List x);
+
 List spwbInput(List x, DataFrame soil, DataFrame SpParams, List control);
 List growthInput(List x, DataFrame soil, DataFrame SpParams, List control);
 void resetInputs(List x);
+#endif

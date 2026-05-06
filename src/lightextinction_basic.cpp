@@ -1,5 +1,7 @@
-#include <Rcpp.h>
+#include <RcppArmadillo.h>
+#include "forestutils_c.h"
 #include "forestutils.h"
+#include "lightextinction_basic_c.h"
 #include "paramutils.h"
 #include <math.h>
 #include <meteoland.h>
@@ -9,22 +11,24 @@ using namespace Rcpp;
  * FUNCTIONS FOR LIGHT EXTINCTION (BASIC)
  */
 double availableLight(double h, NumericVector H, NumericVector LAI_expanded, NumericVector LAI_dead, NumericVector k, NumericVector CR) {
-  double s= 0.0, p=0.0;
-  for(int j=0; j< H.size(); j++) {
-    double cbh = H[j]*(1.0-CR[j]);
-    // p = (H[j]-h)/(H[j]*CR[j]);
-    p = leafAreaProportion(h, H[j], cbh, H[j]);
-    if(p<0.0) p = 0.0;
-    else if(p>1.0) p=1.0;
-    s = s + k[j]*p*(LAI_expanded[j]+LAI_dead[j]);
-  }
-  return(100*exp((-1)*s));
+  return(availableLight_c(h, 
+                          Rcpp::as<std::vector<double>>(H),
+                          Rcpp::as<std::vector<double>>(LAI_expanded),
+                          Rcpp::as<std::vector<double>>(LAI_dead),
+                          Rcpp::as<std::vector<double>>(k),
+                          Rcpp::as<std::vector<double>>(CR)));
 }
 
 NumericVector parcohortC(NumericVector H, NumericVector LAI_expanded,  NumericVector LAI_dead, NumericVector k, NumericVector CR){
   int n = H.size();
-  NumericVector ci(n);
-  for(int i=0; i<n;i++) ci[i] = availableLight( H[i]*(1.0-(1.0-CR[i])/2.0), H, LAI_expanded, LAI_dead, k, CR);
+  std::vector<double> PARcohort(n, 0.0);
+  parcohortC_c(PARcohort, 
+               Rcpp::as<std::vector<double>>(H),
+               Rcpp::as<std::vector<double>>(LAI_expanded),
+               Rcpp::as<std::vector<double>>(LAI_dead),
+               Rcpp::as<std::vector<double>>(k),
+               Rcpp::as<std::vector<double>>(CR));
+  NumericVector ci = Rcpp::wrap(PARcohort);
   ci.attr("names") = H.attr("names");
   return(ci);
 }
@@ -111,7 +115,9 @@ double PARground(List x, DataFrame SpParams, double gdd = NA_REAL) {
     s += (kPAR[c]*(LAIphe[c]+LAIdead[c]));
   }
   //Herb layer effects on light extinction and interception
-  s += 0.5*herbLAIAllometric(x["herbCover"], x["herbHeight"], woodyLAI);
+  if(x.containsElementNamed("herbCover") && x.containsElementNamed("herbHeight")) {
+    s += 0.5*herbLAIAllometric(x["herbCover"], x["herbHeight"], woodyLAI);
+  }
   //Percentage of irradiance reaching the ground
   double LgroundPAR = 100.0*exp((-1.0)*s);
   return(LgroundPAR);
@@ -144,7 +150,9 @@ double SWRground(List x, DataFrame SpParams, double gdd = NA_REAL) {
     s += (kPAR[c]*(LAIphe[c]+LAIdead[c]));
   }
   //Herb layer effects on light extinction and interception
-  s += 0.5*herbLAIAllometric(x["herbCover"], x["herbHeight"], woodyLAI);
+  if(x.containsElementNamed("herbCover") && x.containsElementNamed("herbHeight")) {
+    s += 0.5*herbLAIAllometric(x["herbCover"], x["herbHeight"], woodyLAI);
+  }
   //Percentage of irradiance reaching the ground
   double LgroundSWR = 100.0*exp((-1.0)*s/1.35);
   return(LgroundSWR);
@@ -160,10 +168,12 @@ NumericVector parExtinctionProfile(NumericVector z, List x, DataFrame SpParams, 
   double woodyLAI = sum(LAIlive);
   NumericVector CR = above["CR"];
   if(includeHerbs) {
-    SP.push_back(0);
-    H.push_back(x["herbHeight"]);
-    LAI.push_back(herbLAIAllometric(x["herbCover"], x["herbHeight"], woodyLAI));
-    CR.push_back(1.0);
+    if(x.containsElementNamed("herbCover") && x.containsElementNamed("herbHeight")) {
+      SP.push_back(0);
+      H.push_back(x["herbHeight"]);
+      LAI.push_back(herbLAIAllometric(x["herbCover"], x["herbHeight"], woodyLAI));
+      CR.push_back(1.0);
+    }
   }
   return(parheight(z, SP, H, CR, LAI, SpParams));
 }
@@ -178,10 +188,12 @@ NumericVector swrExtinctionProfile(NumericVector z, List x, DataFrame SpParams, 
   double woodyLAI = sum(LAIlive);
   NumericVector CR = above["CR"];
   if(includeHerbs) {
-    SP.push_back(0);
-    H.push_back(x["herbHeight"]);
-    LAI.push_back(herbLAIAllometric(x["herbCover"], x["herbHeight"], woodyLAI));
-    CR.push_back(1.0);
+    if(x.containsElementNamed("herbCover") && x.containsElementNamed("herbHeight")) {
+      SP.push_back(0);
+      H.push_back(x["herbHeight"]);
+      LAI.push_back(herbLAIAllometric(x["herbCover"], x["herbHeight"], woodyLAI));
+      CR.push_back(1.0);
+    }
   }
   return(swrheight(z, SP, H, CR, LAI, SpParams));
 }

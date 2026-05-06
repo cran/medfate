@@ -34,8 +34,8 @@ soil_redefineLayers<-function(x, widths = c(300, 700, 1000, 2000)) {
   
   is_soil <- inherits(x, "soil")
   
-  restarget  <-  data.frame(matrix(nrow = length(widths), ncol = 7))
-  names(restarget)  <-  c("widths", "clay", "sand", "om", "nitrogen", "bd", "rfc")
+  restarget  <-  data.frame(matrix(NA, nrow = length(widths), ncol = 8))
+  names(restarget)  <-  c("widths", "clay", "sand", "om", "nitrogen", "ph", "bd", "rfc")
   restarget$widths  <-  widths
   
   bottomdepths <- cumsum(widths)
@@ -53,8 +53,9 @@ soil_redefineLayers<-function(x, widths = c(300, 700, 1000, 2000)) {
     restarget$sand[j]  <-  sum(x$sand*p)/sum(p)
     restarget$rfc[j]  <-  sum(x$rfc*p)/sum(p)
     restarget$bd[j]  <-  sum(x$bd*p)/sum(p)
-    restarget$om[j]  <-  sum(x$om*p)/sum(p)
-    restarget$nitrogen[j]  <-  sum(x$nitrogen*p)/sum(p)
+    if("om" %in% names(x)) restarget$om[j]  <-  sum(x$om*p)/sum(p)
+    if("nitrogen" %in% names(x)) restarget$nitrogen[j]  <-  sum(x$nitrogen*p)/sum(p)
+    if("ph" %in% names(x)) restarget$ph[j]  <-  sum(x$ph*p)/sum(p)
   }
   if(!is_soil) return(restarget)
   return(soil(restarget))

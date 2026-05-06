@@ -1,6 +1,15 @@
 library(medfate)
 
 data(exampleforest)
+
+forest_herbs <- exampleforest
+forest_herbs$herbData <- forest_herbs$shrubData
+
+forest_single <- exampleforest
+forest_single$treeData <- forest_single$treeData[1,,drop = FALSE]
+forest_single$shrubData <- forest_single$shrubData[numeric(0),]
+
+
 data(SpParamsMED)
 data(examplemeteo)
 examplemeteo2 <- examplemeteo
@@ -21,7 +30,7 @@ control_sureau$verbose <- FALSE
 #Initialize soil with default soil params (4 layers)
 examplesoil <- defaultSoilParams(4)
 
-test_that("spwb can be run in example and empty forests",{
+test_that("spwb can be run in example, herbs and empty forests",{
   expect_s3_class(spwb(spwbInput(exampleforest, examplesoil, SpParamsMED, control_granier), 
                        examplemeteo[1:10,],
                        latitude = 41.82592, elevation = 100), "spwb")
@@ -29,6 +38,15 @@ test_that("spwb can be run in example and empty forests",{
                        examplemeteo[1:10,],
                        latitude = 41.82592, elevation = 100), "spwb")
   expect_s3_class(spwb(spwbInput(exampleforest, examplesoil, SpParamsMED, control_sureau), 
+                       examplemeteo[1:10,],
+                       latitude = 41.82592, elevation = 100), "spwb")
+  expect_s3_class(spwb(spwbInput(exampleforest2, examplesoil, SpParamsMED, control_granier), 
+                       examplemeteo[1:10,],
+                       latitude = 41.82592, elevation = 100), "spwb")
+  expect_s3_class(spwb(spwbInput(exampleforest2, examplesoil, SpParamsMED, control_sperry), 
+                       examplemeteo[1:10,],
+                       latitude = 41.82592, elevation = 100), "spwb")
+  expect_s3_class(spwb(spwbInput(exampleforest2, examplesoil, SpParamsMED, control_sureau), 
                        examplemeteo[1:10,],
                        latitude = 41.82592, elevation = 100), "spwb")
   expect_s3_class(spwb(spwbInput(emptyforest(), examplesoil, SpParamsMED, control_granier), 
@@ -40,6 +58,24 @@ test_that("spwb can be run in example and empty forests",{
   expect_s3_class(spwb(spwbInput(emptyforest(), examplesoil, SpParamsMED, control_sureau), 
                        examplemeteo[1:10,],
                        latitude = 41.82592, elevation = 100), "spwb")
+  expect_s3_class(spwb(spwbInput(forest_herbs, examplesoil, SpParamsMED, control_granier), 
+                       examplemeteo[1:10,],
+                       latitude = 41.82592, elevation = 100), "spwb")
+  expect_s3_class(spwb(spwbInput(forest_herbs, examplesoil, SpParamsMED, control_sperry), 
+                       examplemeteo[1:10,],
+                       latitude = 41.82592, elevation = 100), "spwb")
+  expect_s3_class(spwb(spwbInput(forest_herbs, examplesoil, SpParamsMED, control_sureau), 
+                       examplemeteo[1:10,],
+                       latitude = 41.82592, elevation = 100), "spwb")
+  expect_s3_class(spwb(spwbInput(forest_single, examplesoil, SpParamsMED, control_granier), 
+                       examplemeteo[1:10,],
+                       latitude = 41.82592, elevation = 100), "spwb")
+  expect_s3_class(spwb(spwbInput(forest_single, examplesoil, SpParamsMED, control_sperry), 
+                       examplemeteo[1:10,],
+                       latitude = 41.82592, elevation = 100), "spwb")
+  expect_s3_class(spwb(spwbInput(forest_single, examplesoil, SpParamsMED, control_sureau), 
+                       examplemeteo[1:10,],
+                       latitude = 41.82592, elevation = 100), "spwb")
 })
 
 test_that("pwb can be run in example and empty forests",{
@@ -48,6 +84,24 @@ test_that("pwb can be run in example and empty forests",{
   expect_s3_class(pwb(x1, examplemeteo[1:10,], W = as.matrix(S1$Soil$SWC[,1:4]), 
                        latitude = 41.82592, elevation = 100), "pwb")
 })
+
+test_that("spwb can be run with missing values columns",{
+  examplemeteo_missing <- examplemeteo[1:2, ]
+  examplemeteo_missing$Radiation <- NA
+  expect_s3_class(suppressWarnings(spwb(spwbInput(exampleforest, examplesoil, SpParamsMED, control_granier), 
+                                        examplemeteo_missing,
+                                        latitude = 41.82592, elevation = 100)), "spwb")
+  examplemeteo_missing$MinRelativeHumidity <- NA
+  examplemeteo_missing$MaxRelativeHumidity <- NA
+  expect_s3_class(suppressWarnings(spwb(spwbInput(exampleforest, examplesoil, SpParamsMED, control_granier), 
+                                        examplemeteo_missing,
+                                        latitude = 41.82592, elevation = 100)), "spwb")
+  examplemeteo_missing$MaxTemperature <- NA
+  expect_error(suppressWarnings(spwb(spwbInput(exampleforest, examplesoil, SpParamsMED, control_granier), 
+                                        examplemeteo_missing,
+                                        latitude = 41.82592, elevation = 100)))
+})
+
 test_that("spwb can be run using dates as columns",{
   expect_s3_class(spwb(spwbInput(exampleforest, examplesoil, SpParamsMED, control_granier), 
                        examplemeteo2[1:10,],
@@ -144,104 +198,4 @@ test_that("spwb can be run with less output",{
   expect_s3_class(spwb(spwbInput(exampleforest, examplesoil, SpParamsMED, control_less), 
                        examplemeteo[1:2,],
                        latitude = 41.82592, elevation = 100), "spwb")
-})
-
-test_that("spwb_day gives same result with inner and direct calls",{
-  x1 <- spwbInput(exampleforest, examplesoil, SpParamsMED, control_granier)
-  ic <- medfate:::instance_communication_structures(x1, "spwb")
-  s_dir <- medfate::spwb_day(x1, date, meteovec, latitude = 41.82592, elevation = 100, slope=0, aspect=0, modifyInput = FALSE)
-  medfate::spwb_day_inner(ic, x1, date, meteovec, latitude = 41.82592, elevation = 100, slope=0, aspect=0, modifyInput = FALSE)
-  expect_equal(medfate::copy_model_output(ic, x1, "spwb"), s_dir)
-  # Second call (after modifying ic)
-  medfate::spwb_day_inner(ic, x1, date, meteovec, latitude = 41.82592, elevation = 100, slope=0, aspect=0, modifyInput = FALSE)
-  expect_equal(medfate::copy_model_output(ic, x1, "spwb"), s_dir)
-  
-  x2 <- spwbInput(exampleforest, examplesoil, SpParamsMED, control_sperry)
-  ic <- medfate:::instance_communication_structures(x2, "spwb")
-  s_dir <- medfate::spwb_day(x2, date, meteovec, latitude = 41.82592, elevation = 100, slope=0, aspect=0, modifyInput = FALSE)
-  medfate::spwb_day_inner(ic, x2, date, meteovec, latitude = 41.82592, elevation = 100, slope=0, aspect=0, modifyInput = FALSE)
-  expect_equal(medfate::copy_model_output(ic, x2, "spwb"), s_dir)
-  # Second call (after modifying ic)
-  medfate::spwb_day_inner(ic, x2, date, meteovec, latitude = 41.82592, elevation = 100, slope=0, aspect=0, modifyInput = FALSE)
-  expect_equal(medfate::copy_model_output(ic, x2, "spwb"), s_dir)
-  
-  x3 <- spwbInput(exampleforest, examplesoil, SpParamsMED, control_sureau)
-  ic <- medfate:::instance_communication_structures(x3, "spwb")
-  s_dir <- medfate::spwb_day(x3, date, meteovec, latitude = 41.82592, elevation = 100, slope=0, aspect=0, modifyInput = FALSE)
-  medfate::spwb_day_inner(ic, x3, date, meteovec, latitude = 41.82592, elevation = 100, slope=0, aspect=0, modifyInput = FALSE)
-  expect_equal(medfate::copy_model_output(ic, x3, "spwb"), s_dir)
-  # Second call (after modifying ic)
-  medfate::spwb_day_inner(ic, x3, date, meteovec, latitude = 41.82592, elevation = 100, slope=0, aspect=0, modifyInput = FALSE)
-  expect_equal(medfate::copy_model_output(ic, x3, "spwb"), s_dir)
-})
-
-test_that("spwb_day gives same result with inner and direct calls with general communication",{
-  x1i <- spwbInput(exampleforest, examplesoil, SpParamsMED, control_granier)
-  x1d <- spwbInput(exampleforest, examplesoil, SpParamsMED, control_granier)
-  expect_equal(x1i, x1d)
-  numCohorts <- nrow(x1i$cohorts)
-  nlayers <- nrow(examplesoil)
-  ncanlayers <- nrow(x1i$canopy)
-  ntimesteps <- control_granier$ndailysteps
-  ic <- medfate::general_communication_structures(numCohorts, nlayers, ncanlayers, ntimesteps, "spwb")
-  medfate::spwb_day_inner(ic, x1i, date, meteovec, latitude = 41.82592, elevation = 100, slope=0, aspect=0, modifyInput = TRUE)
-  s_dir <- medfate::spwb_day(x1d, date, meteovec, latitude = 41.82592, elevation = 100, slope=0, aspect=0, modifyInput = TRUE)
-  expect_equal(x1i, x1d)
-  expect_equal(medfate::copy_model_output(ic, x1i, "spwb"), s_dir)
-
-  x2i <- spwbInput(exampleforest, examplesoil, SpParamsMED, control_sperry)
-  x2d <- spwbInput(exampleforest, examplesoil, SpParamsMED, control_sperry)
-  expect_equal(x2i, x2d)
-  ic <- medfate::general_communication_structures(numCohorts, nlayers, ncanlayers, ntimesteps, "spwb")
-  medfate::spwb_day_inner(ic, x2i, date, meteovec, latitude = 41.82592, elevation = 100, slope=0, aspect=0, modifyInput = TRUE)
-  s_dir <- medfate::spwb_day(x2d, date, meteovec, latitude = 41.82592, elevation = 100, slope=0, aspect=0, modifyInput = TRUE)
-  expect_equal(x2i, x2d)
-  expect_equal(medfate::copy_model_output(ic, x2i, "spwb"), s_dir)
-
-  x3i <- spwbInput(exampleforest, examplesoil, SpParamsMED, control_sureau)
-  x3d <- spwbInput(exampleforest, examplesoil, SpParamsMED, control_sureau)
-  expect_equal(x3i, x3d)
-  ic <- medfate::general_communication_structures(numCohorts, nlayers, ncanlayers, ntimesteps, "spwb")
-  medfate::spwb_day_inner(ic, x3i, date, meteovec, latitude = 41.82592, elevation = 100, slope=0, aspect=0, modifyInput = TRUE)
-  s_dir <- medfate::spwb_day(x3d, date, meteovec, latitude = 41.82592, elevation = 100, slope=0, aspect=0, modifyInput = TRUE)
-  expect_equal(x3i, x3d)
-  expect_equal(medfate::copy_model_output(ic, x3i, "spwb"), s_dir)
-
-})
-
-test_that("spwb_day can be run with truncated root distribution",{
-  exampleforest$shrubData$Z50 <- 100
-  exampleforest$shrubData$Z95 <- 200
-  control_granier$truncateRootDistribution<- TRUE
-  x1 <- spwbInput(exampleforest, examplesoil, SpParamsMED, control_granier)
-  expect_s3_class(spwb_day(x1, date, meteovec,
-                           latitude = 41.82592, elevation = 100, slope=0, aspect=0), "spwb_day")
-  control_sperry$truncateRootDistribution<- TRUE
-  x2 <- spwbInput(exampleforest, examplesoil, SpParamsMED, control_sperry)
-  expect_s3_class(spwb_day(x2, date, meteovec,
-                           latitude = 41.82592, elevation = 100, slope=0, aspect=0), "spwb_day")
-  control_sureau$truncateRootDistribution<- TRUE
-  x3 <- spwbInput(exampleforest, examplesoil, SpParamsMED, control_sureau)
-  expect_s3_class(spwb_day(x3, date, meteovec,
-                           latitude = 41.82592, elevation = 100, slope=0, aspect=0), "spwb_day")
-})
-
-test_that("spwb_day can be run with truncated root distribution and rhizosphere overlap",{
-  exampleforest$shrubData$Z50 <- 100
-  exampleforest$shrubData$Z95 <- 200
-  control_granier$truncateRootDistribution<- TRUE
-  control_granier$rhizosphereOverlap <- "partial"
-  x1 <- spwbInput(exampleforest, examplesoil, SpParamsMED, control_granier)
-  expect_s3_class(spwb_day(x1, date, meteovec,
-                           latitude = 41.82592, elevation = 100, slope=0, aspect=0), "spwb_day")
-  control_sperry$truncateRootDistribution<- TRUE
-  control_sperry$rhizosphereOverlap <- "partial"
-  x2 <- spwbInput(exampleforest, examplesoil, SpParamsMED, control_sperry)
-  expect_s3_class(spwb_day(x2, date, meteovec,
-                           latitude = 41.82592, elevation = 100, slope=0, aspect=0), "spwb_day")
-  control_sureau$truncateRootDistribution<- TRUE
-  control_sureau$rhizosphereOverlap <- "partial"
-  x3 <- spwbInput(exampleforest, examplesoil, SpParamsMED, control_sureau)
-  expect_s3_class(spwb_day(x3, date, meteovec,
-                           latitude = 41.82592, elevation = 100, slope=0, aspect=0), "spwb_day")
 })

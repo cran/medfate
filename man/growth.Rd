@@ -29,7 +29,10 @@ growth(
 \item{waterTableDepth}{Water table depth (in mm). When not missing, capillarity rise will be allowed if lower than total soil depth.}
 }
 \value{
-A list of class 'growth' with the following elements:
+Function \code{growth} returns a list of class 'growth'. Since lists are difficult to handle, we recommend using
+function \code{\link{extract}} to reshape simulation results (including their units) from those objects.
+
+List elements are as follows:
 \itemize{
 \item{\code{"latitude"}: Latitude (in degrees) given as input.}
 \item{\code{"topography"}: Vector with elevation, slope and aspect given as input.}
@@ -38,7 +41,7 @@ A list of class 'growth' with the following elements:
 \item{\code{"growthOutput"}: An copy of the final state of the object \code{x} of class \code{\link{growthInput}}.}
 \item{\code{"WaterBalance"}: A data frame where different water balance variables (see \code{\link{spwb}}).}
 \item{\code{"EnergyBalance"}: A data frame with the daily values of energy balance components for the soil and the canopy (only for \code{transpirationMode = "Sperry"} or \code{transpirationMode = "Sureau"}; see \code{\link{spwb}}).}
-\item{\code{"CarbonBalance"}: A data frame where different stand-level carbon balance components (gross primary production, maintenance respiration, synthesis respiration and net primary production), all in g C · m-2.}
+\item{\code{"CarbonBalance"}: A data frame where different stand-level carbon balance components (gross primary production, maintenance respiration, synthesis respiration, net primary production, heterotrophic respiration and net ecosystem exchange.), all in g C · m-2.}
 \item{\code{"BiomassBalance"}: A data frame with the daily values of stand biomass balance components (in g dry · m-2.}
 \item{\code{"Temperature"}: A data frame with the daily values of minimum/mean/maximum temperatures for the atmosphere (input), canopy and soil (only for \code{transpirationMode = "Sperry"} or \code{transpirationMode = "Sureau"}; see \code{\link{spwb}}).}
 \item{\code{"Soil"}: A data frame where different soil variables  (see \code{\link{spwb}}).}
@@ -88,6 +91,7 @@ A list of class 'growth' with the following elements:
 \item{\code{"DessicationRate"}: Daily mortality rate from dessication (ind/d-1).}
 \item{\code{"MortalityRate"}: Daily mortality rate (any cause) (ind/d-1).}
 }
+\item{\code{"DecompositionPools"}: A data frame with the mass of different decomposition carbon pools, all in g C · m-2.}
 \item{\code{"subdaily"}: A list of objects of class \code{\link{growth_day}}, one per day simulated (only if required in \code{control} parameters, see \code{\link{defaultControl}}).}
 }
 }
@@ -99,8 +103,8 @@ during a period specified in the input climatic data.
 }
 \details{
 Detailed model description is available in the medfate book.
-Simulations using the 'Sperry' or 'Sureau' transpiration modes are computationally much more expensive
-than those using the 'Granier' transpiration mode.
+
+Forest growth simulations allow using different sub-models for bulk soil water flows and different sub-models of transpiration and photosynthesis (see details in \code{\link{spwb}}).
 }
 \examples{
 \donttest{

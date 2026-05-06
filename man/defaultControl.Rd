@@ -7,13 +7,13 @@
 defaultControl(
   transpirationMode = "Granier",
   soilDomains = "buckets",
-  rhizosphereOverlap = "total"
+  rhizosphereOverlap = "partial"
 )
 }
 \arguments{
 \item{transpirationMode}{String containing transpiration model (either 'Granier', 'Sperry' or 'Sureau'). See \code{\link{spwbInput}}.}
 
-\item{soilDomains}{String containing soil hydrology model (either 'buckets', 'single' or 'dual'). See \code{\link{hydrology_soilWaterBalance}}.}
+\item{soilDomains}{String containing soil hydrology model (either 'buckets', 'single', 'dual' or 'none'). Option 'none' is meant to be used when flows in the bulk soil are dealt with externally. For the remaining options, see \code{\link{hydrology_soilWaterBalance}}.}
 
 \item{rhizosphereOverlap}{String indicating the assumption with respect to rhizosphere overlap:
 \itemize{
@@ -39,6 +39,7 @@ A list, with the following options (default values in brackets):
 \item{\code{labileCarbonBalanceResults [= TRUE]}: Boolean flag to keep plant-level labile carbon balance results (in a list called 'LabileCarbonBalance').}
 \item{\code{plantStructureResults [= TRUE]}: Boolean flag to keep plant-level structure results (in a list called 'PlantStructure').}
 \item{\code{growthMortalityResults [= TRUE]}: Boolean flag to keep plant-level growth and mortality results (in a list called 'GrowthMortality').}
+\item{\code{decompositionPoolResults [= TRUE]}: Boolean flag to keep decomposition pool results (in a data frame called 'DecompositionPools').}
 \item{\code{leafResults [= TRUE]}: Boolean flag to keep leaf-level results (in elements called 'SunlitLeaves' and 'ShadeLeaves').}
 \item{\code{temperatureResults [= TRUE]}: Boolean flag to keep temperature results (in elements called 'Temperature' and 'TemperatureLayers').}
 \item{\code{subdailyResults [= FALSE]}: Boolean flag to force subdaily results to be stored (as a list called 'subdaily' of \code{\link{spwb_day}} objects, one by simulated date) in calls to \code{\link{spwb}}. In function \code{fordyn} \code{subdailyResults} is always set to FALSE.}
@@ -68,10 +69,10 @@ By default synoptic storms (1.5 mm/h) are assumed between December and June, and
 \item{\code{infiltrationMode [= "GreenAmpt1911"]}: Infiltration model, either "GreenAmpt1911" or "Boughton1989".}
 \item{\code{infiltrationCorrection [= 5.0]}: Factor to correct infiltration amount in the GreenAmpt1911 model in single-domain simulations.}
 \item{\code{soilDomains [= "buckets"]}: Either 'buckets' (for multi-bucket model), 'single' (for single-domain Richards model) or 'dual' (for dual-permeability model). See \code{\link{hydrology_soilWaterBalance}}.}
-\item{\code{rhizosphereOverlap [= "total"]}: A string indicating the degree of rhizosphere spatial overlap between plant cohorts:
+\item{\code{rhizosphereOverlap [= "partial"]}: A string indicating the degree of rhizosphere spatial overlap between plant cohorts:
 \itemize{
 \item{"none" - no overlap (independent water pools).}
-\item{"partial" - partial overlap determined by coarse root volume.}
+\item{"partial" - plants partially share water pools, depending on soil moisture.}
 \item{"total" - total overlap (plants extract from common soil pools).}
 }
 }
@@ -80,7 +81,7 @@ By default synoptic storms (1.5 mm/h) are assumed between December and June, and
 \item{\code{windMeasurementHeight [= 200]}: Height (in cm) over the canopy corresponding to wind measurements.}
 \item{\code{segmentedXylemVulnerability [= TRUE/FALSE]}: If \code{FALSE} leaf and root vulnerability curves will be equal to those of stem. By default, \code{segmentedXylemVulnerability = TRUE} for \code{transpirationMode = "Sperry"} and \code{segmentedXylemVulnerability = FALSE} for \code{transpirationMode = "Sureau"}.}
 \item{\code{leafCavitationEffects, stemCavitationEffects [= FALSE/TRUE]}: A flag indicating whether cavitation effects on conductance of leaves and stem are applied. Only relevant for \code{transpirationMode = "Sperry"}.}
-\item{\code{leafCavitationRecovery, stemCavitationRecovery [= "annual"]}: A string indicating how recovery of previous cavitation leaf/stem xylem is done (only relevant for functions \code{\link{spwb}} and \code{\link{spwb_day}}):
+\item{\code{leafCavitationRecovery, stemCavitationRecovery [= "rate"]}: A string indicating how recovery of previous cavitation leaf/stem xylem is done (only relevant for functions \code{\link{spwb}} and \code{\link{spwb_day}}):
 \itemize{
 \item{"none" - no recovery.}
 \item{"annual" - every first day of the year.}
@@ -89,6 +90,7 @@ By default synoptic storms (1.5 mm/h) are assumed between December and June, and
 }
 }
 \item{\code{cavitationRecoveryMaximumRate [= 0.05]}: Maximum rate of daily refilling of embolized conduits as sapwood area per leaf area (in cm2·m-2·day-1).}
+\item{\code{cavitationInducedDefoliation [= TRUE]}: Whether leaf hydraulic impairment induces defoliation (88 \% PLC will correspond to 50 \% defoliation).}
 \item{\code{lfmcComponent [= "fine"]}: Plant component used to estimate LFMC, either "leaf" or "fine" (for fine fuel).}
 }
 \bold{Water balance} (functions \code{\link{spwb}}, \code{\link{pwb}} or \code{\link{spwb_day}} when \code{traspirationMode = "Granier"} only):
@@ -162,13 +164,15 @@ By default synoptic storms (1.5 mm/h) are assumed between December and June, and
 \item{\code{recrTreeDensity [= 3000]}: Default density (ind·ha-1) for recruited trees  (when species parameter \code{RecrTreeDensity} is missing).}
 \item{\code{ingrowthTreeDBH [= 7.5]}: Default DBH (cm) for ingrowth trees  (when species parameter \code{IngrowthTreeDBH} is missing).}
 \item{\code{ingrowthTreeDensity [= 127]}: Default density (ind·ha-1) for ingrowth trees  (when species parameter \code{IngrowthTreeDensity} is missing).}
+\item{\code{decompositionAnnualBaseRates}: Vector of base annual decomposition rates (in yr-1) for different pools.}
+\item{\code{decompositionAnnualTurnoverRate [= 0.1]}: Annual turnover time for biome in the CENTURY model.}
 }
 \bold{Forest dynamics} (function \code{\link{fordyn}}):
 \itemize{
 \item{\code{allowSeedBankDynamics [= TRUE]}: Boolean flag to indicate that seed production and seed bank dynamics is simulated.}
 \item{\code{allowRecruitment [= TRUE]}: Boolean flag to indicate that recruitment from seeds is allowed.}
 \item{\code{allowResprouting [= TRUE]}: Boolean flag to indicate that resprouting is allowed.}
-\item{\code{recruitmentMode [= "stochastic"]}: String describing how recruitment from seeds is applied. Current accepted values are "deterministic" or "stochastic".}
+\item{\code{recruitmentMode [= "annual/stochastic"]}: String describing how recruitment from seeds is applied. Current accepted values are "annual/deterministic", "annual/stochastic", "daily/deterministic" or "daily/stochastic".}
 \item{\code{removeEmptyCohorts [= TRUE]}: Boolean flag to indicate the removal of cohorts whose density is too low.}
 \item{\code{minimumTreeCohortDensity [= 1]}: Threshold of tree density resulting in cohort removal.}
 \item{\code{minimumShrubCohortCover [= 0.01]}: Threshold of shrub cover resulting in cohort removal.}
@@ -181,13 +185,10 @@ By default synoptic storms (1.5 mm/h) are assumed between December and June, and
 \item{\code{minTempRecr [= 0]}: Default threshold of minimum average temperature of the coldest month necessary for recruiting from seeds (when species parameter \code{MinTempRecr} is missing).}
 \item{\code{minMoistureRecr [= 0.3]}: Default threshold of minimum moisture index (annual precipitation over annual ETP) necessary for seed-recruiting (when species parameter \code{MinMoistureRecr} is missing).}
 \item{\code{minFPARRecr [= 10]}: Default threshold of minimum fraction of PAR (in \%)  reaching the ground necessary for recruiting (when species parameter \code{MinFPARRecr} is missing).}
+\item{\code{recrAge [= 5]}: Default recruitment age (in yrs).}
 \item{\code{recrTreeHeight [= 620]}: Default height (cm) for recruited trees  (when species parameter \code{RecrTreeHeight} is missing).}
 \item{\code{recrShrubCover [= 1]}: Default cover (\%) for shrubs recruited from seed  (when species parameter \code{RecrShrubCover} is missing).}
 \item{\code{recrShrubHeight [= 25]}: Default height (cm) for recruited shrubs  (when species parameter \code{RecrShrubHeight} is missing).}
-\item{\code{recrTreeZ50 [= 100]}: Default value for Z50 (mm) in seed-recruited trees  (when species parameter \code{RecrZ50} is missing).}
-\item{\code{recrShrubZ50 [= 50]}: Default value for Z50 (mm) in seed-recruited shrubs  (when species parameter \code{RecrZ50} is missing).}
-\item{\code{recrTreeZ95 [= 1000]}: Default value for Z95 (mm) in seed-recruited trees  (when species parameter \code{RecrZ50} is missing).}
-\item{\code{recrShrubZ50 [= 500]}: Default value for Z95 (mm) in seed-recruited shrubs  (when species parameter \code{RecrZ50} is missing).}
 }
 }
 }

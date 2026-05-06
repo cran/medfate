@@ -2,7 +2,6 @@
 % Please edit documentation in R/RcppExports.R
 \name{spwb}
 \alias{spwb}
-\alias{pwb}
 \title{Soil-plant water balance}
 \usage{
 spwb(
@@ -14,21 +13,6 @@ spwb(
   aspect = NA_real_,
   CO2ByYear = numeric(0),
   waterTableDepth = NA_real_
-)
-
-pwb(
-  x,
-  meteo,
-  W,
-  latitude,
-  elevation,
-  slope = NA_real_,
-  aspect = NA_real_,
-  canopyEvaporation = numeric(0),
-  snowMelt = numeric(0),
-  soilEvaporation = numeric(0),
-  herbTranspiration = numeric(0),
-  CO2ByYear = numeric(0)
 )
 }
 \arguments{
@@ -63,20 +47,12 @@ The following columns are optional:
 \item{CO2ByYear}{A named numeric vector with years as names and atmospheric CO2 concentration (in ppm) as values. Used to specify annual changes in CO2 concentration along the simulation (as an alternative to specifying daily values in \code{meteo}).}
 
 \item{waterTableDepth}{Water table depth (in mm). When not missing, capillarity rise will be allowed if lower than total soil depth.}
-
-\item{W}{A matrix with the same number of rows as \code{meteo} and as many columns as soil layers, containing the soil moisture of each layer as proportion of field capacity.}
-
-\item{canopyEvaporation}{A vector of daily canopy evaporation (from interception) values (mm). The length should match the number of rows in \code{meteo}.}
-
-\item{snowMelt}{A vector of daily snow melt values (mm). The length should match the number of rows in \code{meteo}.}
-
-\item{soilEvaporation}{A vector of daily bare soil evaporation values (mm). The length should match the number of rows in \code{meteo}.}
-
-\item{herbTranspiration}{A vector of daily herbaceous transpiration values (mm). The length should match the number of rows in \code{meteo}.}
 }
 \value{
-Function \code{spwb} returns a list of class 'spwb' whereas function \code{pwb} returns a list of class 'pwb'.
-There are many elements in common in these lists, so they are listed here together:
+Function \code{spwb} returns a list of class 'spwb'. Since lists are difficult to handle, we recommend using
+function \code{\link{extract}} to reshape simulation results (including their units) from those objects.
+
+List elements are as follows:
 \itemize{
 \item{\code{"latitude"}: Latitude (in degrees) given as input.}
 \item{\code{"topography"}: Vector with elevation, slope and aspect given as input.}
@@ -131,6 +107,8 @@ There are many elements in common in these lists, so they are listed here togeth
 \item{\code{"LgroundSWR"}: The percentage of SWR that reaches the ground (accounting for leaf phenology).}
 }
 \item{\code{"Plants"}: A list of daily results for plant cohorts (see below).}
+\item{\code{"SunlitLeaves"}: A list of daily results for sunlit leaves of plant cohorts  (only for \code{transpirationMode = "Sperry"} or \code{transpirationMode = "Sureau"}; see below).}
+\item{\code{"ShadeLeaves"}: A list of daily results for sunlit leaves of plant cohorts  (only for \code{transpirationMode = "Sperry"} or \code{transpirationMode = "Sureau"}; see below).}
 \item{\code{"subdaily"}: A list of objects of class \code{\link{spwb_day}}, one per day simulated (only if required in \code{control} parameters, see \code{\link{defaultControl}}).}
 }
 
@@ -154,6 +132,8 @@ When \code{transpirationMode = "Granier"}, element \code{"Plants"} is a list wit
 If \code{transpirationMode="Sperry"} or \code{transpirationMode="Sureau"}, element \code{"Plants"} is a list with the following subelements:
 \itemize{
 \item{\code{"LAI"}: A data frame with the daily leaf area index for each plant cohort.}
+\item{\code{"LAIlive"}: A data frame with the daily leaf area index for each plant cohort, assuming all leaves are unfolded (in m2/m2).}
+\item{\code{"FPAR"}: A data frame with the fraction of PAR at the canopy level of each plant cohort. }
 \item{\code{"AbsorbedSWR"}: A data frame with the daily SWR absorbed by each plant cohort.}
 \item{\code{"NetLWR"}: A data frame with the daily net LWR by each plant cohort.}
 \item{\code{"Transpiration"}: A data frame with the amount of daily transpiration (in mm) for each plant cohorts.}
@@ -161,12 +141,6 @@ If \code{transpirationMode="Sperry"} or \code{transpirationMode="Sureau"}, eleme
 \item{\code{"NetPhotosynthesis"}: A data frame with the amount of daily net photosynthesis (in g C·m-2) for each plant cohort. }
 \item{\code{"dEdP"}: A data frame with mean daily values of soil-plant conductance (derivative of the supply function) for each plant cohort.}
 \item{\code{"PlantWaterBalance"}: A data frame with the daily balance between transpiration and soil water extraction for each plant cohort. }
-\item{\code{"SunlitLeaves"} and \code{"ShadeLeaves"}: A list with daily results for sunlit and shade leaves:
-\itemize{
-\item{\code{"PsiMin"}: A data frame with the minimum (midday) daily sunlit or shade leaf water potential (in MPa). }
-\item{\code{"PsiMax"}: A data frame with the maximum (predawn) daily sunlit or shade leaf water potential (in MPa). }
-}
-}
 \item{\code{"LeafPsiMin"}: A data frame with the minimum (midday) daily (average) leaf water potential of each plant (in MPa).}
 \item{\code{"LeafPsiMax"}: A data frame with the maximum (predawn) daily (average) leaf water potential of each plant (in MPa).}
 \item{\code{"LeafRWC"}: A data frame with the average daily leaf relative water content of each plant (in percent).}
@@ -177,27 +151,48 @@ If \code{transpirationMode="Sperry"} or \code{transpirationMode="Sureau"}, eleme
 \item{\code{"StemPLC"}: A data frame with the average daily proportion of stem conductance loss of each plant ([0-1]).}
 \item{\code{"RootPsi"}: A data frame with the minimum daily root water potential of each plant (in MPa). }
 \item{\code{"RhizoPsi"}: A list of data frames (one per plant cohort) with the minimum daily root water potential of each plant (in MPa).}
+\item{\code{"LFMC"}: A data frame with the daily live fuel moisture content (in percent of dry weight).}
 \item{\code{"PlantStress"}: A data frame with the amount of daily stress [0-1] suffered by each plant cohort (relative whole-plant conductance).}
+}
+If \code{transpirationMode="Sperry"} or \code{transpirationMode="Sureau"}, then elements  \code{"SunlitLeaves"} and \code{"ShadeLeaves"} are list with daily results for sunlit
+and shade leaves:
+\itemize{
+\item{\code{"PsiMin"}: A data frame with the minimum (midday) daily sunlit or shade leaf water potential (in MPa). }
+\item{\code{"PsiMax"}: A data frame with the maximum (predawn) daily sunlit or shade leaf water potential (in MPa). }
+\item{\code{"TempMin"}: A data frame with the minimum daily sunlit or shade leaf temperature (in Celsius). }
+\item{\code{"TempMax"}: A data frame with the maximum daily sunlit or shade leaf temperature (in Celsius). }
+\item{\code{"GSWMin"}: A data frame with the minimum daily sunlit or shade leaf stomatal conductance (in mol·m-2·s-1). }
+\item{\code{"GSWMax"}: A data frame with the maximum daily sunlit or shade leaf stomatal conductance (in mol·m-2·s-1). }
 }
 }
 \description{
 Function \code{spwb()} is a water balance model that determines changes in soil moisture,
 soil water potentials, plant transpiration and drought stress at daily steps for a given forest stand
-during a period specified in the input climatic data. Function \code{pwb()} performs plant water balance
-only (i.e. soil moisture dynamics is an input) at daily steps for a given forest stand
-during a period specified in the input climatic data. On both simulation functions plant transpiration
+during a period specified in the input climatic data. Plant transpiration
 and photosynthesis processes are conducted with different level of detail depending on the transpiration mode.
 }
 \details{
-The simulation functions allow using three different sub-models of transpiration and photosynthesis:
+Detailed model description is available in the medfate book.
+
+Soil-plant water balance simulations allow using different sub-models for bulk soil water flows and different sub-models of transpiration and photosynthesis:
+
+(1) Sub-models of transpiration and photosynthesis (control parameter \code{transpirationMode}):
 \itemize{
-\item{The sub-model corresponding to 'Granier' transpiration mode is illustrated by function \code{\link{transp_transpirationGranier}} and was described in De Caceres et al. (2015),
+\item{The sub-model corresponding to 'Granier' transpiration mode is illustrated by internal function \code{\link{transp_transpirationGranier}} and was described in De Caceres et al. (2015),
 and implements an approach originally described in Granier et al. (1999).}
-\item{The sub-model corresponding to 'Sperry' transpiration mode is illustrated by function \code{\link{transp_transpirationSperry}} and was described in De Caceres et al. (2021), and
+\item{The sub-model corresponding to 'Sperry' transpiration mode is illustrated by internal function \code{\link{transp_transpirationSperry}} and was described in De Caceres et al. (2021), and
 implements a modelling approach originally described in Sperry et al. (2017).}
-\item{The sub-model corresponding to 'Sureau' transpiration mode is illustrated by function \code{\link{transp_transpirationSureau}} and was described for model SurEau-Ecos v2.0 in Ruffault et al. (2022).}
+\item{The sub-model corresponding to 'Sureau' transpiration mode is illustrated by internal function \code{\link{transp_transpirationSureau}} and was described for model SurEau-Ecos v2.0 in Ruffault et al. (2022).}
 }
-Simulations using the 'Sperry' or 'Sureau' transpiration mode are computationally much more expensive than 'Granier'.
+Simulations using the 'Sperry' or 'Sureau' transpiration mode are computationally much more expensive than 'Granier' because they
+include explicit plant hydraulics and canopy/soil energy balance at subdaily time steps.
+
+(2) Sub-models of bulk soil water flows (control parameter \code{soilDomains}; see internal function \code{\link{hydrology_soilWaterBalance}}):
+\itemize{
+\item{The submodel corresponding to 'buckets' is a multi-bucket model adds/substracts water to each layer and if content is above field capacity the excess percolates to the layer below.}
+\item{The submodel corresponding to 'single' is a single-domain solving 1D Richards equation (Bonan et al. 2019).}
+\item{The submodel corresponding to 'dual' is a dual-permeability model from MACRO 5.0 (Jarvis et al. 1991; Larsbo et al. 2005)}
+}
 }
 \examples{
 \donttest{
@@ -243,9 +238,15 @@ S3 <- spwb(x3, examplemeteo, latitude = 41.82592, elevation = 100)
                 
 }
 \references{
+Bonan, G. (2019). Climate change and terrestrial ecosystem modeling. Cambridge University Press, Cambridge, UK.
+
 De \enc{Cáceres}{Caceres} M, \enc{Martínez}{Martinez}-Vilalta J, Coll L, Llorens P, Casals P, Poyatos R, Pausas JG, Brotons L. (2015) Coupling a water balance model with forest inventory data to predict drought stress: the role of forest structural changes vs. climate changes. Agricultural and Forest Meteorology 213: 77-90 (doi:10.1016/j.agrformet.2015.06.012).
 
 De \enc{Cáceres}{Caceres} M, Mencuccini M, Martin-StPaul N, Limousin JM, Coll L, Poyatos R, Cabon A, Granda V, Forner A, Valladares F, \enc{Martínez}{Martinez}-Vilalta J (2021) Unravelling the effect of species mixing on water use and drought stress in holm oak forests: a modelling approach. Agricultural and Forest Meteorology 296 (doi:10.1016/j.agrformet.2020.108233).
+
+Jarvis, N.J., Jansson, P‐E., Dik, P.E. & Messing, I. (1991). Modelling water and solute transport in macroporous soil. I. Model description and sensitivity analysis. Journal of Soil Science, 42, 59–70.
+
+Larsbo, M., Roulier, S., Stenemo, F., Kasteel, R. & Jarvis, N. (2005). An Improved Dual‐Permeability Model of Water Flow and Solute Transport in the Vadose Zone. Vadose Zone Journal, 4, 398–406.
 
 Granier A, \enc{Bréda}{Breda} N, Biron P, Villette S (1999) A lumped water balance model to evaluate duration and intensity of drought constraints in forest stands. Ecol Modell 116:269–283. https://doi.org/10.1016/S0304-3800(98)00205-1.
 
@@ -257,7 +258,8 @@ Sperry, J. S., M. D. Venturas, W. R. L. Anderegg, M. Mencuccini, D. S. Mackay, Y
 }
 \seealso{
 \code{\link{spwbInput}}, \code{\link{spwb_day}}, \code{\link{plot.spwb}},
-\code{\link{extract}}, \code{\link{summary.spwb}},  \code{\link{forest}}, \code{\link{aspwb}}
+\code{\link{extract}}, \code{\link{summary.spwb}},  \code{\link{forest}},
+\code{\link{pwb}}, \code{\link{growth}}, \code{\link{aspwb}}
 }
 \author{
 \itemize{

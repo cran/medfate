@@ -1,19 +1,112 @@
+.checkForestColumns <-function(forest) {
+  ntree <- nrow(forest$treeData)
+  if(!("Z100" %in% names(forest$treeData))) forest$treeData$Z100 <- as.numeric(rep(NA, ntree))
+  if(!("Age" %in% names(forest$treeData))) forest$treeData$Age <- as.numeric(rep(NA, ntree))
+  if(!("ObsID" %in% names(forest$treeData))) forest$treeData$ObsID <- as.character(rep(NA, ntree))
+  forest$treeData <- forest$treeData[,c("Species", "N", "DBH", "Height", "Z50", "Z95","Z100", "Age", "ObsID")]
+  nshrub <- nrow(forest$shrubData)
+  if(!("Z100" %in% names(forest$shrubData))) forest$shrubData$Z100 <- as.numeric(rep(NA, nshrub))
+  if(!("Age" %in% names(forest$shrubData))) forest$shrubData$Age <- as.numeric(rep(NA, nshrub))
+  if(!("ObsID" %in% names(forest$shrubData))) forest$shrubData$ObsID <- as.character(rep(NA, nshrub))
+  forest$shrubData <- forest$shrubData[,c("Species", "Cover", "Height", "Z50", "Z95","Z100", "Age", "ObsID")]
+  return(forest)
+}
+
+.ageSnagCohorts<-function(xo) {
+  oldSnagData <- xo$internalSnags
+  if(nrow(oldSnagData)>0) {
+    oldSnagData$DeathAge <- oldSnagData$DeathAge + 1
+  }
+  newSnagData <- data.frame(Species = xo$cohorts$Name,
+                            DBH = xo$above$DBH,
+                            Height = xo$above$H,
+                            DeathAge = rep(1, nrow(xo$above)),
+                            SmallBranches = xo$internalMortality$Snag_smallbranches,
+                            LargeWood = xo$internalMortality$Snag_largewood)
+  mergedSnagData <- rbind(oldSnagData, newSnagData)
+  row.names(mergedSnagData) <- NULL
+  return(mergedSnagData)
+}
+
+# TO BE IMPROVED!
+.snagFall<-function(snagData, litterData) {
+  if(nrow(snagData)>0) {
+    for(s in 1:nrow(snagData)) {
+      # Determine branch fall and large wood fall
+      speciesSnag <- snagData$Species[s]
+      dbhSnag <- snagData$DBH[s]
+      ageSnag <- snagData$DeathAge[s]
+      smallBranchFallAmount <- 0.0
+      largeWoodFallAmount <- 0.0
+      decayClass <- 1 # Class 1: Standing dead tree with most of its branches intact
+      if(ageSnag >= 4  && ageSnag < 10) { # Class 2: Dead tree with  < 50% branch left and loose bark
+        decayClass <- 2
+        if(ageSnag == 4) smallBranchFallAmount <- snagData$SmallBranches[s]/2 # 50% of branches fall at age 5
+      } else if(ageSnag >= 10 && ageSnag < 20) { # Class 3 : dead tree without branches or bark
+        decayClass <- 3
+        if(ageSnag == 10) smallBranchFallAmount <- snagData$SmallBranches[s] # All branches fall at age 10  
+      } else if(ageSnag >= 20) { # Class 4/5: Broken stem
+        decayClass <- 4
+        if(ageSnag == 20) largeWoodFallAmount <- snagData$LargeWood[s]/2 # 50% of large wood falls
+      } else if(ageSnag >= 30) {
+        decayClass <- 5
+      }
+      if(!is.na(dbhSnag)) {
+        p_fall<- decomposition_snagFallProbability(DBH = dbhSnag, decayClass = decayClass)
+      } else {
+        p_fall <- 0.5
+      }
+      # To prevent infinite accumulation of snag cohorts
+      if(ageSnag > 50) p_fall <- 1.0
+      if(runif(1) < p_fall) { # If falls, all remaining wood goes to the ground
+        largeWoodFallAmount <- snagData$LargeWood[s]
+        smallBranchFallAmount <- snagData$SmallBranches[s]
+      }
+      # Remove branch fall and large wood fall from snag data
+      snagData$SmallBranches[s] = snagData$SmallBranches[s] - smallBranchFallAmount
+      snagData$LargeWood[s] = snagData$LargeWood[s] - largeWoodFallAmount
+      # Add branch fall and large wood fall to litter data
+      if(speciesSnag %in% litterData$Species) {
+        row <- which(litterData$Species==speciesSnag)
+        litterData$SmallBranches[row] = litterData$SmallBranches[row] + smallBranchFallAmount
+        litterData$LargeWood[row] = litterData$LargeWood[row] + largeWoodFallAmount 
+      } else { ## Create new row
+        litterData <- rbind(litterData,
+                            data.frame(Species = speciesSnag, Leaves = 0, Twigs = 0, 
+                                       SmallBranches = smallBranchFallAmount,
+                                       LargeWood = largeWoodFallAmount, 
+                                       CoarseRoots = 0))
+      }
+    }
+    # Remove snags that do not have remaining mass
+    snagData <- snagData[snagData$SmallBranches>0 | snagData$LargeWood>0, , drop = FALSE]
+  }
+  return(list(snagData = snagData, litterData = litterData))
+}
 .nextYearForest<-function(forest, xo, SpParams, control,
-                          planted_forest = emptyforest(),
-                          recr_forest = emptyforest(),
-                          resp_forest = emptyforest()) {
+                          planted_forest = emptyforest(addcolumns = c("Z100", "Age", "ObsID")),
+                          recr_forest = emptyforest(addcolumns = c("Z100", "Age", "ObsID")),
+                          resp_forest = emptyforest(addcolumns = c("Z100", "Age", "ObsID"))) {
+  
+  #Check completeness of columns in forest objects
+  forest <- .checkForestColumns(forest)
+  planted_forest <- .checkForestColumns(planted_forest)
+  recr_forest <- .checkForestColumns(recr_forest)
+  resp_forest <- .checkForestColumns(resp_forest)
   
   #Determine offsets
   treeOffset <- 0
   shrubOffset <- 0
   coh_names <- row.names(xo$cohorts)
-  isTree <- substr(coh_names,1,1)=="T"
+  ctype <- .cohortType(coh_names)
+  isTree <- ctype=="tree"
+  isShrub <- ctype=="shrub"
   if(length(coh_names)>0) {
     coh_numbers <- sapply(strsplit(coh_names, "_"), function(x) {
       as.numeric(substr(x[[1]], 2, nchar(x[[1]])))
     })
     if(sum(isTree)>0) treeOffset <- max(coh_numbers[isTree])
-    if(sum(!isTree)>0) shrubOffset <- max(coh_numbers[!isTree])
+    if(sum(isShrub)>0) shrubOffset <- max(coh_numbers[isShrub])
   } 
   
   # 1. Remove empty cohorts if required
@@ -22,15 +115,15 @@
   # print(forest)
   if(control$removeEmptyCohorts) {
     emptyTrees <- (forest$treeData$N < control$minimumTreeCohortDensity)
-    if(control$keepCohortsWithObsID) { # Exclude from removal if cohort has non-missing ID
-      if("ID" %in% names(forest$treeData)) {
+    if(control$keepCohortsWithObsID) { # Exclude from removal if cohort has non-missing ObsID
+      if("ObsID" %in% names(forest$treeData)) {
         emptyTrees[!is.na(forest$treeData)] <- FALSE
       }
     }
     if(control$shrubDynamics) {
       emptyShrubs <- (forest$shrubData$Cover < control$minimumShrubCohortCover)
-      if(control$keepCohortsWithObsID) { # Exclude from removal if cohort has non-missing ID
-        if("ID" %in% names(forest$shrubData)) {
+      if(control$keepCohortsWithObsID) { # Exclude from removal if cohort has non-missing ObsID
+        if("ObsID" %in% names(forest$shrubData)) {
           emptyShrubs[!is.na(forest$shrubData)] <- FALSE
         }
       }
@@ -120,37 +213,66 @@
   sel_vec <- c(rep(TRUE, nrow(forest$treeData)),
                rep(control$shrubDynamics, nrow(forest$shrubData)))
   
-  # 4. Merge cohorts in forest object
-  if("ObsID" %in% names(forest$treeData)) {
-    planted_forest$treeData$ObsID <- rep(as.character(NA), nrow(planted_forest$treeData))
-    recr_forest$treeData$ObsID <- rep(as.character(NA), nrow(recr_forest$treeData))
-    resp_forest$treeData$ObsID <- rep(as.character(NA), nrow(resp_forest$treeData))
-  }
-  if("ObsID" %in% names(forest$shrubData)) {
-    planted_forest$shrubData$ObsID <- rep(as.character(NA), nrow(planted_forest$shrubData))
-    recr_forest$shrubData$ObsID <- rep(as.character(NA), nrow(recr_forest$shrubData))
-    resp_forest$shrubData$ObsID <- rep(as.character(NA), nrow(resp_forest$shrubData))
-  }
+  
+  # 4.1 Increase forest age for existing cohorts
+  forest$treeData$Age <- forest$treeData$Age + 1
+  forest$shrubData$Age <- forest$shrubData$Age + 1
+  
+  # 4.2 Merge cohorts in forest object
   forest$treeData <- rbind(forest$treeData, planted_forest$treeData, recr_forest$treeData, resp_forest$treeData)
+  row.names(forest$treeData) <- NULL
   forest$shrubData <- rbind(forest$shrubData, planted_forest$shrubData, recr_forest$shrubData, resp_forest$shrubData)
+  row.names(forest$shrubData) <- NULL
+
+  # 4.3 Copy seedling bank from recr_forest
+  if(!is.null(recr_forest$seedlingBank)) {
+    forest$seedlingBank <- recr_forest$seedlingBank
+  }
   
   # 5.1 Prepare growth input for next year
   FCCSprops = fuel_FCCS(forest, SpParams);
+  treeZ50 <- forest$treeData$Z50
+  treeZ95 <- forest$treeData$Z95
   treeZ100 <- rep(NA, nrow(forest$treeData))
   if("Z100" %in% names(forest$treeData)) treeZ100 <- forest$treeData$Z100
+  shrubZ50 <- forest$shrubData$Z50
+  shrubZ95 <- forest$shrubData$Z95
   shrubZ100 <- rep(NA, nrow(forest$shrubData))
   if("Z100" %in% names(forest$shrubData)) shrubZ100 <- forest$shrubData$Z100
-  xi <- .growthInput(above = above_all, 
-                     Z50 = c(forest$treeData$Z50, forest$shrubData$Z50),
-                     Z95 = c(forest$treeData$Z95, forest$shrubData$Z95),
-                     Z100 = c(treeZ100, shrubZ100),
-                     xo$soil, FCCSprops, SpParams, control)
-  xi$herbLAI <- xo$herbLAI
-  xi$herbLAImax <- xo$herbLAImax
+  herbZ50 <- numeric(0)
+  herbZ95 <- numeric(0)
+  herbZ100 <- numeric(0)
+  if("herbData" %in% names(forest)) {
+    herbZ50 <- forest$herbData$Z50
+    herbZ95 <- forest$herbData$Z95
+    herbZ100 <- rep(NA, nrow(forest$herbData))
+    if("Z100" %in% names(forest$herbData)) herbZ100 <- forest$herbData$Z100
+  }
   
-  # 5.2 Replace previous state for surviving cohorts
+  # Add new snag cohorts from mortality and increment snag age
+  pooled_snags <- .ageSnagCohorts(xo)
+  # Process snag fall and add new litter
+  snag_fall <- .snagFall(pooled_snags, xo$internalLitter)
+  forest$snagData <- snag_fall$snagData
+  forest$litterData <- snag_fall$litterData
+  # Add SOC pools to forest
+  forest$SOCData <- xo$internalSOC
+  
+  
+  xi <- .growthInput(above = above_all, 
+                     Z50 = c(treeZ50, shrubZ50, herbZ50),
+                     Z95 = c(treeZ95, shrubZ95, herbZ95),
+                     Z100 = c(treeZ100, shrubZ100, herbZ100),
+                     xo$soil, forest$snagData, forest$litterData, forest$SOCData, FCCSprops, 
+                     SpParams, control)
+  if("herbLAI" %in% names(xo)) xi$herbLAI <- xo$herbLAI
+  if("herbLAImax" %in% names(xo)) xi$herbLAImax <- xo$herbLAImax
+  
+
+  
+  # 5.2 Replace previous state for surviving cohorts (except age)
   xi$cohorts[repl_vec,] <- xo$cohorts[sel_vec,, drop=FALSE]
-  xi$above[repl_vec,] <- xo$above[sel_vec,, drop=FALSE]
+  xi$above[repl_vec, (names(xi$above)!="Age")] <- xo$above[sel_vec,(names(xo$above)!="Age"), drop=FALSE]
   xi$below[repl_vec,] <- xo$below[sel_vec,, drop=FALSE]
   xi$belowLayers$V[repl_vec,] <- xo$belowLayers$V[sel_vec,, drop=FALSE]
   xi$belowLayers$L[repl_vec,] <- xo$belowLayers$L[sel_vec,, drop=FALSE]
@@ -338,7 +460,8 @@
 
 .createTreeTable<-function(step, year, x) {
   range <- numeric(0)
-  isTree <- !is.na(x$above$DBH)
+  ctype  <- .cohortType(row.names(x$cohorts))
+  isTree <- ctype=="tree"
   if(sum(isTree)>0) range <- 1:sum(isTree)
 
   tt<-data.frame(Step = rep(step, length(range)), 
@@ -349,16 +472,25 @@
                  Height = x$above$H[range],
                  N = x$above$N[range],
                  Z50 = x$below$Z50[range],
-                 Z95 = x$below$Z95[range])
+                 Z95 = x$below$Z95[range],
+                 Z100 = x$below$Z100[range])
+  if("Age" %in% names(x$above)) {
+    tt$Age <- x$above$Age[range]
+  } else {
+    tt$Age <- as.numeric(rep(NA, sum(isTree)))
+  }
   if("ObsID" %in% names(x$above)) {
     tt$ObsID <- x$above$ObsID[range]
+  } else {
+    tt$ObsID <- as.character(rep(NA, sum(isTree)))
   }
   tt = tt[tt$N>0,, drop=FALSE]
   return(tt)
 }
 .createDeadTreeTable<-function(step, year, x) {
   range <- numeric(0)
-  isTree <- !is.na(x$above$DBH)
+  ctype  <- .cohortType(row.names(x$cohorts))
+  isTree <- ctype=="tree"
   if(sum(isTree)>0) range <- 1:sum(isTree)
   
   dtt<-data.frame(Step = rep(step, length(range)), 
@@ -371,16 +503,27 @@
                   N_starvation = x$internalMortality$N_starvation[range],
                   N_dessication = x$internalMortality$N_dessication[range],
                   N_burnt = x$internalMortality$N_burnt[range],
+                  N_resprouting_stumps = x$internalMortality$N_resprouting_stumps[range],
                   Z50 = x$below$Z50[range],
-                  Z95 = x$below$Z95[range])
+                  Z95 = x$below$Z95[range],
+                  Z100 = x$below$Z100[range])
+  if("Age" %in% names(x$above)) {
+    dtt$Age <- x$above$Age[range]
+  } else {
+    dtt$Age <- as.numeric(rep(NA, sum(isTree)))
+  }
   if("ObsID" %in% names(x$above)) {
     dtt$ObsID <- x$above$ObsID[range]
+  } else {
+    dtt$ObsID <- as.character(rep(NA, sum(isTree)))
   }
   dtt = dtt[dtt$N>0,, drop = FALSE]
   return(dtt)
 }
 .createCutTreeTable<-function(step, year, x, N_cut) {
-  range = numeric(0)
+  ctype  <- .cohortType(row.names(x$cohorts))
+  isTree <- ctype=="tree"
+  range <- numeric(0)
   if(length(N_cut)>0) range = 1:length(N_cut)
   ctt<-data.frame(Step = rep(step, length(N_cut)), 
                  Year = rep(year, length(N_cut)),
@@ -390,62 +533,87 @@
                  Height = x$above$H[range],
                  N = N_cut,
                  Z50 = x$below$Z50[range],
-                 Z95 = x$below$Z95[range])
+                 Z95 = x$below$Z95[range],
+                 Z100 = x$below$Z100[range])
+  if("Age" %in% names(x$above)) {
+    ctt$Age <- x$above$Age[range]
+  } else {
+    ctt$Age <- as.numeric(rep(NA, sum(isTree)))
+  }
   if("ObsID" %in% names(x$above)) {
     ctt$ObsID <- x$above$ObsID[range]
+  } else {
+    ctt$ObsID <- as.character(rep(NA, sum(isTree)))
   }
   ctt = ctt[ctt$N>0,, drop=FALSE]
   return(ctt)
 }
 .createShrubTable<-function(step, year, x) {
-  isShrub = !is.na(x$above$Cover)
-  nt = sum(!isShrub)
-  numCohorts = length(isShrub)
-  range = numeric(0)
-  if(numCohorts>nt) range = (nt+1):numCohorts
-  st<-data.frame(Step = rep(step, length(range)), 
-                 Year = rep(year, length(range)),
+  ctype  <- .cohortType(row.names(x$cohorts))
+  nt <- sum(ctype=="tree")
+  ns <- sum(ctype=="shrub")
+  range <- numeric(0)
+  if(ns>0) range = (nt+1):(nt+ns)
+  st<-data.frame(Step = rep(step, ns), 
+                 Year = rep(year, ns),
                  Cohort = row.names(x$cohorts)[range],
                  Species = x$cohorts$Name[range],
                  Cover = x$above$Cover[range],
                  Height = x$above$H[range],
                  Z50 = x$below$Z50[range],
-                 Z95 = x$below$Z95[range])
+                 Z95 = x$below$Z95[range],
+                 Z100 = x$below$Z100[range])
+  if("Age" %in% names(x$above)) {
+    st$Age <- x$above$Age[range]
+  } else {
+    st$Age <- as.numeric(rep(NA, ns))
+  }
   if("ObsID" %in% names(x$above)) {
     st$ObsID <- x$above$ObsID[range]
+  } else {
+    st$ObsID <- as.character(rep(NA, ns))
   }
   st = st[st$Cover>0,, drop = FALSE]
   return(st)
 }
 .createDeadShrubTable<-function(step, year, x) {
-  isShrub = !is.na(x$above$Cover)
-  nt = sum(!isShrub)
-  numCohorts = length(isShrub)
-  range = numeric(0)
-  if(numCohorts>nt) range = (nt+1):numCohorts
-  dst<-data.frame(Step = rep(step, length(range)), 
-                  Year = rep(year, length(range)),
+  ctype  <- .cohortType(row.names(x$cohorts))
+  nt = sum(ctype=="tree")
+  ns <- sum( ctype=="shrub")
+  range <- numeric(0)
+  if(ns>0) range = (nt+1):(nt+ns)
+  dst<-data.frame(Step = rep(step, ns), 
+                  Year = rep(year, ns),
                   Cohort = row.names(x$cohorts)[range],
                   Species = x$cohorts$Name[range],
                   Cover = x$internalMortality$Cover_dead[range],
                   Cover_starvation = x$internalMortality$Cover_starvation[range],
                   Cover_dessication = x$internalMortality$Cover_dessication[range],
                   Cover_burnt = x$internalMortality$Cover_burnt[range],
+                  Cover_resprouting_stumps = x$internalMortality$Cover_resprouting_stumps[range],
                   Height = x$above$H[range],
                   Z50 = x$below$Z50[range],
-                  Z95 = x$below$Z95[range])
+                  Z95 = x$below$Z95[range],
+                  Z100 = x$below$Z100[range])
+  if("Age" %in% names(x$above)) {
+    dst$Age <- x$above$Age[range]
+  } else {
+    dst$Age <- as.numeric(rep(NA, ns))
+  }
   if("ObsID" %in% names(x$above)) {
     dst$ObsID <- x$above$ObsID[range]
+  } else {
+    dst$ObsID <- as.character(rep(NA, ns))
   }
   dst = dst[dst$Cover>0,,drop=FALSE]
   return(dst)
 }
 .createCutShrubTable<-function(step, year, x, Cover_cut) {
-  isShrub = !is.na(x$above$Cover)
-  nt = sum(!isShrub)
-  numCohorts = length(isShrub)
-  range = numeric(0)
-  if(numCohorts>nt) range = (nt+1):numCohorts
+  ctype  <- .cohortType(row.names(x$cohorts))
+  nt = sum(ctype=="tree")
+  ns <- sum( ctype=="shrub")
+  range <- numeric(0)
+  if(ns>0) range = (nt+1):(nt+ns)
   cst<-data.frame(Step = rep(step, length(range)), 
                  Year = rep(year, length(range)),
                  Cohort = row.names(x$cohorts)[range],
@@ -453,9 +621,17 @@
                  Cover = Cover_cut,
                  Height = x$above$H[range],
                  Z50 = x$below$Z50[range],
-                 Z95 = x$below$Z95[range])
+                 Z95 = x$below$Z95[range],
+                 Z100 = x$below$Z100[range])
+  if("Age" %in% names(x$above)) {
+    cst$Age <- x$above$Age[range]
+  } else {
+    cst$Age <- as.numeric(rep(NA, ns))
+  }
   if("ObsID" %in% names(x$above)) {
     cst$ObsID <- x$above$ObsID[range]
+  } else {
+    cst$ObsID <- as.character(rep(NA, ns))
   }
   cst = cst[cst$Cover>0,, drop = FALSE]
   return(cst)

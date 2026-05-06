@@ -4,12 +4,41 @@
 \alias{emptyforest}
 \title{Creation of an empty forest}
 \usage{
-emptyforest(ntree = 0, nshrub = 0, nseed = 0)
+emptyforest(
+  ntree = 0,
+  nshrub = 0,
+  nherb = 0,
+  nseedling = 0,
+  nseed = 0,
+  nsnag = 0,
+  nlitter = 0,
+  addcolumns = NULL,
+  SOC = FALSE
+)
 }
 \arguments{
-\item{ntree, nshrub}{Number of tree and shrub cohorts, respectively.}
+\item{ntree, nshrub, nherb}{Number of tree, shrub and herb cohorts, respectively.}
+
+\item{nseedling}{Number of species in the seedling bank.}
 
 \item{nseed}{Number of species in the seed bank.}
+
+\item{nsnag}{Number of snag (dead standing) cohorts.}
+
+\item{nlitter}{Number of items in the litter compartment.}
+
+\item{addcolumns}{A character vector with additional columns. Currently allowed are (see \code{\link{forest}}):
+\itemize{
+\item{\code{Z100}: A numeric vector with maximum rooting depth in mm.}
+\item{\code{LAI}: Leaf area index (m2/m2).}
+\item{\code{FoliarBiomass}: Standing dry biomass of leaves (kg/m2).}
+\item{\code{FuelLoading}: Fine fuel loading (kg/m2).}
+\item{\code{CrownRatio}: The ratio between crown length and total height (between 0 and 1)}
+\item{\code{Age}: A numeric vector indicating age of cohorts in years.}
+\item{\code{ObsID} A character vector to label specific cohorts in simulations of forest dynamics.}
+}}
+
+\item{SOC}{A boolean flag to initialize SOC data (see \code{\link{forest}}).}
 }
 \value{
 An empty \code{\link{forest}} object.
@@ -17,10 +46,22 @@ An empty \code{\link{forest}} object.
 \description{
 Creates an empty \code{\link{forest}} object.
 }
+\details{
+List elements \code{treeData} and \code{shrubData} are always created, regardless of the number of cohorts.
+In contrast, list elements \code{herbData}, \code{seedBank} and \code{seedlingBank} are only created if \code{nherb}, \code{nseed} and \code{nseedling} are non-zero, respectively.
+}
 \examples{
+# Initializes forest with 2 tree cohorts
+emptyforest(ntree = 2)
+
 # Initializes forest with 2 tree cohorts and 1 shrub cohort
 emptyforest(ntree = 2, nshrub = 1)
 
+# Initializes with extra column for leaf area index (LAI)
+emptyforest(ntree = 2, nshrub = 1, addcolumns = "LAI")
+
+# Initializes forest with 2 tree cohorts, 1 shrub cohort and 1 herbaceous cohort
+emptyforest(ntree = 2, nshrub = 1, nherb = 1)
 }
 \seealso{
 \code{\link{forest}}, \code{\link{tree2forest}}, \code{\link{summary.forest}}, \code{\link{forest_mapWoodyTables}},  \code{\link{forest_mergeTrees}},

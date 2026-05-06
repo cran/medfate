@@ -1,4 +1,7 @@
-#include <Rcpp.h>
+#include <RcppArmadillo.h>
+#include "carbon.h"
+#include "carbon_c.h"
+#include "phenology_c.h"
 using namespace Rcpp;
 
 // [[Rcpp::export(".gdd")]]
@@ -15,20 +18,6 @@ NumericVector gdd(IntegerVector DOY, NumericVector Temp, double Tbase = 5.0, dou
     if(DOY[i] >= 365) cum = 0.0;
   }
   return(GDD);
-}
-
-double leafDevelopmentStatus(double Sgdd, double gdd, double unfoldingDD = 300.0) {
-  double ds = 0.0;
-  if(Sgdd>0.0) {
-    if(gdd>Sgdd) ds = std::min(1.0, (gdd - Sgdd)/unfoldingDD);
-  } else {
-    ds = 1.0;
-  }
-  return(ds);
-}
-bool leafSenescenceStatus(double Ssen, double sen) {
-  if(sen>Ssen) return(true);
-  return false;
 }
 
 //' Leaf phenology
@@ -61,7 +50,7 @@ bool leafSenescenceStatus(double Ssen, double sen) {
 // [[Rcpp::export("pheno_leafDevelopmentStatus")]]
 NumericVector leafDevelopmentStatus(NumericVector Sgdd, NumericVector gdd, double unfoldingDD = 300.0) {
   NumericVector phe(Sgdd.size());
-  for(int i=0;i<Sgdd.size();i++) phe[i] = leafDevelopmentStatus(Sgdd[i], gdd[i], unfoldingDD);
+  for(int i=0;i<Sgdd.size();i++) phe[i] = leafDevelopmentStatus_c(Sgdd[i], gdd[i], unfoldingDD);
   return(phe);
 }
 
@@ -72,7 +61,7 @@ NumericVector leafDevelopmentStatus(NumericVector Sgdd, NumericVector gdd, doubl
 // [[Rcpp::export("pheno_leafSenescenceStatus")]]
 LogicalVector leafSenescenceStatus(NumericVector Ssen, NumericVector sen) {
   LogicalVector phe(Ssen.size());
-  for(int i=0;i<Ssen.size();i++) phe[i] = leafSenescenceStatus(Ssen[i], sen[i]);
+  for(int i=0;i<Ssen.size();i++) phe[i] = leafSenescenceStatus_c(Ssen[i], sen[i]);
   return(phe);
 }
 
@@ -84,115 +73,9 @@ LogicalVector leafSenescenceStatus(NumericVector Ssen, NumericVector sen) {
 //' @keywords internal
 // [[Rcpp::export("pheno_updatePhenology")]]
 void updatePhenology(List x, int doy, double photoperiod, double tmean) {
-  List control = x["control"];
-  double unfoldingDD = control["unfoldingDD"];
-  
-  DataFrame paramsPhenology = Rcpp::as<Rcpp::DataFrame>(x["paramsPhenology"]);
-  CharacterVector phenoType = paramsPhenology["PhenologyType"];
-  NumericVector t0gdd = paramsPhenology["t0gdd"];
-  NumericVector Sgdd = paramsPhenology["Sgdd"];
-  NumericVector Tbgdd = paramsPhenology["Tbgdd"];
-  NumericVector Ssen = paramsPhenology["Ssen"];
-  NumericVector Phsen = paramsPhenology["Phsen"];
-  NumericVector Tbsen = paramsPhenology["Tbsen"];
-  NumericVector xsen = paramsPhenology["xsen"];
-  NumericVector ysen = paramsPhenology["ysen"];
-  
-  //Plant input
-  DataFrame above = Rcpp::as<Rcpp::DataFrame>(x["above"]);
-  DataFrame cohorts = Rcpp::as<Rcpp::DataFrame>(x["cohorts"]);
-  NumericVector SP = cohorts["SP"];
-  NumericVector LAI_live = above["LAI_live"];
-  NumericVector LAI_dead = above["LAI_dead"];
-  NumericVector LAI_expanded = above["LAI_expanded"];
-  int numCohorts = SP.size();
-  
-  DataFrame internalPhenology =  Rcpp::as<Rcpp::DataFrame>(x["internalPhenology"]);
-  NumericVector gdd = internalPhenology["gdd"];
-  NumericVector sen = internalPhenology["sen"];
-  NumericVector phi = internalPhenology["phi"];
-  LogicalVector budFormation = internalPhenology["budFormation"];
-  LogicalVector leafUnfolding = internalPhenology["leafUnfolding"];
-  LogicalVector leafSenescence = internalPhenology["leafSenescence"];
-  LogicalVector leafDormancy = internalPhenology["leafDormancy"];
-  
-  for(int j=0;j<numCohorts;j++) {
-    if(phenoType[j] == "winter-deciduous" || phenoType[j] == "winter-semideciduous") {
-      if(doy>200) {
-        gdd[j] = 0.0;
-        if(photoperiod>Phsen[j]) { //Primary growth still possible until decrease of photoperiod
-          sen[j] = 0.0;
-          leafUnfolding[j] = true;
-          leafSenescence[j] = false;
-          budFormation[j] = false;
-          leafDormancy[j] = false;
-        } else { //Start (or continue) accumulation
-          leafUnfolding[j] = false; //Primary growth has arrested
-          if(!leafDormancy[j]) { // Check temperature accumulation until dormancy occurs
-            double rsen = 0.0;
-            if(tmean-Tbsen[j]<0.0) {
-              rsen = pow(Tbsen[j]-tmean, xsen[j])*pow(photoperiod/Phsen[j], ysen[j]);
-            }
-            sen[j] = sen[j] + rsen;
-            leafSenescence[j] = leafSenescenceStatus(Ssen[j],sen[j]);
-            leafDormancy[j] = leafSenescence[j];
-          }
-          if(leafDormancy[j]) phi[j] = 0.0;
-          budFormation[j] = !leafDormancy[j]; //Buds can be formed (i.e target leaf area) until dormancy occurs
-        }
-        // Rcout << doy<< " "<< photoperiod<<" "<< rsen <<" "<< sen[j]<<" "<<  leafSenescence[j] << "\n";
-      } else if (doy<=200) { //Only increase in the first part of the year and if doy > t0gdd
-        sen[j] = 0.0;
-        budFormation[j] = false;
-        leafSenescence[j] = false;
-        if((tmean-Tbgdd[j]>0.0) && (doy >= ((int) t0gdd[j]))) gdd[j] = gdd[j] + (tmean - Tbgdd[j]);
-        phi[j] = leafDevelopmentStatus(Sgdd[j], gdd[j], unfoldingDD);
-        leafUnfolding[j] = (phi[j]>0.0);
-        leafDormancy[j] = (phi[j]==0.0);
-        // Rcout << doy<< " "<< photoperiod<<" "<< gdd[j]<<" "<<  leafUnfolding[j] << "\n";
-      }
-    }
-    else if(phenoType[j] == "oneflush-evergreen") {
-      if(doy>200) {
-        gdd[j] = 0.0;
-        leafUnfolding[j] = false;
-        leafSenescence[j] = false;
-        if(photoperiod>Phsen[j]) {
-          sen[j] = 0.0;
-          budFormation[j] = true;
-          leafDormancy[j] = false;
-        } else if (!leafDormancy[j]){
-          double rsen = 0.0;
-          if(tmean-Tbsen[j]<0.0) {
-            rsen = pow(Tbsen[j]-tmean,2.0);
-            // rsen = pow(Tbsen[j]-tmean,2.0) * pow(photoperiod/Phsen[j],2.0);
-          }
-          sen[j] = sen[j] + rsen;
-          leafDormancy[j] = leafSenescenceStatus(Ssen[j],sen[j]);
-          budFormation[j] = !leafDormancy[j];
-        }
-      } else if (doy<=200) { //Only increase in the first part of the year
-        sen[j] = 0.0;
-        budFormation[j] = false;
-        if(!leafUnfolding[j]) { //Check until unfolding starts
-          if(tmean-Tbgdd[j]>0.0) gdd[j] = gdd[j] + (tmean - Tbgdd[j]);
-          double ph = leafDevelopmentStatus(Sgdd[j], gdd[j],unfoldingDD);
-          leafSenescence[j] = (ph>0.0);
-          leafUnfolding[j] = (ph>0.0);
-          leafDormancy[j] = (ph==0.0);
-        }
-        // Rcout<<j<< " phi: "<< ph<<"\n";
-      }
-    }
-    else if(phenoType[j] == "progressive-evergreen") {
-      leafSenescence[j] = true;
-      leafUnfolding[j] = true;
-      budFormation[j] = true;
-      leafDormancy[j] = false;
-    }
-    // Rcout<< j << " phi "<< phi[j] <<" ";
-  }
-  // Rcout<<"\n";
+  ModelInput x_c(x);
+  updatePhenology_c(x_c, doy, photoperiod, tmean);
+  x_c.copyStateToList(x);
 }
 
 //' @param wind Average day wind speed (in m/s).
@@ -202,50 +85,7 @@ void updatePhenology(List x, int doy, double photoperiod, double tmean) {
 //' @keywords internal
 // [[Rcpp::export("pheno_updateLeaves")]]
 void updateLeaves(List x, double wind, bool fromGrowthModel) {
-  List control = x["control"];
-  DataFrame above = Rcpp::as<Rcpp::DataFrame>(x["above"]);
-  NumericVector LAI_live = above["LAI_live"];
-  NumericVector LAI_dead = above["LAI_dead"];
-  NumericVector LAI = above["LAI_expanded"];
-  int numCohorts = LAI_live.size();
-
-  DataFrame internalWater = Rcpp::as<Rcpp::DataFrame>(x["internalWater"]);
-  NumericVector LeafPLC = internalWater["LeafPLC"];
-  
-  DataFrame paramsPhenology = Rcpp::as<Rcpp::DataFrame>(x["paramsPhenology"]);
-  CharacterVector phenoType = paramsPhenology["PhenologyType"];
-  NumericVector leafDuration = paramsPhenology["LeafDuration"];
-  
-  DataFrame internalPhenology =  Rcpp::as<Rcpp::DataFrame>(x["internalPhenology"]);
-  NumericVector phi = internalPhenology["phi"];
-  LogicalVector budFormation = internalPhenology["budFormation"];
-  LogicalVector leafUnfolding = internalPhenology["leafUnfolding"];
-  LogicalVector leafSenescence = internalPhenology["leafSenescence"];
-  LogicalVector leafDormancy = internalPhenology["leafDormancy"];
-
-  for(int j=0;j<numCohorts;j++) {
-    bool leafFall = true;
-    if(phenoType[j] == "winter-semideciduous") leafFall = leafUnfolding[j];
-    if(leafFall) LAI_dead[j] *= exp(-1.0*(wind/10.0)); //Decrease dead leaf area according to wind speed
-    //Leaf unfolding, senescence and defoliation only dealt with if called from spwb
-    if(!fromGrowthModel) {
-      if(phenoType[j] == "winter-deciduous" || phenoType[j] == "winter-semideciduous") {
-        if((leafSenescence[j]) && (LAI[j]>0.0)) {
-          double LAI_exp_prev= LAI[j]; //Store previous value
-          LAI[j] = 0.0; //Update expanded leaf area (will decrease if LAI_live decreases)
-          LAI_dead[j] += LAI_exp_prev;//Check increase dead leaf area if expanded leaf area has decreased
-          leafSenescence[j] = false;
-        } 
-        else if(leafUnfolding[j]) {
-          LAI[j] = LAI_live[j]*(1.0 - LeafPLC[j])*phi[j]; //Update expanded leaf area (will decrease if LAI_live decreases)
-        } else {
-          //Apply defoliation effects to deciduous
-          LAI[j] = LAI_live[j]*(1.0 - LeafPLC[j]);
-        }
-      } else {
-        //Apply defoliation effects to evergreens
-        LAI[j] = LAI_live[j]*(1.0 - LeafPLC[j]);
-      } 
-    }
-  }    
+  ModelInput x_c(x);
+  updateLeaves_c(x_c, wind, fromGrowthModel);
+  x_c.copyStateToList(x);
 }

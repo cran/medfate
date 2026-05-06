@@ -1,15 +1,22 @@
-#include <Rcpp.h>
+#include <RcppArmadillo.h>
 #include "carbon.h"
+#include "carbon_c.h"
 #include "root.h"
+#include "root_c.h"
 #include "soil.h"
+#include "soil_c.h"
 #include "lightextinction_advanced.h"
 #include "photosynthesis.h"
+#include "photosynthesis_c.h"
 #include "woodformation.h"
 #include "forestutils.h"
+#include "modelInput_c.h"
 #include "paramutils.h"
 #include "tissuemoisture.h"
+#include "tissuemoisture_c.h"
 #include "fuelstructure.h"
 #include "hydraulics.h"
+#include "hydraulics_c.h"
 #include "stdlib.h"
 
 using namespace Rcpp;
@@ -185,7 +192,7 @@ DataFrame paramsWaterStorage(DataFrame above, List belowLayers,
   //Calculate stem and leaf capacity per leaf area (in l·m-2)
   for(int c=0;c<numCohorts;c++){
     Vsapwood[c] = sapwoodWaterCapacity(Al2As[c], H[c], V, L, WoodDensity[c]); 
-    Vleaf[c] = leafWaterCapacity(SLA[c], LeafDensity[c]); 
+    Vleaf[c] = leafWaterCapacity_c(SLA[c], LeafDensity[c]); 
     maxMCstem[c] = 100*((1.0/std::max(0.5,WoodDensity[c])) - (1.0/1.53)); // Minimum 0.4 density to avoid overestimation
     maxMCleaf[c] = (maxFMC[c] - maxMCstem[c]*(1.0 - (1.0/r635[c])))*r635[c];
   }
@@ -309,8 +316,8 @@ DataFrame paramsTranspirationSperry(DataFrame above, NumericVector Z95, DataFram
   for(int c=0;c<numCohorts;c++){
     
     //Stem maximum conductance (in mmol·m-2·s-1·MPa-1)
-    VCstem_kmax[c]=maximumStemHydraulicConductance(Kmax_stemxylem[c], Hmed[c], Al2As[c],H[c],control["taper"]); 
-    double xylem_root_kmax =maximumStemHydraulicConductance(Kmax_rootxylem[c], Hmed[c], Al2As[c], Z95[c]/10.0, control["taper"]); 
+    VCstem_kmax[c]=maximumStemHydraulicConductance_c(Kmax_stemxylem[c], Hmed[c], Al2As[c],H[c],control["taper"]); 
+    double xylem_root_kmax =maximumStemHydraulicConductance_c(Kmax_rootxylem[c], Hmed[c], Al2As[c], Z95[c]/10.0, control["taper"]); 
     VCroottot_kmax[c] = 1.0/((1.0/xylem_root_kmax) + (1.0/rootRadialConductance));
     kleaf_symp[c] = 1.0/(fractionLeafSymplasm*(1.0/VCleaf_kmax[c]));
     VCleafapo_kmax[c] = 1.0/((1.0- fractionLeafSymplasm)*(1.0/VCleaf_kmax[c]));
@@ -442,8 +449,8 @@ DataFrame paramsTranspirationSureau(DataFrame above, NumericVector Z95, DataFram
   // Scaled conductance parameters parameters
   for(int c=0;c<numCohorts;c++){
     //Stem maximum conductance (in mmol·m-2·s-1·MPa-1)
-    VCstem_kmax[c]=maximumStemHydraulicConductance(Kmax_stemxylem[c], Hmed[c], Al2As[c],H[c],control["taper"]); 
-    double xylem_root_kmax =maximumStemHydraulicConductance(Kmax_rootxylem[c], Hmed[c], Al2As[c], Z95[c]/10.0, control["taper"]);
+    VCstem_kmax[c]=maximumStemHydraulicConductance_c(Kmax_stemxylem[c], Hmed[c], Al2As[c],H[c],control["taper"]); 
+    double xylem_root_kmax =maximumStemHydraulicConductance_c(Kmax_rootxylem[c], Hmed[c], Al2As[c], Z95[c]/10.0, control["taper"]);
     VCroottot_kmax[c] = 1.0/((1.0/xylem_root_kmax) + (1.0/rootRadialConductance));
     kleaf_symp[c] = 1.0/(fractionLeafSymplasm*(1.0/VCleaf_kmax[c]));
     VCleafapo_kmax[c] = 1.0/((1.0- fractionLeafSymplasm)*(1.0/VCleaf_kmax[c]));
@@ -484,7 +491,7 @@ DataFrame paramsTranspirationSureau(DataFrame above, NumericVector Z95, DataFram
     //Slope of Gsw vs Ac/Cs relationship
     if(NumericVector::is_na(Gsw_AC_slope[c])) {
       NumericVector LP = leafphotosynthesis(2000.0,  386.0, Gswmax[c]/1.6, 25.0, Vmax298[c], Jmax298[c]); 
-      double An_max = LP[1] - 0.015*VmaxTemp(Vmax298[c], 25.0);
+      double An_max = LP[1] - 0.015*VmaxTemp_c(Vmax298[c], 25.0);
       Gsw_AC_slope[c] = (Gswmax[c] - Gswmin[c])*386.0/An_max;
       Gsw_AC_slope[c] = std::min(10.0, std::max(3.0, Gsw_AC_slope[c]));
     }
@@ -586,9 +593,9 @@ List paramsBelow(DataFrame above, NumericVector Z50, NumericVector Z95, NumericV
       L(c,_) = coarseRootLengths(V(c,_), widths, 0.5); //Arbitrary ratio (to revise some day)
       CRSV[c] = coarseRootSoilVolume(V(c,_), widths, 0.5);
       //Assume fine root biomass is half leaf structural biomass
-      double LA = leafArea(LAI_live[c], N[c]); //m2 leaf area per individual
+      double LA = leafArea_c(LAI_live[c], N[c]); //m2 leaf area per individual
       double fineRootArea = Ar2Al[c]*LA;//fine root area in m2
-      FRB[c] = fineRootArea/(specificRootSurfaceArea(SRL[c], FineRootDensity[c])*1e-4);
+      FRB[c] = fineRootArea/(specificRootSurfaceArea_c(SRL[c], FineRootDensity[c])*1e-4);
     }
     if(rhizosphereOverlap!="total") {
       belowdf = DataFrame::create(_["Z50"] = Z50,
@@ -636,7 +643,7 @@ List paramsBelow(DataFrame above, NumericVector Z50, NumericVector Z95, NumericV
     
     NumericMatrix RhizoPsi =  NumericMatrix(numCohorts, nlayers);
     RhizoPsi.attr("dimnames") = List::create(above.attr("row.names"), seq(1,nlayers));
-    std::fill(RhizoPsi.begin(), RhizoPsi.end(), -0.033);
+    std::fill(RhizoPsi.begin(), RhizoPsi.end(), fieldCapacityPsi);
 
     
     NumericVector FRB(numCohorts), CRSV(numCohorts),FRAI(numCohorts);
@@ -659,10 +666,10 @@ List paramsBelow(DataFrame above, NumericVector Z50, NumericVector Z95, NumericV
       NumericVector xp = rootxylemConductanceProportions(L(c,_), V(c,_));
       for(int l=0;l<nlayers;l++) {
         VCroot_kmax(c,_) = VCroottot_kmax[c]*xp;
-        VGrhizo_kmax(c,l) = V(c,l)*findRhizosphereMaximumConductance(averageFracRhizosphereResistance*100.0, VG_n[l], VG_alpha[l],
+        VGrhizo_kmax(c,l) = V(c,l)*findRhizosphereMaximumConductance_c(averageFracRhizosphereResistance*100.0, VG_n[l], VG_alpha[l],
                      VCroottot_kmax[c], VCroot_c[c], VCroot_d[c],
                      VCstem_kmax[c], VCstem_c[c], VCstem_d[c],
-                     VCleaf_kmax[c], VCleaf_c[c], VCleaf_d[c]);
+                     VCleaf_kmax[c], VCleaf_c[c], VCleaf_d[c],0.0);
         VGrhizotot_kmax[c] += VGrhizo_kmax(c,l); 
       }
       FRB[c] = fineRootBiomassPerIndividual(Ksat, VGrhizo_kmax(c,_), LAI_live[c], N[c], 
@@ -805,6 +812,10 @@ DataFrame paramsMortalityRegeneration(DataFrame above, DataFrame SpParams, List 
   if(SpParams.containsElementNamed("RecrTreeDBH")) RecrTreeDBH = speciesNumericParameterFromIndex(SP, SpParams, "RecrTreeDBH");
   if(SpParams.containsElementNamed("IngrowthTreeDensity")) IngrowthTreeDensity = speciesNumericParameterFromIndex(SP, SpParams, "IngrowthTreeDensity");
   if(SpParams.containsElementNamed("IngrowthTreeDBH")) IngrowthTreeDBH = speciesNumericParameterFromIndex(SP, SpParams, "IngrowthTreeDBH");
+  NumericVector RespFire(numCohorts, NA_REAL);
+  NumericVector RespDist(numCohorts, NA_REAL);
+  if(SpParams.containsElementNamed("RespFire")) RespFire = speciesNumericParameterFromIndex(SP, SpParams, "RespFire");
+  if(SpParams.containsElementNamed("RespDist")) RespDist = speciesNumericParameterFromIndex(SP, SpParams, "RespDist");
   
   double mortalityBaselineRate_default = control["mortalityBaselineRate"];
   double recrTreeDensity_default = control["recrTreeDensity"];
@@ -821,6 +832,8 @@ DataFrame paramsMortalityRegeneration(DataFrame above, DataFrame SpParams, List 
         if(NumericVector::is_na(RecrTreeDBH[c])) RecrTreeDBH[c] = recrTreeDBH_default;
         if(NumericVector::is_na(IngrowthTreeDensity[c])) IngrowthTreeDensity[c] = ingrowthTreeDensity_default;
         if(NumericVector::is_na(IngrowthTreeDBH[c])) IngrowthTreeDBH[c] = ingrowthTreeDBH_default;
+        if(NumericVector::is_na(RespDist[c])) RespDist[c] = 0.0;
+        if(NumericVector::is_na(RespFire[c])) RespFire[c] = 0.0;
       }
     }
   }
@@ -831,7 +844,9 @@ DataFrame paramsMortalityRegeneration(DataFrame above, DataFrame SpParams, List 
                                                              _["RecrTreeDensity"] = RecrTreeDensity,
                                                              _["RecrTreeDBH"] = RecrTreeDBH,
                                                              _["IngrowthTreeDensity"] = IngrowthTreeDensity,
-                                                             _["IngrowthTreeDBH"] = IngrowthTreeDBH);
+                                                             _["IngrowthTreeDBH"] = IngrowthTreeDBH,
+                                                             _["RespDist"] = RespDist,
+                                                             _["RespFire"] = RespFire);
   paramsMortalityRecruitmentdf.attr("row.names") = above.attr("row.names");
   return(paramsMortalityRecruitmentdf);
 }
@@ -866,6 +881,27 @@ DataFrame paramsAllometries(DataFrame above, DataFrame SpParams, bool fillMissin
                                                     _["Acw"] = Acw, _["Bcw"] = Bcw, _["Abt"] = Abt, _["Bbt"] = Bbt);
   paramsAllometriesdf.attr("row.names") = above.attr("row.names");
   return(paramsAllometriesdf);
+}
+
+DataFrame paramsLitterDecomposition(DataFrame internalLitter, DataFrame SpParams, bool fillMissingSpParams, bool fillWithGenus) {
+  CharacterVector Species = internalLitter["Species"];
+  IntegerVector uniqueSP = speciesIndex(Species, SpParams);
+
+  NumericVector LeafLignin = speciesNumericParameterWithImputation(uniqueSP, SpParams, "LigninPercent",fillMissingSpParams, fillWithGenus);
+  NumericVector WoodLignin = speciesNumericParameterWithImputation(uniqueSP, SpParams, "WoodLigninPercent",fillMissingSpParams, fillWithGenus);
+  NumericVector FineRootLignin = speciesNumericParameterWithImputation(uniqueSP, SpParams, "FineRootLigninPercent",fillMissingSpParams, fillWithGenus);
+  NumericVector Nleaf = speciesNumericParameterWithImputation(uniqueSP, SpParams, "Nleaf",fillMissingSpParams, fillWithGenus);
+  NumericVector Nsapwood = speciesNumericParameterWithImputation(uniqueSP, SpParams, "Nsapwood",fillMissingSpParams, fillWithGenus);
+  NumericVector Nfineroot = speciesNumericParameterWithImputation(uniqueSP, SpParams, "Nfineroot",fillMissingSpParams, fillWithGenus);
+  
+  DataFrame paramsDecompositiondf = DataFrame::create(_["Species"] = Species,
+                                                      _["LeafLignin"] = LeafLignin, 
+                                                      _["WoodLignin"] = WoodLignin, 
+                                                      _["FineRootLignin"] = FineRootLignin, 
+                                                      _["Nleaf"] = Nleaf, 
+                                                      _["Nsapwood"] = Nsapwood,
+                                                      _["Nfineroot"] = Nfineroot);
+  return(paramsDecompositiondf);
 }
 
 DataFrame internalPhenologyDataFrame(DataFrame above) {
@@ -934,20 +970,20 @@ DataFrame internalCarbonDataFrame(DataFrame above,
   NumericVector starchSapwood(numCohorts,0.0);
   // NumericVector longtermStorage(numCohorts,0.0);
   for(int c=0;c<numCohorts;c++){
-    double lvol = leafStorageVolume(LAI_expanded[c],  N[c], SLA[c], LeafDensity[c]);
+    double lvol = leafStorageVolume_c(LAI_expanded[c],  N[c], SLA[c], LeafDensity[c]);
     double svol = sapwoodStorageVolume(SA[c], H[c], L(c,_), V(c,_),WoodDensity[c], conduit2sapwood[c]);
     
     // 70% in starch storage for sapwood and 1% in leaves
-    if(LAI_expanded[c]>0.0) starchLeaf[c] = (0.01/(lvol))*leafStarchCapacity(LAI_expanded[c], N[c], SLA[c], LeafDensity[c]);
+    if(LAI_expanded[c]>0.0) starchLeaf[c] = (0.01/(lvol))*leafStarchCapacity_c(LAI_expanded[c], N[c], SLA[c], LeafDensity[c]);
     starchSapwood[c] = (0.7/(svol))*sapwoodStarchCapacity(SA[c], H[c], L, V(c,_), WoodDensity[c], conduit2sapwood[c]);
     // starch[c] = starchLeaf[c]+starchSapwood[c];
     
     //Sugar storage from PI0
     if(LAI_expanded[c]>0.0) {
-      double lconc = sugarConcentration(LeafPI0[c],20.0, nonSugarConcentration);
+      double lconc = sugarConcentration_c(LeafPI0[c],20.0, nonSugarConcentration);
       sugarLeaf[c] = lconc;
     }
-    double sconc = sugarConcentration(StemPI0[c],20.0, nonSugarConcentration);
+    double sconc = sugarConcentration_c(StemPI0[c],20.0, nonSugarConcentration);
     sugarSapwood[c] = sconc;
     // sugar[c] = sugarLeaf[c] + sugarSapwood[c];
   }
@@ -971,18 +1007,26 @@ DataFrame internalMortalityDataFrame(DataFrame above) {
   NumericVector N_starvation(numCohorts, 0.0);
   NumericVector N_dessication(numCohorts, 0.0);
   NumericVector N_burnt(numCohorts, 0.0);
+  NumericVector N_resprouting_stumps(numCohorts, 0.0);
   NumericVector Cover_dead(numCohorts, 0.0);
   NumericVector Cover_starvation(numCohorts, 0.0);
   NumericVector Cover_dessication(numCohorts, 0.0);
   NumericVector Cover_burnt(numCohorts, 0.0);
+  NumericVector Cover_resprouting_stumps(numCohorts, 0.0);
+  NumericVector Snag_smallbranches(numCohorts, 0.0);
+  NumericVector Snag_largewood(numCohorts, 0.0);
   DataFrame df = DataFrame::create(Named("N_dead") = N_dead,
                                    Named("N_starvation") = N_starvation,
                                    Named("N_dessication") = N_dessication,
                                    Named("N_burnt") = N_burnt,
+                                   Named("N_resprouting_stumps") = N_resprouting_stumps,
                                    Named("Cover_dead") = Cover_dead,
                                    Named("Cover_starvation") = Cover_starvation,
                                    Named("Cover_dessication") = Cover_dessication,
-                                   Named("Cover_burnt") = Cover_burnt);
+                                   Named("Cover_burnt") = Cover_burnt,
+                                   Named("Cover_resprouting_stumps") = Cover_resprouting_stumps,
+                                   Named("Snag_smallbranches") = Snag_smallbranches,
+                                   Named("Snag_largewood") = Snag_largewood);
   df.attr("row.names") = above.attr("row.names");
   return(df);
 }
@@ -1036,21 +1080,92 @@ DataFrame internalAllocationDataFrame(DataFrame above,
   return(df);
 }  
 
+DataFrame internalLitterDataFrame(CharacterVector Species, DataFrame litterData) {
+  if(litterData.nrow()>0) {
+    CharacterVector litterSpecies = litterData["Species"];
+    int nlitter = litterSpecies.size();
+    int nspp = Species.size();
+    CharacterVector SpeciesNew = CharacterVector(nspp + nlitter);
+    for(int i=0;i<nspp;i++) SpeciesNew[i] = Species[i];
+    for(int i=0;i<nlitter;i++) SpeciesNew[i+nspp] = litterSpecies[i];
+    Species = SpeciesNew;
+  }
+  CharacterVector uniqueSpecies = Rcpp::unique(Species).sort();
+  int numSpp = uniqueSpecies.size();
+  NumericVector leaves(numSpp, 0.0);
+  NumericVector twigs(numSpp, 0.0);
+  NumericVector smallbranches(numSpp, 0.0);
+  NumericVector fineroots(numSpp, 0.0);
+  NumericVector largewood(numSpp, 0.0);
+  NumericVector coarseroots(numSpp, 0.0);
+  if(litterData.nrow()>0) {
+    CharacterVector litterSpecies = litterData["Species"];
+    NumericVector litterLeaves = litterData["Leaves"];
+    NumericVector litterTwigs = litterData["Twigs"];
+    NumericVector litterSmallBranches = litterData["SmallBranches"];
+    NumericVector litterLargeWood = litterData["LargeWood"];
+    NumericVector litterCoarseRoots = litterData["CoarseRoots"];
+    NumericVector litterFineRoots = litterData["FineRoots"];
+    for(int i=0;i<litterData.nrow();i++){
+      int row = -1;
+      for(int j=0;j<uniqueSpecies.length();j++) if(uniqueSpecies[j]==litterSpecies[i]) row = j;
+      if(row !=-1) {
+        if(!NumericVector::is_na(litterLeaves[i])) leaves[row] += litterLeaves[i]; 
+        if(!NumericVector::is_na(litterTwigs[i])) twigs[row] += litterTwigs[i]; 
+        if(!NumericVector::is_na(litterSmallBranches[i])) smallbranches[row] += litterSmallBranches[i]; 
+        if(!NumericVector::is_na(litterLargeWood[i])) largewood[row] += litterLargeWood[i]; 
+        if(!NumericVector::is_na(litterCoarseRoots[i])) coarseroots[row] += litterCoarseRoots[i]; 
+        if(!NumericVector::is_na(litterFineRoots[i])) fineroots[row] += litterFineRoots[i]; 
+      }      
+    }
+  }
+  DataFrame df = DataFrame::create(Named("Species") = uniqueSpecies,
+                                   Named("Leaves") = leaves,
+                                   Named("Twigs") = twigs,
+                                   Named("SmallBranches") = smallbranches,
+                                   Named("LargeWood") = largewood,
+                                   Named("CoarseRoots") = coarseroots,
+                                   Named("FineRoots") = fineroots);
+  return(df);
+}
 
+NumericVector internalSOC(NumericVector SOCData) {
+  double surface_metabolic = 0.0;
+  double belowground_metabolic = 0.0;
+  double surface_active = 0.0;
+  double belowground_active = 0.0;
+  double surface_slow = 0.0;
+  double belowground_slow = 0.0;
+  double belowground_passive = 0.0;
+  if(SOCData.containsElementNamed("SurfaceMetabolic")) surface_metabolic += SOCData["SurfaceMetabolic"];
+  if(SOCData.containsElementNamed("BelowgroundMetabolic")) belowground_metabolic += SOCData["BelowgroundMetabolic"];
+  if(SOCData.containsElementNamed("SurfaceActive")) surface_active += SOCData["SurfaceActive"];
+  if(SOCData.containsElementNamed("BelowgroundActive")) belowground_active += SOCData["BelowgroundActive"];
+  if(SOCData.containsElementNamed("SurfaceSlow")) surface_slow += SOCData["SurfaceSlow"];
+  if(SOCData.containsElementNamed("BelowgroundSlow")) belowground_slow += SOCData["BelowgroundSlow"];
+  if(SOCData.containsElementNamed("BelowgroundPassive")) belowground_passive += SOCData["BelowgroundPassive"];
+  return(NumericVector::create(Named("SurfaceMetabolic") = surface_metabolic,
+                               Named("BelowgroundMetabolic") = belowground_metabolic,
+                               Named("SurfaceActive") = surface_active, 
+                               Named("BelowgroundActive")=belowground_active, 
+                               Named("SurfaceSlow") = surface_slow,
+                               Named("BelowgroundSlow") = belowground_slow,
+                               Named("BelowgroundPassive") = belowground_passive));
+}
 DataFrame internalWaterDataFrame(DataFrame above, String transpirationMode) {
   int numCohorts = above.nrow();
   DataFrame df;
   if(transpirationMode=="Granier") {
-    df = DataFrame::create(Named("PlantPsi") = NumericVector(numCohorts, -0.033),
+    df = DataFrame::create(Named("PlantPsi") = NumericVector(numCohorts, fieldCapacityPsi),
                            Named("LeafPLC") = NumericVector(numCohorts, 0.0),
                            Named("StemPLC") = NumericVector(numCohorts, 0.0));
   } else if(transpirationMode =="Sperry") {
     df = DataFrame::create(Named("Einst") = NumericVector(numCohorts, 0.0),
-                           Named("RootCrownPsi") = NumericVector(numCohorts, -0.033),
-                           Named("LeafPsi") = NumericVector(numCohorts, -0.033),
-                           Named("StemPsi") = NumericVector(numCohorts, -0.033),
-                           Named("LeafSympPsi") = NumericVector(numCohorts, -0.033),
-                           Named("StemSympPsi") = NumericVector(numCohorts, -0.033),
+                           Named("RootCrownPsi") = NumericVector(numCohorts, fieldCapacityPsi),
+                           Named("LeafPsi") = NumericVector(numCohorts, fieldCapacityPsi),
+                           Named("StemPsi") = NumericVector(numCohorts, fieldCapacityPsi),
+                           Named("LeafSympPsi") = NumericVector(numCohorts, fieldCapacityPsi),
+                           Named("StemSympPsi") = NumericVector(numCohorts, fieldCapacityPsi),
                            Named("LeafPLC") = NumericVector(numCohorts, 0.0),
                            Named("StemPLC") = NumericVector(numCohorts, 0.0));
   } else if(transpirationMode =="Sureau") {
@@ -1058,11 +1173,11 @@ DataFrame internalWaterDataFrame(DataFrame above, String transpirationMode) {
                            Named("Elim") = NumericVector(numCohorts, 0.0),
                            Named("Emin_L") = NumericVector(numCohorts, 0.0),
                            Named("Emin_S") = NumericVector(numCohorts, 0.0),
-                           Named("RootCrownPsi") = NumericVector(numCohorts, -0.033),
-                           Named("LeafPsi") = NumericVector(numCohorts, -0.033),
-                           Named("StemPsi") = NumericVector(numCohorts, -0.033),
-                           Named("LeafSympPsi") = NumericVector(numCohorts, -0.033),
-                           Named("StemSympPsi") = NumericVector(numCohorts, -0.033),
+                           Named("RootCrownPsi") = NumericVector(numCohorts, fieldCapacityPsi),
+                           Named("LeafPsi") = NumericVector(numCohorts, fieldCapacityPsi),
+                           Named("StemPsi") = NumericVector(numCohorts, fieldCapacityPsi),
+                           Named("LeafSympPsi") = NumericVector(numCohorts, fieldCapacityPsi),
+                           Named("StemSympPsi") = NumericVector(numCohorts, fieldCapacityPsi),
                            Named("LeafPLC") = NumericVector(numCohorts, 0.0),
                            Named("StemPLC") = NumericVector(numCohorts, 0.0));
   }
@@ -1130,6 +1245,118 @@ DataFrame paramsCanopy(DataFrame above, List control) {
 }
 
 
+// [[Rcpp::export(".medfateVersionString")]]
+String medfateVersionString() {
+  // Obtain environment containing function
+  Rcpp::Environment utils("package:utils"); 
+  
+  // Make function callable from C++
+  Rcpp::Function packageVersion = utils["packageVersion"];    
+  
+  RObject version = packageVersion("medfate");
+  
+  // Obtain environment containing function
+  Rcpp::Environment base("package:base");
+  
+  // Make function callable from C++
+  Rcpp::Function as_character_numeric_version = base["as.character.numeric_version"];    
+  
+  return(as_character_numeric_version(version));
+}
+
+// [[Rcpp::export(".isLowerVersion")]]
+bool isLowerVersion(List x) {
+  if(!x.containsElementNamed("version")) return(true);
+  String x_ver = Rcpp::as<Rcpp::String>(x["version"]);
+  // Obtain environment containing function
+  Rcpp::Environment utils("package:utils"); 
+  
+  // Make function callable from C++
+  Rcpp::Function compareVersion = utils["compareVersion"];    
+  
+  Rcpp::NumericVector res = compareVersion(_["a"] = x_ver, 
+                                           _["b"] = medfateVersionString());
+  return(res[0]==-1);
+}
+
+//Needed for 4.8.3 to 4.8.4
+void update_4_8_3_to_4_8_4(List x) {
+  DataFrame paramsAnatomydf = Rcpp::as<Rcpp::DataFrame>(x["paramsAnatomy"]);
+  DataFrame paramsWaterStoragedf = Rcpp::as<Rcpp::DataFrame>(x["paramsWaterStorage"]);
+  NumericVector WoodDensity = paramsAnatomydf["WoodDensity"];
+  NumericVector LeafDensity = paramsAnatomydf["LeafDensity"];
+  NumericVector r635 = paramsAnatomydf["r635"];
+  NumericVector maxFMC = paramsWaterStoragedf["maxFMC"];
+  
+  int numCohorts = maxFMC.size();
+  NumericVector maxMCleaf(numCohorts), maxMCstem(numCohorts);
+  
+  for(int c=0;c<numCohorts;c++){
+    maxMCstem[c] = 100*((1.0/std::max(0.5,WoodDensity[c])) - (1.0/1.53)); // Minimum 0.4 density to avoid overestimation
+    maxMCleaf[c] = (maxFMC[c] - maxMCstem[c]*(1.0 - (1.0/r635[c])))*r635[c];
+  }
+  if(!paramsWaterStoragedf.containsElementNamed("maxMCstem")) {
+    paramsWaterStoragedf.push_back(maxMCstem,"maxMCstem");
+  }
+  if(!paramsWaterStoragedf.containsElementNamed("maxMCleaf")) {
+    paramsWaterStoragedf.push_back(maxMCleaf,"maxMCleaf");
+  }
+  x["paramsWaterStorage"] = paramsWaterStoragedf;
+} 
+// [[Rcpp::export(".spwbInputVersionUpdate")]]
+void spwbInputVersionUpdate(List x) {
+  update_4_8_3_to_4_8_4(x);
+  
+  if(x.containsElementNamed("version")) x["version"] = medfateVersionString();
+  List control = x["control"];
+  if(!control.containsElementNamed("cavitationInducedDefoliation")) {
+    control.push_back(true, "cavitationInducedDefoliation");
+    x["control"] = control;
+  }
+}
+// [[Rcpp::export(".growthInputVersionUpdate")]]
+void growthInputVersionUpdate(List x) {
+  update_4_8_3_to_4_8_4(x);
+  if(x.containsElementNamed("version")) x["version"] = medfateVersionString();
+  List control = x["control"];
+  if(!control.containsElementNamed("cavitationInducedDefoliation")) {
+    control.push_back(true, "cavitationInducedDefoliation");
+    x["control"] = control;
+  }
+  if(!control.containsElementNamed("decompositionPoolResults")) {
+    control.push_back(false, "decompositionPoolResults");
+    x["control"] = control;
+  }
+  DataFrame internalMortality = Rcpp::as<Rcpp::DataFrame>(x["internalMortality"]);
+  int numCohorts = internalMortality.nrow();
+  if(!internalMortality.containsElementNamed("N_resprouting_stumps")) {
+    NumericVector N_resprouting_stumps(numCohorts, 0.0);
+    internalMortality.push_back(N_resprouting_stumps, "N_resprouting_stumps");
+  }
+  if(!internalMortality.containsElementNamed("Cover_resprouting_stumps")) {
+    NumericVector Cover_resprouting_stumps(numCohorts, 0.0);
+    internalMortality.push_back(Cover_resprouting_stumps, "Cover_resprouting_stumps");
+  }
+  if(!internalMortality.containsElementNamed("Snag_smallbranches")) {
+    NumericVector Snag_smallbranches(numCohorts, 0.0);
+    internalMortality.push_back(Snag_smallbranches, "Snag_smallbranches");
+  }
+  if(!internalMortality.containsElementNamed("Snag_largewood")) {
+    NumericVector Snag_largewood(numCohorts, 0.0);
+    internalMortality.push_back(Snag_largewood, "Snag_largewood");
+  }
+  x["internalMortality"] = internalMortality;
+  DataFrame paramsMortalityRegenerationdf = Rcpp::as<Rcpp::DataFrame>(x["paramsMortalityRegeneration"]);
+  if(!paramsMortalityRegenerationdf.containsElementNamed("RespFire")) {
+    NumericVector RespFire(numCohorts, 0.0);
+    paramsMortalityRegenerationdf.push_back(RespFire, "RespFire");
+  }
+  if(!paramsMortalityRegenerationdf.containsElementNamed("RespDist")) {
+    NumericVector RespDist(numCohorts, 0.0);
+    paramsMortalityRegenerationdf.push_back(RespDist, "RespDist");
+  }
+  x["paramsMortalityRegeneration"] = paramsMortalityRegenerationdf;
+}
 // [[Rcpp::export(".spwbInput")]]
 List spwbInputInner(DataFrame above, NumericVector Z50, NumericVector Z95, NumericVector Z100, 
                     DataFrame soil, DataFrame FCCSprops, 
@@ -1150,7 +1377,9 @@ List spwbInputInner(DataFrame above, NumericVector Z50, NumericVector Z95, Numer
   NumericVector H = above["H"];
   NumericVector DBH = above["DBH"];
   NumericVector CR = above["CR"];
-  CharacterVector ObsID = (SP.size(), NA_STRING);
+  NumericVector Age(SP.size(), NA_REAL);
+  if(above.containsElementNamed("Age")) Age = above["Age"];
+  CharacterVector ObsID(SP.size(), NA_STRING);
   if(above.containsElementNamed("ObsID")) ObsID = above["ObsID"];
   
   String transpirationMode = control["transpirationMode"];
@@ -1178,6 +1407,7 @@ List spwbInputInner(DataFrame above, NumericVector Z50, NumericVector Z95, Numer
                                          _["LAI_live"]=LAI_live, 
                                          _["LAI_expanded"] = LAI_expanded, 
                                          _["LAI_dead"] = LAI_dead,
+                                         _["Age"] = Age,
                                          _["ObsID"] = ObsID);
   if(control["fireHazardResults"]) plantsdf.push_back(above["Loading"], "Loading");
   plantsdf.attr("row.names") = above.attr("row.names");
@@ -1238,7 +1468,8 @@ List spwbInputInner(DataFrame above, NumericVector Z50, NumericVector Z95, Numer
                             _["internalPhenology"] = internalPhenologyDataFrame(above),
                             _["internalWater"] = internalWaterDataFrame(above, transpirationMode),
                             _["internalLAIDistribution"] = internalLAIDistribution(above, paramsCanopydf),
-                            _["internalFCCS"] = FCCSprops);
+                            _["internalFCCS"] = FCCSprops,
+                            _["version"] = medfateVersionString());
 
   input.attr("class") = CharacterVector::create("spwbInput","list");
   return(input);
@@ -1248,7 +1479,7 @@ List spwbInputInner(DataFrame above, NumericVector Z50, NumericVector Z95, Numer
 
 // [[Rcpp::export(".growthInput")]]
 List growthInputInner(DataFrame above, NumericVector Z50, NumericVector Z95, NumericVector Z100,
-                      DataFrame soil, DataFrame FCCSprops,
+                      DataFrame soil, DataFrame snagData, DataFrame litterData, NumericVector SOCData, DataFrame FCCSprops,
                       DataFrame SpParams, List control) {
 
   String VG_PTF = control["VG_PTF"]; 
@@ -1270,7 +1501,9 @@ List growthInputInner(DataFrame above, NumericVector Z50, NumericVector Z95, Num
   NumericVector H = above["H"];
   NumericVector CR = above["CR"];
   NumericVector Loading = above["Loading"];
-  CharacterVector ObsID = (SP.size(), NA_STRING);
+  NumericVector Age(SP.size(), NA_REAL);
+  if(above.containsElementNamed("Age")) Age = above["Age"];
+  CharacterVector ObsID(SP.size(), NA_STRING);
   if(above.containsElementNamed("ObsID")) ObsID = above["ObsID"];
   
   String transpirationMode = control["transpirationMode"];
@@ -1334,10 +1567,14 @@ List growthInputInner(DataFrame above, NumericVector Z50, NumericVector Z95, Num
                                          _["LAI_dead"] = LAI_dead,
                                          _["LAI_nocomp"] = LAI_nocomp,
                                          _["Loading"] = Loading,
+                                         _["Age"] = Age,
                                          _["ObsID"] = ObsID);
   plantsdf.attr("row.names") = above.attr("row.names");
   
 
+  DataFrame internalLitter = internalLitterDataFrame(nsp, litterData);
+  DataFrame paramsDecompositiondf = paramsLitterDecomposition(internalLitter, SpParams, fillMissingSpParams, fillWithGenus);
+  
   // List ringList(numCohorts);
   // for(int i=0;i<numCohorts;i++) ringList[i] = initialize_ring();
   // ringList.attr("names") = above.attr("row.names");
@@ -1382,6 +1619,7 @@ List growthInputInner(DataFrame above, NumericVector Z50, NumericVector Z95, Num
                        _["paramsGrowth"]= paramsGrowthdf,
                        _["paramsMortalityRegeneration"] =paramsMortalityRegenerationdf,
                        _["paramsAllometries"] = paramsAllometriesdf,
+                       _["paramsLitterDecomposition"] = paramsDecompositiondf,
                        _["internalPhenology"] = internalPhenologyDataFrame(above),
                        _["internalWater"] = internalWaterDataFrame(above, transpirationMode));
   input.push_back(internalLAIDistribution(above, paramsCanopydf),"internalLAIDistribution");
@@ -1394,7 +1632,11 @@ List growthInputInner(DataFrame above, NumericVector Z50, NumericVector Z95, Num
                                               paramsTranspirationdf, control), "internalAllocation");
   
   input.push_back(internalMortalityDataFrame(plantsdf), "internalMortality");
+  input.push_back(snagData, "internalSnags");
+  input.push_back(internalLitter, "internalLitter");
+  input.push_back(internalSOC(SOCData), "internalSOC");
   input.push_back(FCCSprops, "internalFCCS");
+  input.push_back(medfateVersionString(), "version");
   input.attr("class") = CharacterVector::create("growthInput","list");
   return(input);
 }
@@ -1410,59 +1652,102 @@ DataFrame rootDistributionComplete(List x, DataFrame SpParams, bool fillMissingR
   DataFrame shrubData = Rcpp::as<Rcpp::DataFrame>(x["shrubData"]);
   int ntree = treeData.nrows();
   int nshrub = shrubData.nrows();
-  NumericVector Z95(ntree+nshrub), Z50(ntree+nshrub), Z100(ntree+nshrub);
-
-  NumericVector treeZ95 = treeData["Z95"];
-  NumericVector treeZ50 = treeData["Z50"];
-  NumericVector treeZ100(ntree, NA_REAL);
-  if(treeData.containsElementNamed("Z100")) treeZ100 = Rcpp::as<Rcpp::NumericVector>(treeData["Z100"]);
-  
-  IntegerVector treeSP, shrubSP;
-  if((TYPEOF(treeData["Species"]) == INTSXP) || (TYPEOF(treeData["Species"]) == REALSXP)) {
-    treeSP = Rcpp::as<Rcpp::IntegerVector>(treeData["Species"]);
-  } else {
-    CharacterVector tspecies = Rcpp::as<Rcpp::CharacterVector>(treeData["Species"]);
-    treeSP = speciesIndex(tspecies, SpParams);
+  int nherb = 0;
+  DataFrame herbData;
+  if(x.containsElementNamed("herbData")) {
+    herbData = Rcpp::as<Rcpp::DataFrame>(x["herbData"]);
+    nherb = herbData.nrows();
   }
-  if((TYPEOF(shrubData["Species"]) == INTSXP) || (TYPEOF(shrubData["Species"]) == REALSXP)) {
-    shrubSP = Rcpp::as<Rcpp::IntegerVector>(shrubData["Species"]);  
-  } else {
-    CharacterVector sspecies = Rcpp::as<Rcpp::CharacterVector>(shrubData["Species"]);
-    shrubSP = speciesIndex(sspecies, SpParams);
-  }
+  NumericVector Z95(ntree+nshrub+nherb), Z50(ntree+nshrub+nherb), Z100(ntree+nshrub+nherb);
   
-  NumericVector treeSPZ50 = speciesNumericParameterFromIndex(treeSP, SpParams, "Z50");
-  NumericVector treeSPZ95 = speciesNumericParameterFromIndex(treeSP, SpParams, "Z95");
-  for(int i=0;i<ntree;i++) {
-    Z50[i] = treeZ50[i];
-    Z95[i] = treeZ95[i];
-    Z100[i] = treeZ100[i];
-    if(fillMissingRootParams) {
-      if(NumericVector::is_na(Z50[i])) Z50[i] = treeSPZ50[i];
-      if(NumericVector::is_na(Z95[i])) Z95[i] = treeSPZ95[i];
-      if(NumericVector::is_na(Z50[i]) && !NumericVector::is_na(Z95[i])) Z50[i] = exp(log(Z95[i])/1.4);
-      if(NumericVector::is_na(Z100[i]) && !NumericVector::is_na(Z95[i]) && truncateRootDistribution) Z100[i] = exp(log(Z95[i])/0.95);
+  if(ntree>0) {
+    NumericVector treeZ95 = treeData["Z95"];
+    NumericVector treeZ50 = treeData["Z50"];
+    NumericVector treeZ100(ntree, NA_REAL);
+    if(treeData.containsElementNamed("Z100")) treeZ100 = Rcpp::as<Rcpp::NumericVector>(treeData["Z100"]);
+    
+    IntegerVector treeSP;
+    if((TYPEOF(treeData["Species"]) == INTSXP) || (TYPEOF(treeData["Species"]) == REALSXP)) {
+      treeSP = Rcpp::as<Rcpp::IntegerVector>(treeData["Species"]);
+    } else {
+      CharacterVector tspecies = Rcpp::as<Rcpp::CharacterVector>(treeData["Species"]);
+      treeSP = speciesIndex(tspecies, SpParams);
+    }
+    
+    NumericVector treeSPZ50 = speciesNumericParameterFromIndex(treeSP, SpParams, "Z50");
+    NumericVector treeSPZ95 = speciesNumericParameterFromIndex(treeSP, SpParams, "Z95");
+    
+    for(int i=0;i<ntree;i++) {
+      Z50[i] = treeZ50[i];
+      Z95[i] = treeZ95[i];
+      Z100[i] = treeZ100[i];
+      if(fillMissingRootParams) {
+        if(NumericVector::is_na(Z50[i])) Z50[i] = treeSPZ50[i];
+        if(NumericVector::is_na(Z95[i])) Z95[i] = treeSPZ95[i];
+        if(NumericVector::is_na(Z50[i]) && !NumericVector::is_na(Z95[i])) Z50[i] = exp(log(Z95[i])/1.4);
+        if(NumericVector::is_na(Z100[i]) && !NumericVector::is_na(Z95[i]) && truncateRootDistribution) Z100[i] = exp(log(Z95[i])/0.95);
+      }
     }
   }
-  NumericVector shrubZ95 = shrubData["Z95"];  
-  NumericVector shrubZ50 = shrubData["Z50"];  
-  NumericVector shrubZ100(nshrub, NA_REAL);
-  if(shrubData.containsElementNamed("Z100")) shrubZ100 = Rcpp::as<Rcpp::NumericVector>(shrubData["Z100"]);
   
-  NumericVector shrubSPZ50 = speciesNumericParameterFromIndex(shrubSP, SpParams, "Z50");
-  NumericVector shrubSPZ95 = speciesNumericParameterFromIndex(shrubSP, SpParams, "Z95");
-  for(int i=0;i<nshrub;i++) {
-    Z50[ntree+i] = shrubZ50[i]; 
-    Z95[ntree+i] = shrubZ95[i]; 
-    Z100[ntree+i] = shrubZ100[i]; 
-    if(fillMissingRootParams) {
-      if(NumericVector::is_na(Z50[ntree+i])) Z50[ntree+i] = shrubSPZ50[i];
-      if(NumericVector::is_na(Z95[ntree+i])) Z95[ntree+i] = shrubSPZ95[i];
-      if(NumericVector::is_na(Z50[ntree+i]) && !NumericVector::is_na(Z95[ntree+i])) Z50[ntree+i] = exp(log(Z95[ntree+i])/1.4);
-      if(NumericVector::is_na(Z100[ntree+i]) && !NumericVector::is_na(Z95[ntree+i]) && truncateRootDistribution) Z100[ntree+i] = exp(log(Z95[ntree+i])/0.95);
+  if(nshrub>0) {
+    NumericVector shrubZ95 = shrubData["Z95"];  
+    NumericVector shrubZ50 = shrubData["Z50"];  
+    NumericVector shrubZ100(nshrub, NA_REAL);
+    if(shrubData.containsElementNamed("Z100")) shrubZ100 = Rcpp::as<Rcpp::NumericVector>(shrubData["Z100"]);
+
+    IntegerVector shrubSP;
+    if((TYPEOF(shrubData["Species"]) == INTSXP) || (TYPEOF(shrubData["Species"]) == REALSXP)) {
+      shrubSP = Rcpp::as<Rcpp::IntegerVector>(shrubData["Species"]);  
+    } else {
+      CharacterVector sspecies = Rcpp::as<Rcpp::CharacterVector>(shrubData["Species"]);
+      shrubSP = speciesIndex(sspecies, SpParams);
+    }
+    
+    NumericVector shrubSPZ50 = speciesNumericParameterFromIndex(shrubSP, SpParams, "Z50");
+    NumericVector shrubSPZ95 = speciesNumericParameterFromIndex(shrubSP, SpParams, "Z95");
+    for(int i=0;i<nshrub;i++) {
+      Z50[ntree+i] = shrubZ50[i]; 
+      Z95[ntree+i] = shrubZ95[i]; 
+      Z100[ntree+i] = shrubZ100[i]; 
+      if(fillMissingRootParams) {
+        if(NumericVector::is_na(Z50[ntree+i])) Z50[ntree+i] = shrubSPZ50[i];
+        if(NumericVector::is_na(Z95[ntree+i])) Z95[ntree+i] = shrubSPZ95[i];
+        if(NumericVector::is_na(Z50[ntree+i]) && !NumericVector::is_na(Z95[ntree+i])) Z50[ntree+i] = exp(log(Z95[ntree+i])/1.4);
+        if(NumericVector::is_na(Z100[ntree+i]) && !NumericVector::is_na(Z95[ntree+i]) && truncateRootDistribution) Z100[ntree+i] = exp(log(Z95[ntree+i])/0.95);
+      }
     }
   }
 
+  if(nherb>0) {
+    NumericVector herbZ95 = herbData["Z95"];  
+    NumericVector herbZ50 = herbData["Z50"];  
+    NumericVector herbZ100(nherb, NA_REAL);
+    if(herbData.containsElementNamed("Z100")) herbZ100 = Rcpp::as<Rcpp::NumericVector>(herbData["Z100"]);
+    
+    IntegerVector herbSP;
+    if((TYPEOF(herbData["Species"]) == INTSXP) || (TYPEOF(herbData["Species"]) == REALSXP)) {
+      herbSP = Rcpp::as<Rcpp::IntegerVector>(herbData["Species"]);  
+    } else {
+      CharacterVector hspecies = Rcpp::as<Rcpp::CharacterVector>(herbData["Species"]);
+      herbSP = speciesIndex(hspecies, SpParams);
+    }
+    
+    NumericVector herbSPZ50 = speciesNumericParameterFromIndex(herbSP, SpParams, "Z50");
+    NumericVector herbSPZ95 = speciesNumericParameterFromIndex(herbSP, SpParams, "Z95");
+    for(int i=0;i<nherb;i++) {
+      Z50[ntree+nshrub+i] = herbZ50[i]; 
+      Z95[ntree+nshrub+i] = herbZ95[i]; 
+      Z100[ntree+nshrub+i] = herbZ100[i]; 
+      if(fillMissingRootParams) {
+        if(NumericVector::is_na(Z50[ntree+nshrub+i])) Z50[ntree+nshrub+i] = herbSPZ50[i];
+        if(NumericVector::is_na(Z95[ntree+nshrub+i])) Z95[ntree+nshrub+i] = herbSPZ95[i];
+        if(NumericVector::is_na(Z50[ntree+nshrub+i]) && !NumericVector::is_na(Z95[ntree+nshrub+i])) Z50[ntree+nshrub+i] = exp(log(Z95[ntree+nshrub+i])/1.4);
+        if(NumericVector::is_na(Z100[ntree+nshrub+i]) && !NumericVector::is_na(Z95[ntree+nshrub+i]) && truncateRootDistribution) Z100[ntree+nshrub+i] = exp(log(Z95[ntree+nshrub+i])/0.95);
+      }
+    }
+  }
+  
   return(DataFrame::create(_["Z50"] = Z50, _["Z95"] = Z95, _["Z100"] = Z100));  
 }
 
@@ -1479,9 +1764,6 @@ DataFrame rootDistributionComplete(List x, DataFrame SpParams, bool fillMissingR
 //' @details
 //' Functions \code{spwbInput()} and \code{growthInput()} initialize inputs differently depending on control parameters.
 //' 
-//' \emph{IMPORTANT NOTE}: Older function names \code{\link{forest2spwbInput}} and \code{\link{forest2growthInput}} are now deprecated, but 
-//' they can still be used for back-compatibility.
-//' 
 //' @return 
 //' Function \code{spwbInput()} returns a list of class \code{spwbInput} with the following elements (rows of data frames are identified as specified by function \code{\link{plant_ID}}):
 //'   \itemize{
@@ -1490,8 +1772,8 @@ DataFrame rootDistributionComplete(List x, DataFrame SpParams, bool fillMissingR
 //'     \item{\code{snowpack}: The amount of snow (in mm) in the snow pack over the soil.}
 //'     \item{\code{canopy}: A list of stand-level state variables.}
 //'     \item{\code{cohorts}: A data frame with cohort information, with columns \code{SP} and \code{Name}.}
-//'     \item{\code{above}: A data frame with columns  \code{H}, \code{CR} and \code{LAI} (see function \code{forest2aboveground}).}
-//'     \item{\code{below}: A data frame with columns \code{Z50}, \code{Z95}.  If \code{control$transpirationMode = "Sperry"} additional columns are \code{fineRootBiomass} and \code{coarseRootSoilVolume}.}
+//'     \item{\code{above}: A data frame with columns such as \code{H}, \code{CR} and \code{LAI_live} (see internal function \code{forest2aboveground}).}
+//'     \item{\code{below}: A data frame with columns \code{Z50}, \code{Z95} and \code{Z100}.}
 //'     \item{\code{belowLayers}: A list. If \code{control$transpirationMode = "Granier"} it contains elements: 
 //'       \itemize{
 //'         \item{\code{V}: A matrix with the proportion of fine roots of each cohort (in rows) in each soil layer (in columns).}
@@ -1648,6 +1930,8 @@ DataFrame rootDistributionComplete(List x, DataFrame SpParams, bool fillMissingR
 //'       \item{\code{IngrowthTreeDensity}: Density of trees reaching ingrowth DBH.}
 //'       \item{\code{RecrTreeDBH}: DBH for tree recruits from seeds or resprouting (e.g. 1 cm).}
 //'       \item{\code{IngrowthTreeDBH}: Ingrowth DBH for trees (e.g. 7.5 cm).}
+//'       \item{\code{RespFire}: Probability of resprouting after a fire disturbance.}
+//'       \item{\code{RespDist}: Probability of resprouting after undefined disturbance (typically desiccation).}
 //'     }
 //'   }
 //'   \item{\code{paramsAllometry}: A data frame with allometric parameters for each cohort:
@@ -1668,13 +1952,16 @@ DataFrame rootDistributionComplete(List x, DataFrame SpParams, bool fillMissingR
 //'     }
 //'   }
 //'   \item{\code{internalCarbon}: A data frame with the concentration (mol·gluc·l-1) of metabolic and storage carbon compartments for leaves and sapwood.}
+//'   \item{\code{internalSnags}: A data frame with characteristics (species identity, height, diameter, age), small branch mass and large wood mass (both in g C/m2) corresponding to decomposing snag cohorts (see \code{\link{forest}}).}
+//'   \item{\code{internalLitter}: A data frame with the aboveground and belowground mass (g C/m2) of different litter components: leaves, twigs, small branches, large wood, coarse roots and fine roots.}
+//'   \item{\code{internalSOC}: A named numeric vector with surface/soil decomposing carbon pools (g C/m2).}
 //'   \item{\code{internalMortality}: A data frame to store the cumulative mortality (density for trees and cover for shrubs) predicted during the simulation,
-//'   also distinguishing mortality due to starvation or dessication.}
+//'   also distinguishing mortality due to starvation or dessication, the number of resprouting elements and the accumulation of aboveground dead wood (branches and large wood).}
 //' }
 //' 
 //' @author Miquel De \enc{Cáceres}{Caceres} Ainsa, CREAF
 //' 
-//' @seealso \code{\link{resetInputs}}, \code{\link{spwb}}, \code{\link{soil}},  
+//' @seealso \code{\link{resetInputs}}, \code{\link{spwb}}, \code{\link{growth}}, \code{\link{soil}},  
 //' \code{\link{forest}}, \code{\link{SpParamsMED}}, \code{\link{defaultSoilParams}}, \code{\link{plant_ID}}
 //' 
 //' @examples
@@ -1724,8 +2011,12 @@ List spwbInput(List x, DataFrame soil, DataFrame SpParams, List control) {
   if(fireHazardResults) FCCSprops = FCCSproperties(x, SpParams);
   List s = spwbInputInner(above, rdc["Z50"], rdc["Z95"], rdc["Z100"], 
                           soil, FCCSprops, SpParams, control);
-  s["herbLAImax"] = herbLAIAllometric(x["herbCover"], x["herbHeight"], 0.0);
-  s["herbLAI"] = herbLAIAllometric(x["herbCover"], x["herbHeight"], woodyLAI);
+  s["herbLAImax"] = 0.0;
+  s["herbLAI"] = 0.0;
+  if(x.containsElementNamed("herbCover") && x.containsElementNamed("herbHeight")) {
+    s["herbLAImax"] = herbLAIAllometric(x["herbCover"], x["herbHeight"], 0.0);
+    s["herbLAI"] = herbLAIAllometric(x["herbCover"], x["herbHeight"], woodyLAI);
+  }
   return(s);
 }
 
@@ -1738,10 +2029,44 @@ List growthInput(List x, DataFrame soil, DataFrame SpParams, List control) {
    NumericVector LAIlive = above["LAI_live"];
    double woodyLAI = sum(LAIlive);
    DataFrame FCCSprops = FCCSproperties(x, SpParams);
+   DataFrame litterData;
+   if(x.containsElementNamed("litterData")) {
+     litterData = Rcpp::as<Rcpp::DataFrame>(x["litterData"]);
+   } else {
+     litterData = DataFrame::create();
+   }
+   NumericVector SOCData;
+   if(x.containsElementNamed("SOCData")) {
+     SOCData = Rcpp::as<Rcpp::NumericVector>(x["SOCData"]);
+   } else {
+     SOCData = NumericVector::create();
+   }
+   DataFrame snagData;
+   if(x.containsElementNamed("snagData")) {
+     snagData = clone(Rcpp::as<Rcpp::DataFrame>(x["snagData"]));
+   } else {
+     CharacterVector species(0);
+     NumericVector dbh(0);
+     NumericVector height(0);
+     NumericVector deadage(0);
+     NumericVector smallbranches(0);
+     NumericVector largewood(0);
+     snagData = DataFrame::create(_["Species"] = species,
+                                  _["DBH"] = dbh,
+                                  _["Height"] = height,
+                                  _["DeathAge"] = deadage,
+                                  _["SmallBranches"] = smallbranches,
+                                  _["LargeWood"] = largewood);
+   }
+   
    List g = growthInputInner(above,  rdc["Z50"], rdc["Z95"], rdc["Z100"],
-                             soil, FCCSprops, SpParams, control);
-   g["herbLAImax"] = herbLAIAllometric(x["herbCover"], x["herbHeight"], 0.0);
-   g["herbLAI"] = herbLAIAllometric(x["herbCover"], x["herbHeight"], woodyLAI);
+                             soil, snagData, litterData, SOCData, FCCSprops, SpParams, control);
+   g["herbLAImax"] = 0.0;
+   g["herbLAI"] = 0.0;
+   if(x.containsElementNamed("herbCover") && x.containsElementNamed("herbHeight")) {
+     g["herbLAImax"] = herbLAIAllometric(x["herbCover"], x["herbHeight"], 0.0);
+     g["herbLAI"] = herbLAIAllometric(x["herbCover"], x["herbHeight"], woodyLAI);
+   }
    return(g);
 }
 
@@ -1819,18 +2144,18 @@ void resetInputs(List x) {
     NumericVector Einst = Rcpp::as<Rcpp::NumericVector>(internalWater["Einst"]);
     for(int i=0;i<LeafPsi.size();i++) {
       Einst[i] = 0.0;
-      RootCrownPsi[i] = -0.033;
-      StemPsi[i] = -0.033;
-      LeafPsi[i] = -0.033;
-      LeafSympPsi[i] = -0.033;
-      StemSympPsi[i] = -0.033;
+      RootCrownPsi[i] = fieldCapacityPsi;
+      StemPsi[i] = fieldCapacityPsi;
+      LeafPsi[i] = fieldCapacityPsi;
+      LeafSympPsi[i] = fieldCapacityPsi;
+      StemSympPsi[i] = fieldCapacityPsi;
       StemPLC[i] = 0.0;
-      for(int j=0;j<RhizoPsi.ncol();j++) RhizoPsi(i,j) = -0.033;
+      for(int j=0;j<RhizoPsi.ncol();j++) RhizoPsi(i,j) = fieldCapacityPsi;
     }
   } else {
     NumericVector PlantPsi = Rcpp::as<Rcpp::NumericVector>(internalWater["PlantPsi"]);
     for(int i=0;i<StemPLC.length();i++) {
-      PlantPsi[i] = -0.033;
+      PlantPsi[i] = fieldCapacityPsi;
       StemPLC[i] = 0.0;
     }
   }
@@ -2156,4 +2481,11 @@ void modifyInputParam(List x, String paramType, String paramName,
                                      paramsGrowthdf,
                                      control);
   }
+}
+
+// [[Rcpp::export(.testModelInputToStructure)]]
+NumericVector testModelInputToStructure(List x) {
+  ModelInput input(x);
+  NumericVector sizes = {sizeof(x),sizeof(input)};
+  return(sizes);
 }

@@ -4,7 +4,7 @@
 #' growth, mortality, recruitment and (optionally) management actions in a given forest stand 
 #' during a period specified in the input climatic data.
 #' 
-#' @param forest An object of class \code{\link{forest}}. Alternatively, the output of a previous run, if continuing a previous simulation.
+#' @param forest An object of class \code{\link{forest}}. Alternatively, the output of a previous run (an object of class \code{fordyn}), if continuing a previous simulation.
 #' @param soil An object of class \code{\link{data.frame}} or \code{\link{soil}}.
 #' @param SpParams A data frame with species parameters (see \code{\link{SpParamsMED}} and \code{\link{SpParamsDefinition}}).
 #' @param meteo A data frame with daily weather data series (see \code{\link{spwb}}).
@@ -41,7 +41,7 @@
 #' 
 #' An example of management function is provided in \code{\link{defaultManagementFunction}}.
 #' 
-#' @return A list of class 'fordyn' with the following elements:
+#' @return A list of class \code{fordyn} with the following elements:
 #' \itemize{
 #'   \item{\code{"StandSummary"}: A data frame with stand-level summaries (tree basal area, tree density, shrub cover, etc.) at the beginning of the simulation and after each simulated year.}
 #'   \item{\code{"SpeciesSummary"}: A data frame with species-level summaries (tree basal area, tree density, shrub cover, etc.) at the beginning of the simulation and after each simulated year.}
@@ -115,10 +115,18 @@ fordyn<-function(forest, soil, SpParams,
                  CO2ByYear = numeric(0),
                  management_function = NULL, management_args = NULL) {
   
+  # Check input
+  if(!inherits(forest, "forest") && !inherits(forest, "fordyn")) stop("Object `forest` should be of class `forest` or `fordyn`")
+  if(!inherits(meteo, "data.frame")) stop("Object `meteo` should be of class `data.frame`")
+  if(!inherits(SpParams, "data.frame")) stop("Object `SpParams` should be of class `data.frame`")
+  if(!inherits(control, "list")) stop("Object `control` should be of class `list`")
+  
   # Modify control parameters
   verboseDyn <- control$verbose
   control$verbose <- FALSE
   control$subdailyResults <- FALSE
+  
+  control$recruitmentMode <- match.arg(control$recruitmentMode, c("stochastic", "deterministic","annual/stochastic", "annual/deterministic", "daily/stochastic", "daily/deterministic"))
   
   # Back-compatibility of control parameters
   if(!("keepCohortsWithObsID" %in% names(control))) control$keepCohortsWithObsID = FALSE
@@ -154,19 +162,10 @@ fordyn<-function(forest, soil, SpParams,
     if(is.numeric(forest$shrubData$Species)) {
       forest$shrubData$Species <- .speciesCharacterParameterFromSpIndex(forest$shrubData$Species, SpParams, "Name")
     }
-    #Subset columns relevant for fordyn (in case there are other)
-    if(control$allowRecruitment) {
-      if("ObsID" %in% names(forest$treeData)) {
-        forest$treeData <- forest$treeData[,c("Species","DBH", "Height","N","Z50","Z95", "ObsID")]
-      } else {
-        forest$treeData <- forest$treeData[,c("Species","DBH", "Height","N","Z50","Z95")]
-      }
-      if("ObsID" %in% names(forest$shrubData)) {
-        forest$shrubData <- forest$shrubData[,c("Species","Height","Cover", "Z50","Z95", "ObsID")]
-      } else {
-        forest$shrubData <- forest$shrubData[,c("Species","Height","Cover", "Z50","Z95")]
-      }
-    }
+    
+    #Ensure columns relevant for fordyn (in case there are other)
+    forest <- .checkForestColumns(forest)
+
     #Fill missing root params
     if(control$fillMissingRootParams) {
       treeSPZ95 <- species_parameter(forest$treeData$Species, SpParams, "Z95")
@@ -219,26 +218,33 @@ fordyn<-function(forest, soil, SpParams,
     # 1.3 Retrieve modified growth output
     xo <- Gi$growthOutput
 
-    # print(xo$above)
     # 2.2 Update dead tree/shrub tables
     deadTreeTableYear <- .createDeadTreeTable(iYear, year, xo)
     deadShrubTableYear <- .createDeadShrubTable(iYear, year, xo)
     
     # 2.2 Update forest structural variables
-    isTree <- is.na(xo$above$Cover)
+    ctype <- .cohortType(row.names(xo$cohorts))
+    isTree <- (ctype=="tree")
+    isShrub <- (ctype=="shrub")
     forest$treeData$N  <- xo$above$N[isTree]
     forest$treeData$DBH  <- xo$above$DBH[isTree]
     forest$treeData$Height  <- xo$above$H[isTree]
+    forest$treeData$Z50  <- xo$below$Z50[isTree]
+    forest$treeData$Z95  <- xo$below$Z95[isTree]
+    forest$treeData$Z100  <- xo$below$Z100[isTree]
     if(control$shrubDynamics) {
-      forest$shrubData$Cover  <- xo$above$Cover[!isTree]
-      forest$shrubData$Height  <- xo$above$H[!isTree]
+      forest$shrubData$Cover  <- xo$above$Cover[isShrub]
+      forest$shrubData$Height  <- xo$above$H[isShrub]
+      forest$shrubData$Z50  <- xo$below$Z50[isShrub]
+      forest$shrubData$Z95  <- xo$below$Z95[isShrub]
+      forest$shrubData$Z100  <- xo$below$Z100[isShrub]
     }
     
     # 2.3 Call management function if required
     cutTreeTableYear <- NULL
     cutShrubTableYear <- NULL
     management_result <- NULL
-    planted_forest <- emptyforest()
+    planted_forest <- emptyforest(addcolumns = c("Z100", "Age", "ObsID"))
     if(!is.null(management_function)) {
       management_result <- do.call(management_function, list(x = forest, args= management_args, verbose = FALSE))
       if(verboseDyn) cat(paste0(" & management [", management_result$action,"]"))
@@ -246,26 +252,32 @@ fordyn<-function(forest, soil, SpParams,
       forest$treeData$N <- pmax(0,forest$treeData$N - management_result$N_tree_cut)
       xo$above$N[isTree] <- forest$treeData$N
       forest$shrubData$Cover <- pmax(0,forest$shrubData$Cover - management_result$Cover_shrub_cut)
-      xo$above$Cover[!isTree] <- forest$shrubData$Cover
+      xo$above$Cover[isShrub] <- forest$shrubData$Cover
       # Update cut tables
       cutTreeTableYear <- .createCutTreeTable(iYear, year, xo, management_result$N_tree_cut)
       cutShrubTableYear <- .createCutShrubTable(iYear, year, xo, management_result$Cover_shrub_cut)
       # Retrieve plantation information
       planted_forest <- management_result$planted_forest
-      if(nrow(planted_forest$treeData)>0) {
-        for(i in 1:nrow(planted_forest$treeData)) {
+      ntree_planted <- nrow(planted_forest$treeData)
+      if(!("Z100" %in% names(planted_forest$treeData))) planted_forest$treeData$Z100 <- as.numeric(rep(NA, ntree_planted))
+      if(!("Age" %in% names(planted_forest$treeData))) planted_forest$treeData$Age <- as.numeric(rep(NA, ntree_planted))
+      if(!("ObsID" %in% names(planted_forest$treeData))) planted_forest$treeData$ObsID <- as.character(rep(NA, ntree_planted))
+      if(ntree_planted>0) {
+        for(i in 1:ntree_planted) {
           if(length(grep("[a-z]", planted_forest$treeData$Species[i]))==0) planted_forest$treeData$Species[i] <- SpParams$Name[SpParams$SpIndex == planted_forest$treeData$Species[i]]
-          planted_forest$treeData$Z50[i] <- species_parameter(planted_forest$treeData$Species[i], SpParams,"RecrZ50")
-          planted_forest$treeData$Z95[i] <- species_parameter(planted_forest$treeData$Species[i], SpParams,"RecrZ95")
-          if(is.na(planted_forest$treeData$Z50[i])) planted_forest$treeData$Z50[i] <- 250
-          if(is.na(planted_forest$treeData$Z95[i])) planted_forest$treeData$Z95[i] <- 500
+          planted_forest$treeData$Z95[i] <- species_parameter(planted_forest$treeData$Species[i], SpParams,"Z95")
+          planted_forest$treeData$Z50[i] <- exp(log(planted_forest$treeData$Z95[i])/1.4)
         }
       }
-      if(nrow(planted_forest$shrubData)>0) {
+      nshrub_planted <- nrow(planted_forest$shrubData)
+      if(!("Z100" %in% names(planted_forest$shrubData))) planted_forest$shrubData$Z100 <- as.numeric(rep(NA, nshrub_planted))
+      if(!("Age" %in% names(planted_forest$shrubData))) planted_forest$shrubData$Age <- as.numeric(rep(NA, nshrub_planted))
+      if(!("ObsID" %in% names(planted_forest$shrubData))) planted_forest$shrubData$ObsID <- as.character(rep(NA, nshrub_planted))
+      if(nshrub_planted>0) {
         for(i in 1:nrow(planted_forest$shrubData)) {
           if(length(grep("[a-z]", planted_forest$shrubData$Species[i]))==0) planted_forest$shrubData$Species[i] <- SpParams$Name[SpParams$SpIndex == planted_forest$shrubData$Species[i]]
-          planted_forest$shrubData$Z50[i] <- species_parameter(planted_forest$shrubData$Species[i], SpParams,"RecrZ50")
-          planted_forest$shrubData$Z95[i] <- species_parameter(planted_forest$shrubData$Species[i], SpParams,"RecrZ95")
+          planted_forest$shrubData$Z50[i] <- species_parameter(planted_forest$shrubData$Species[i], SpParams,"Z95")
+          planted_forest$shrubData$Z95[i] <- exp(log(planted_forest$shrubData$Z95[i])/1.4)
           if(is.na(planted_forest$shrubData$Z50[i])) planted_forest$shrubData$Z50[i] <- 100
           if(is.na(planted_forest$shrubData$Z95[i])) planted_forest$shrubData$Z95[i] <- 300
         }
@@ -291,23 +303,27 @@ fordyn<-function(forest, soil, SpParams,
       forest$seedBank <- regeneration_seedrefill(forest$seedBank, seed)
     }
     if(control$allowRecruitment) {
-      # Seed recruitment
-      monthlyMinTemp <- tapply(Gi$weather$MinTemperature, monthsYear, FUN="mean", na.rm=TRUE)
-      monthlyMaxTemp <- tapply(Gi$weather$MaxTemperature, monthsYear, FUN="mean", na.rm=TRUE)
-      monthlyTemp <- 0.606*monthlyMaxTemp + 0.394*monthlyMinTemp
-      minMonthTemp <- min(monthlyTemp, na.rm=TRUE)
-      moistureIndex <- sum(Gi$WaterBalance$Precipitation, na.rm=TRUE)/sum(Gi$WaterBalance$PET, na.rm=TRUE)
-      recr_forest <- regeneration_recruitment(forest, SpParams, control, minMonthTemp, moistureIndex, verbose = FALSE)
-      
+      if(control$recruitmentMode %in% c("daily/deterministic", "daily/stochastic")) {
+        recr_forest <- regeneration_recruitment_daily(forest, SpParams, control, 
+                                                      Gi, verbose = FALSE)
+      } else {
+        monthlyMinTemp <- tapply(Gi$weather$MinTemperature, monthsYear, FUN="mean", na.rm=TRUE)
+        monthlyMaxTemp <- tapply(Gi$weather$MaxTemperature, monthsYear, FUN="mean", na.rm=TRUE)
+        monthlyTemp <- 0.606*monthlyMaxTemp + 0.394*monthlyMinTemp
+        minMonthTemp <- min(monthlyTemp, na.rm=TRUE)
+        moistureIndex <- sum(Gi$WaterBalance$Precipitation, na.rm=TRUE)/sum(Gi$WaterBalance$PET, na.rm=TRUE)
+        recr_forest <- regeneration_recruitment(forest, SpParams, control, 
+                                                minMonthTemp, moistureIndex, verbose = FALSE)
+      }
     } else {
-      recr_forest <- emptyforest()
+      recr_forest <- emptyforest(addcolumns = c("Z100", "Age", "ObsID"))
     }
     # 3.2. Simulate species resprouting
     if(control$allowResprouting) {
       resp_forest <- regeneration_resprouting(forest, xo$internalMortality, SpParams, control,
                                               management_result)
     } else {
-      resp_forest <- emptyforest()
+      resp_forest <- emptyforest(addcolumns = c("Z100", "Age", "ObsID"))
     }
     
     # 4. Update inputs for next year 

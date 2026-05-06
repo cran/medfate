@@ -1,15 +1,9 @@
-#include <Rcpp.h>
-
+#include <RcppArmadillo.h>
+#include "decomposition_c.h"
 #ifndef COMMUNICATION_STRUCTURES_H
 #define COMMUNICATION_STRUCTURES_H
-#endif
+
 using namespace Rcpp;
-
-
-
-List instanceCommunicationStructures(List x, String model);
-List generalCommunicationStructures(int numCohorts, int nlayers, int ncanlayers, int ntimesteps,
-                                    String model);
 
 const int SOILWBCOM_dZ_m = 0;
 const int SOILWBCOM_dZUp = 1;
@@ -58,6 +52,7 @@ const int SOILWBCOM_capill_below = 43;
 const int SOILWBCOM_drain_above = 44;
 const int SOILWBCOM_drain_below = 45;
 const int SOILWBCOM_lateral_flows_step_mm = 46;
+
 List communicationSoilWaterBalance(int nlayers);
 
 const int SOILEBCOM_dZ_m = 0;
@@ -75,12 +70,12 @@ const int SOILEBCOM_f = 11;
 const int SOILEBCOM_k_up = 12;
 const int SOILEBCOM_k_down = 13;
 const int SOILEBCOM_tempch = 14;
+
 List communicationSoilEnergyBalance(int nlayers);
 
 NumericVector communicationFireHazard();
+DataFrame communicationCarbonCompartments(int numCohorts);
 
-List basicTranspirationCommunicationOutput(int numCohorts, int nlayers);
-List advancedTranspirationCommunicationOutput(int numCohorts, int nlayers, int ncanlayers, int ntimesteps);
 List copyBasicTranspirationOutput(List btc, List x);
 List copyAdvancedTranspirationOutput(List atc, List x);
 List copyBasicSPWBOutput(List boc, List x);
@@ -88,3 +83,5 @@ List copyAdvancedSPWBOutput(List aoc, List x);
 List copyBasicGROWTHOutput(List boc, List x);
 List copyAdvancedGROWTHOutput(List aoc, List x);
 List copyModelOutput(List internalCommunication, List x, String model);
+
+#endif

@@ -1,11 +1,11 @@
 #define STRICT_R_HEADERS
 #include <numeric>
-#include <Rcpp.h>
+#include <RcppArmadillo.h>
 #include <string.h>
 #include <stdio.h>
 #include "forestutils.h"
 #include "hydraulics.h"
-#include "tissuemoisture.h"
+#include "tissuemoisture_c.h"
 using namespace Rcpp;
 
 int findSpParamsRowByName(String spname, DataFrame SpParams) {
@@ -168,8 +168,9 @@ NumericVector cohortNumericParameter(List x, DataFrame SpParams, String parName)
 CharacterVector cohortCharacterParameter(List x, DataFrame SpParams, String parName){
   DataFrame treeData = Rcpp::as<Rcpp::DataFrame>(x["treeData"]);
   DataFrame shrubData = Rcpp::as<Rcpp::DataFrame>(x["shrubData"]);
-  CharacterVector par(treeData.nrow()+shrubData.nrow());
-  CharacterVector parTrees, parShrubs;
+  int ntree = treeData.nrows();
+  int nshrub = shrubData.nrows();
+  CharacterVector parTrees, parShrubs, parHerbs;
   if((TYPEOF(treeData["Species"]) == INTSXP) || (TYPEOF(treeData["Species"]) == REALSXP)) {
     IntegerVector tSP = Rcpp::as<Rcpp::IntegerVector>(treeData["Species"]);
     parTrees = speciesCharacterParameterFromIndex(tSP, SpParams, parName);
@@ -184,11 +185,28 @@ CharacterVector cohortCharacterParameter(List x, DataFrame SpParams, String parN
     CharacterVector sspecies = Rcpp::as<Rcpp::CharacterVector>(shrubData["Species"]);
     parShrubs = speciesCharacterParameter(sspecies, SpParams, parName);
   }
-  for(int i=0;i<treeData.nrow();i++) {
+  int nherb = 0;
+  if(x.containsElementNamed("herbData")) {
+    DataFrame herbData = Rcpp::as<Rcpp::DataFrame>(x["herbData"]);
+    nherb = herbData.nrows();
+    if((TYPEOF(herbData["Species"]) == INTSXP) || (TYPEOF(herbData["Species"]) == REALSXP)) {
+      IntegerVector hSP = Rcpp::as<Rcpp::IntegerVector>(herbData["Species"]);
+      parHerbs = speciesCharacterParameterFromIndex(hSP, SpParams, parName);
+    } else {
+      CharacterVector hspecies = Rcpp::as<Rcpp::CharacterVector>(herbData["Species"]);
+      parHerbs = speciesCharacterParameter(hspecies, SpParams, parName);
+    }
+  }
+  
+  CharacterVector par(ntree+nshrub+nherb);
+  for(int i=0;i<ntree;i++) {
     par[i] = parTrees[i];
   }
-  for(int i=0;i<shrubData.nrow();i++) {
-    par[i + treeData.nrow()] = parShrubs[i];
+  for(int i=0;i<nshrub;i++) {
+    par[i + ntree] = parShrubs[i];
+  }
+  for(int i=0;i<nherb;i++) {
+    par[i + ntree+nshrub] = parHerbs[i];
   }
   par.attr("names") = cohortIDs(x, SpParams);
   return(par);
@@ -281,6 +299,8 @@ NumericVector fineFoliarRatioWithImputation(IntegerVector SP, DataFrame SpParams
         ffr[i] = 3.260730;
       } else if(leafShape[i]=="Needle" ) {
         ffr[i] = 1.715895;
+      } else if(leafShape[i]=="Spines" ) {
+        ffr[i] = 1.715895;
       } else { //Broad
         if(leafSize[i]=="Small") {
           ffr[i] = 3.025709;
@@ -319,6 +339,8 @@ NumericVector specificLeafAreaWithImputation(IntegerVector SP, DataFrame SpParam
           }
         } else if(LeafShape[c]=="Needle") { 
           SLA[c] = 9.024;
+        } else if(LeafShape[c]=="Spines") { 
+          SLA[c] = 9.024;
         } else if(LeafShape[c]=="Scale") { 
           SLA[c] = 4.544;
         }
@@ -329,10 +351,13 @@ NumericVector specificLeafAreaWithImputation(IntegerVector SP, DataFrame SpParam
   }
   return(SLA);
 }
-NumericVector ligninPercentWithImputation(IntegerVector SP, DataFrame SpParams, bool fillWithGenus) {
+NumericVector leafLigninPercentWithImputation(IntegerVector SP, DataFrame SpParams, bool fillWithGenus) {
+  NumericVector cohLigninPercent;
+  if(SpParams.containsElementNamed("LeafLigninPercent")) cohLigninPercent = speciesNumericParameterFromIndexWithGenus(SP, SpParams, "LeafLigninPercent", fillWithGenus);
+  else if(SpParams.containsElementNamed("LigninPercent")) cohLigninPercent = speciesNumericParameterFromIndexWithGenus(SP, SpParams, "LigninPercent", fillWithGenus);
+  else stop("Could not find lignin percent column in SpParams");
   CharacterVector leafShape = speciesCharacterParameterFromIndex(SP, SpParams, "LeafShape");
   CharacterVector leafSize = speciesCharacterParameterFromIndex(SP, SpParams, "LeafSize");
-  NumericVector cohLigninPercent = speciesNumericParameterFromIndexWithGenus(SP, SpParams, "LigninPercent", fillWithGenus);
   for(int i=0;i<cohLigninPercent.size();i++) {
     if(NumericVector::is_na(cohLigninPercent[i])) {
       if(leafShape[i]=="Scale") {
@@ -356,6 +381,26 @@ NumericVector ligninPercentWithImputation(IntegerVector SP, DataFrame SpParams, 
           cohLigninPercent[i] = 15.50;
         }
       }
+    }
+  }
+  return(cohLigninPercent);
+}
+NumericVector woodLigninPercentWithImputation(IntegerVector SP, DataFrame SpParams, bool fillWithGenus) {
+  NumericVector cohLigninPercent(SP.size(), NA_REAL);
+  if(SpParams.containsElementNamed("WoodLigninPercent")) cohLigninPercent = speciesNumericParameterFromIndexWithGenus(SP, SpParams, "WoodLigninPercent", fillWithGenus);
+  for(int i=0;i<cohLigninPercent.size();i++) {
+    if(NumericVector::is_na(cohLigninPercent[i])) {
+      cohLigninPercent[i] = 25.0; // Default 25%
+    }
+  }
+  return(cohLigninPercent);
+}
+NumericVector finerootLigninPercentWithImputation(IntegerVector SP, DataFrame SpParams, bool fillWithGenus) {
+  NumericVector cohLigninPercent(SP.size(), NA_REAL);
+  if(SpParams.containsElementNamed("FineRootLigninPercent")) cohLigninPercent = speciesNumericParameterFromIndexWithGenus(SP, SpParams, "FineRootLigninPercent", fillWithGenus);
+  for(int i=0;i<cohLigninPercent.size();i++) {
+    if(NumericVector::is_na(cohLigninPercent[i])) {
+      cohLigninPercent[i] = 35.0; // Default 35%
     }
   }
   return(cohLigninPercent);
@@ -440,6 +485,8 @@ NumericVector leafWidthWithImputation(IntegerVector SP, DataFrame SpParams, bool
       if(leafShape[c]=="Linear") {
         leafwidth[c]= 0.6393182;
       } else if(leafShape[c]=="Needle") {
+        leafwidth[c]= 0.3792844;
+      } else if(leafShape[c]=="Spines") {
         leafwidth[c]= 0.3792844;
       } else if(leafShape[c]=="Broad") {
         if(leafSize[c]=="Small") {
@@ -864,7 +911,7 @@ NumericVector psiExtractWithImputation(IntegerVector SP, DataFrame SpParams, boo
   for(int c=0;c<Psi_Extract.size();c++) {
     if(NumericVector::is_na(Psi_Extract[c])) {
       double corr = pow(log(0.5)/log(0.10), 1.0/Exp_Extract[c]); //Assumes TLP corresponds to 10% stomatal conductance (Martin-StPaul 2017 Ecol. Lett)
-      Psi_Extract[c] = corr*turgorLossPoint(leafPI0[c], leafEPS[c]);
+      Psi_Extract[c] = corr*turgorLossPoint_c(leafPI0[c], leafEPS[c]);
     }
   }
   return(Psi_Extract);
@@ -1141,7 +1188,7 @@ NumericVector VCleafP50WithImputation(IntegerVector SP, DataFrame SpParams, bool
   NumericVector leafEPS = leafEPSWithImputation(SP, SpParams, fillWithGenus);
   for(int c=0;c<VCleaf_P50.size();c++) {
     if(NumericVector::is_na(VCleaf_P50[c])) {
-      double leaf_tlp = turgorLossPoint(leafPI0[c], leafEPS[c]);
+      double leaf_tlp = turgorLossPoint_c(leafPI0[c], leafEPS[c]);
       //From Bartlett,et al (2016). The correlations and sequence of plant stomatal, hydraulic, and wilting responses to drought. Proceedings of the National Academy of Sciences of the United States of America, 113(46), 13098–13103. https://doi.org/10.1073/pnas.1604088113
       VCleaf_P50[c] = std::min(0.0, 0.9944*leaf_tlp + 0.2486);
     }
@@ -1210,7 +1257,7 @@ NumericVector GsP50WithImputation(IntegerVector SP, DataFrame SpParams, bool fil
         Gs_P50[c] = VCleaf_P50[c]; //If P50 leaf is defined in SpParams, use this value for imputation
       } else {
         //Use TLP for imputation
-        double leaf_tlp = turgorLossPoint(leafPI0[c], leafEPS[c]);
+        double leaf_tlp = turgorLossPoint_c(leafPI0[c], leafEPS[c]);
         //From Bartlett,et al (2016). The correlations and sequence of plant stomatal, hydraulic, and wilting responses to drought. Proceedings of the National Academy of Sciences of the United States of America, 113(46), 13098–13103. https://doi.org/10.1073/pnas.1604088113
         Gs_P50[c] = std::min(0.0, 0.9944*leaf_tlp + 0.2486);
       }
@@ -1578,7 +1625,9 @@ NumericVector speciesNumericParameterWithImputation(IntegerVector SP, DataFrame 
     else if(parName == "g") return(gWithImputation(SP,SpParams, fillWithGenus));
     else if(parName == "r635") return(fineFoliarRatioWithImputation(SP,SpParams, fillWithGenus));
     else if(parName == "SLA") return(specificLeafAreaWithImputation(SP,SpParams, fillWithGenus));
-    else if(parName == "LigninPercent") return(ligninPercentWithImputation(SP, SpParams, fillWithGenus));
+    else if(parName == "LigninPercent" || parName == "LeafLigninPercent") return(leafLigninPercentWithImputation(SP, SpParams, fillWithGenus));
+    else if(parName == "WoodLigninPercent") return(woodLigninPercentWithImputation(SP, SpParams, fillWithGenus));
+    else if(parName == "FineRootLigninPercent") return(finerootLigninPercentWithImputation(SP, SpParams, fillWithGenus));
     else if(parName == "SAV") return(surfaceToAreaRatioWithImputation(SP, SpParams, fillWithGenus));
     else if(parName == "HeatContent") return(heatContentWithImputation(SP, SpParams, fillWithGenus));
     else if(parName == "pDead") return(proportionDeadWithImputation(SP,SpParams, fillWithGenus));
@@ -1676,28 +1725,47 @@ NumericVector speciesNumericParameterWithImputation(CharacterVector species, Dat
 NumericVector cohortNumericParameterWithImputation(List x, DataFrame SpParams, String parName, bool fillMissing = true, bool fillWithGenus = true){
   DataFrame treeData = Rcpp::as<Rcpp::DataFrame>(x["treeData"]);
   DataFrame shrubData = Rcpp::as<Rcpp::DataFrame>(x["shrubData"]);
-  NumericVector par(treeData.nrow() + shrubData.nrow());
-  NumericVector parTrees, parShrubs;
-  if((TYPEOF(treeData["Species"]) == INTSXP) || (TYPEOF(treeData["Species"]) == REALSXP)) {
-    IntegerVector tSP = treeData["Species"];
-    parTrees = speciesNumericParameterWithImputation(tSP, SpParams, parName, fillMissing, fillWithGenus);
-  } else {
-    CharacterVector tspecies = treeData["Species"];
-    parTrees = speciesNumericParameterWithImputation(tspecies, SpParams, parName, fillMissing, fillWithGenus);
+  int ntree = treeData.nrows();
+  int nshrub = shrubData.nrows();
+  NumericVector parTrees, parShrubs, parHerbs;
+  if(ntree>0) {
+    if((TYPEOF(treeData["Species"]) == INTSXP) || (TYPEOF(treeData["Species"]) == REALSXP)) {
+      IntegerVector tSP = treeData["Species"];
+      parTrees = speciesNumericParameterWithImputation(tSP, SpParams, parName, fillMissing, fillWithGenus);
+    } else {
+      CharacterVector tspecies = treeData["Species"];
+      parTrees = speciesNumericParameterWithImputation(tspecies, SpParams, parName, fillMissing, fillWithGenus);
+    }
   }
-  if((TYPEOF(shrubData["Species"]) == INTSXP) || (TYPEOF(shrubData["Species"]) == REALSXP)) {
-    IntegerVector shSP = shrubData["Species"];
-    parShrubs = speciesNumericParameterWithImputation(shSP, SpParams, parName, fillMissing, fillWithGenus);
-  } else {
-    CharacterVector sspecies = shrubData["Species"];
-    parShrubs = speciesNumericParameterWithImputation(sspecies, SpParams, parName, fillMissing, fillWithGenus);
+  if(nshrub>0) {
+    if((TYPEOF(shrubData["Species"]) == INTSXP) || (TYPEOF(shrubData["Species"]) == REALSXP)) {
+      IntegerVector shSP = shrubData["Species"];
+      parShrubs = speciesNumericParameterWithImputation(shSP, SpParams, parName, fillMissing, fillWithGenus);
+    } else {
+      CharacterVector sspecies = shrubData["Species"];
+      parShrubs = speciesNumericParameterWithImputation(sspecies, SpParams, parName, fillMissing, fillWithGenus);
+    }
   }
-  for(int i=0;i<treeData.nrow();i++) {
-    par[i] = parTrees[i];
+  
+  int nherb = 0;
+  if(x.containsElementNamed("herbData")) {
+    DataFrame herbData = Rcpp::as<Rcpp::DataFrame>(x["herbData"]);
+    nherb = herbData.nrows();
+    if(nherb>0) {
+      if((TYPEOF(herbData["Species"]) == INTSXP) || (TYPEOF(herbData["Species"]) == REALSXP)) {
+        IntegerVector hSP = herbData["Species"];
+        parHerbs = speciesNumericParameterWithImputation(hSP, SpParams, parName, fillMissing, fillWithGenus);
+      } else {
+        CharacterVector hspecies = herbData["Species"];
+        parHerbs = speciesNumericParameterWithImputation(hspecies, SpParams, parName, fillMissing, fillWithGenus);
+      }
+    }
   }
-  for(int i=0;i<shrubData.nrow();i++) {
-    par[i + treeData.nrow()] = parShrubs[i];
-  }
+  
+  NumericVector par(ntree + nshrub + nherb);
+  for(int i=0;i<ntree;i++) par[i] = parTrees[i];
+  for(int i=0;i<nshrub;i++) par[i + ntree] = parShrubs[i];
+  for(int i=0;i<nherb;i++) par[i + ntree+nshrub] = parHerbs[i];
   par.attr("names") = cohortIDs(x, SpParams);
   return(par);
 }

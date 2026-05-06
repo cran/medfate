@@ -28,12 +28,13 @@ Function \code{soil} returns a data frame of class \code{soil} with the followin
 \item{\code{clay}: Clay percentage for each layer (in percent volume).}
 \item{\code{om}: Organic matter percentage for each layer (in percent volume).}
 \item{\code{nitrogen}: Sum of total nitrogen (ammonia, organic and reduced nitrogen) for each layer (in g/kg).}
+\item{\code{ph}: pH in water of each layer (0-14).}
 \item{\code{rfc}: Percentage of rock fragment content for each layer.}
 \item{\code{macro}: Macroporosity for each layer (estimated using Stolf et al. 2011).}
 \item{\code{Ksat}: Saturated soil conductivity for each layer (in mmol·m-1·s-1·MPa-1, estimated using function \code{\link{soil_saturatedConductivitySX}}.}
 \item{\code{VG_alpha}, \code{VG_n}, \code{VG_theta_res}, \code{VG_theta_sat}: Parameters for van Genuchten's pedotransfer functions, for each layer, corresponding to the USDA texture type.}
 \item{\code{W}: State variable with relative water content of each layer (in as proportion relative to FC).}
-\item{\code{Temp}: State variable with temperature (in ºC) of each layer.}
+\item{\code{Temp}: State variable with temperature (in Celsius) of each layer.}
 }
 }
 \description{
@@ -42,7 +43,7 @@ Initializes soil parameters and state variables for its use in simulations.
 \details{
 Function \code{summary} prompts a description of soil characteristics and state variables (water content and temperature)
 according to a water retention curve (either Saxton's or Van Genuchten's).
-Volume at field capacity is calculated assuming a soil water potential equal to -0.033 MPa.
+Volume at field capacity is calculated assuming a soil water potential equal to fieldCapacityPsi MPa.
 Parameter \code{Temp} is initialized as missing for all soil layers.
 
 If available, the user can specify columns \code{VG_alpha}, \code{VG_n}, \code{VG_theta_res}, \code{VG_theta_sat} and \code{K_sat},
@@ -53,7 +54,7 @@ to override Van Genuchten parameters an saturated conductivity estimated from pe
 df_soil <- defaultSoilParams()
 
 # Initializes soil
-s = soil(df_soil)
+s <- soil(df_soil)
 s
 
 # Prints soil characteristics according to Saxton's water retention curve
@@ -67,7 +68,7 @@ df_soil$VG_theta_sat <- 0.400
 df_soil$VG_theta_res <- 0.040 
 
 # Reinitialize soil (should override estimations)
-s2 = soil(df_soil)
+s2 <- soil(df_soil)
 s2
 summary(s2, model="VG")
 }
@@ -79,7 +80,7 @@ Carsel, R.F., and Parrish, R.S. 1988. Developing joint probability distributions
 Stolf, R., Thurler, A., Oliveira, O., Bacchi, S., Reichardt, K., 2011. Method to estimate soil macroporosity and microporosity based on sand content and bulk density. Rev. Bras. Ciencias do Solo 35, 447–459.
 }
 \seealso{
-\code{\link{soil_redefineLayers}}, \code{\link{soil_psi2thetaSX}}, \code{\link{soil_psi2thetaVG}}, \code{\link{spwb}}, \code{\link{defaultSoilParams}}
+\code{\link{plot.soil}}, \code{\link{soil_redefineLayers}}, \code{\link{soil_psi2thetaSX}}, \code{\link{soil_psi2thetaVG}}, \code{\link{spwb}}, \code{\link{defaultSoilParams}}
 }
 \author{
 Miquel De \enc{Cáceres}{Caceres} Ainsa, CREAF

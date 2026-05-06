@@ -27,8 +27,8 @@ Function \code{spwbInput()} returns a list of class \code{spwbInput} with the fo
 \item{\code{snowpack}: The amount of snow (in mm) in the snow pack over the soil.}
 \item{\code{canopy}: A list of stand-level state variables.}
 \item{\code{cohorts}: A data frame with cohort information, with columns \code{SP} and \code{Name}.}
-\item{\code{above}: A data frame with columns  \code{H}, \code{CR} and \code{LAI} (see function \code{forest2aboveground}).}
-\item{\code{below}: A data frame with columns \code{Z50}, \code{Z95}.  If \code{control$transpirationMode = "Sperry"} additional columns are \code{fineRootBiomass} and \code{coarseRootSoilVolume}.}
+\item{\code{above}: A data frame with columns such as \code{H}, \code{CR} and \code{LAI_live} (see internal function \code{forest2aboveground}).}
+\item{\code{below}: A data frame with columns \code{Z50}, \code{Z95} and \code{Z100}.}
 \item{\code{belowLayers}: A list. If \code{control$transpirationMode = "Granier"} it contains elements:
 \itemize{
 \item{\code{V}: A matrix with the proportion of fine roots of each cohort (in rows) in each soil layer (in columns).}
@@ -185,6 +185,8 @@ Function \code{growthInput()} returns a list of class \code{growthInput} with th
 \item{\code{IngrowthTreeDensity}: Density of trees reaching ingrowth DBH.}
 \item{\code{RecrTreeDBH}: DBH for tree recruits from seeds or resprouting (e.g. 1 cm).}
 \item{\code{IngrowthTreeDBH}: Ingrowth DBH for trees (e.g. 7.5 cm).}
+\item{\code{RespFire}: Probability of resprouting after a fire disturbance.}
+\item{\code{RespDist}: Probability of resprouting after undefined disturbance (typically desiccation).}
 }
 }
 \item{\code{paramsAllometry}: A data frame with allometric parameters for each cohort:
@@ -205,8 +207,11 @@ Function \code{growthInput()} returns a list of class \code{growthInput} with th
 }
 }
 \item{\code{internalCarbon}: A data frame with the concentration (mol·gluc·l-1) of metabolic and storage carbon compartments for leaves and sapwood.}
+\item{\code{internalSnags}: A data frame with characteristics (species identity, height, diameter, age), small branch mass and large wood mass (both in g C/m2) corresponding to decomposing snag cohorts (see \code{\link{forest}}).}
+\item{\code{internalLitter}: A data frame with the aboveground and belowground mass (g C/m2) of different litter components: leaves, twigs, small branches, large wood, coarse roots and fine roots.}
+\item{\code{internalSOC}: A named numeric vector with surface/soil decomposing carbon pools (g C/m2).}
 \item{\code{internalMortality}: A data frame to store the cumulative mortality (density for trees and cover for shrubs) predicted during the simulation,
-also distinguishing mortality due to starvation or dessication.}
+also distinguishing mortality due to starvation or dessication, the number of resprouting elements and the accumulation of aboveground dead wood (branches and large wood).}
 }
 }
 \description{
@@ -215,9 +220,6 @@ and a soil data input to create input objects for simulation functions \code{\li
 }
 \details{
 Functions \code{spwbInput()} and \code{growthInput()} initialize inputs differently depending on control parameters.
-
-\emph{IMPORTANT NOTE}: Older function names \code{\link{forest2spwbInput}} and \code{\link{forest2growthInput}} are now deprecated, but
-they can still be used for back-compatibility.
 }
 \examples{
 #Load example plot plant data
@@ -255,7 +257,7 @@ spwbInput(exampleforest2, examplesoil, SpParamsMED, control)
 
 }
 \seealso{
-\code{\link{resetInputs}}, \code{\link{spwb}}, \code{\link{soil}},
+\code{\link{resetInputs}}, \code{\link{spwb}}, \code{\link{growth}}, \code{\link{soil}},
 \code{\link{forest}}, \code{\link{SpParamsMED}}, \code{\link{defaultSoilParams}}, \code{\link{plant_ID}}
 }
 \author{

@@ -1,4 +1,4 @@
-#include <Rcpp.h>
+#include <RcppArmadillo.h>
 
 #ifndef ROOT_H
 #define ROOT_H
@@ -10,13 +10,11 @@ NumericVector ldrRS_one(double Z50, double Z95, double Z100, NumericVector d);
 NumericVector conicRS_one(double Z, NumericVector d);
 NumericMatrix conicDistribution(NumericVector Z, NumericVector d);
 NumericMatrix ldrDistribution(NumericVector Z50, NumericVector Z95, NumericVector Z100, NumericVector d);
-NumericMatrix ldrDistribution(NumericVector treeZ50, NumericVector shrubZ50,
-                              NumericVector treeZ95, NumericVector shrubZ95, 
-                              NumericVector treeZ100, NumericVector shrubZ100,
+NumericMatrix ldrDistribution(NumericVector treeZ50, NumericVector shrubZ50, NumericVector herbZ50, 
+                              NumericVector treeZ95, NumericVector shrubZ95, NumericVector herbZ95, 
+                              NumericVector treeZ100, NumericVector shrubZ100, NumericVector herbZ100, 
                               NumericVector d);
 
-double fineRootRadius(double specificRootLength, double rootTissueDensity);
-double specificRootSurfaceArea(double specificRootLength, double rootTissueDensity);
 double fineRootAreaIndex(NumericVector Ksoil, NumericVector krhizo, double lai,
                          double specificRootLength, double rootTissueDensity,  
                          double rootLengthDensity );
@@ -26,8 +24,6 @@ double fineRootBiomassPerIndividual(NumericVector Ksoil, NumericVector krhizo,  
 NumericVector rhizosphereMaximumConductance(NumericVector Ksoil, NumericVector fineRootBiomass, double lai, double N,
                                          double specificRootLength, double rootTissueDensity,  
                                          double rootLengthDensity);
-
-double fineRootSoilVolume(double fineRootBiomass, double specificRootLength, double rootLengthDensity );
 
 double coarseRootSoilVolumeFromConductance(double Kmax_rootxylem, double VCroot_kmax, double Al2As,
                                     NumericVector v, NumericVector d, NumericVector rfc);
