@@ -13,7 +13,9 @@ double gmin_c(double leafTemperature, double gmin_20,
               double TPhase, double Q10_1, double Q10_2);
 
 double xylemConductance_c(double psi, double kxylemmax, double c, double d);
+double xylemConductanceSigmoid_c(double psi, double kxylemmax, double P50, double slope);
 double xylemPsi_c(double kxylem, double kxylemmax, double c, double d);
+double xylemPsiSigmoid_c(double kxylem, double kxylemmax, double P50, double slope);
 double psiCrit_c(double c, double d, double pCrit);
 double vanGenuchtenConductance_c(double psi, double krhizomax, double n, double alpha);
 double xylemConductanceSigmoid_c(double psi, double kxylemmax, double P50, double slope);
@@ -42,10 +44,10 @@ double E2psiTwoElements_c(double E, double psiSoil, double krhizomax, double kxy
 
 
 double proportionDefoliationSigmoid_c(double psiLeaf, double P50, double slope, 
-                                      double PLC_crit, double P50_cv);
+                                      double criticalLeafPLC, double cvLeafP50);
 
 double proportionDefoliationWeibull_c(double psiLeaf, double c, double d, 
-                                      double PLC_crit, double P50_cv);
+                                      double criticalLeafPLC, double cvLeafP50);
 
 std::vector<double> rootxylemConductanceProportions_c(const std::vector<double>& L, const std::vector<double>& V);
 
@@ -53,6 +55,7 @@ double findRhizosphereMaximumConductance_c(double averageResistancePercent, doub
                                            double krootmax, double rootc, double rootd,
                                            double kstemmax, double stemc, double stemd,
                                            double kleafmax, double leafc, double leafd,
+                                           double psiMin = -2.0,
                                            double initialValue = 0.0);
 
 double taperFactorSavage_c(double height);

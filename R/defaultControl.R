@@ -83,8 +83,28 @@
 #'           }
 #'       }
 #'       \item{\code{cavitationRecoveryMaximumRate [= 0.05]}: Maximum rate of daily refilling of embolized conduits as sapwood area per leaf area (in cm2·m-2·day-1).}
-#'       \item{\code{cavitationInducedDefoliation [= TRUE]}: Whether leaf hydraulic impairment induces defoliation (88 % PLC will correspond to 50 % defoliation).}
 #'       \item{\code{lfmcComponent [= "fine"]}: Plant component used to estimate LFMC, either "leaf" or "fine" (for fine fuel).}
+#'       \item{\code{mistletoeParams}: A list with the following elements:
+#'           \itemize{
+#'             \item{\code{kPAR [= 0.5]}: Mistletoe light extinction coefficient.}
+#'             \item{\code{g [= 0.8]}: Mistletoe water storage capacity per LAI unit.}
+#'             \item{\code{LeafWidth [=1.0]}: Mistletoe leaf width (cm).}
+#'             \item{\code{Tmax_LAI [= 0.134]}: Empirical coefficient relating mistletoe LAI with the ratio of maximum transpiration over potential evapotranspiration.}
+#'             \item{\code{Tmax_LAIsq [= -0.006]}: Empirical coefficient relating squared mistletoe LAI with the ratio of maximum transpiration over potential evapotranspiration.}
+#'             \item{\code{Gsw_P50_Baldocchi [= -2.5]}: Water potential corresponding to 50% reduction of mistletoe stomatal conductance.}
+#'             \item{\code{Gsw_slope_Baldocchi [= 30]}: Rate of decrease in mistletoe stomatal conductance at Gs_P50_Baldocchi.}
+#'             \item{\code{Gsw_AC_slope_Baldocchi [= 6]}: Slope of the Gsw vs Ac/Cs relationship (Baldocchi model).}
+#'             \item{\code{Vmax298 [= 80]}: Maximum Rubisco carboxylation rate at 298K.}
+#'             \item{\code{Jmax298 [= 120]}: Maximum rate of electron transport at 298K.}
+#'           }
+#'       }
+#'       \item{\code{defoliationParams}: A list with the following elements:
+#'           \itemize{
+#'              \item{\code{cavitationInducedDefoliation [= TRUE]}: Whether leaf hydraulic impairment induces defoliation.}
+#'              \item{\code{criticalLeafPLC [= 0.88]}: Level of PLC (a proportion) corresponding to 50 % crown defoliation.}
+#'              \item{\code{cvLeafP50 [= 10.0]}: Coefficient of variation (in percent) of leaf P50 within crown leaves.}
+#'           }
+#'       }
 #'     }
 #'   \bold{Water balance} (functions \code{\link{spwb}}, \code{\link{pwb}} or \code{\link{spwb_day}} when \code{traspirationMode = "Granier"} only):
 #'     \itemize{
@@ -94,10 +114,12 @@
 #'     \itemize{
 #'       \item{\code{nsubsteps_canopy [= 3600]}: Number of substeps into which each step is divided for multi-layer canopy energy balance solving.}
 #'       \item{\code{multiLayerBalance [= FALSE]}: Flag to indicate multiple canopy energy balance. If \code{FALSE}, canopy is considered a single layer for energy balance.}
+#'       \item{\code{leafConductanceEstimation [= TRUE]}: Flag to indicate that leaf maximum conductance should be estimated as a fraction of resistance depending on height instead of using measured \code{VCleaf_kmax} values.}
+#'       \item{\code{rootConductivityEstimation [= TRUE]}: Flag to indicate that root maximum conductivity should be estimated from stem conductivity instead of using measured \code{Kmax_rootxylem} values.}
 #'       \item{\code{sapFluidityVariation [= TRUE]}: Flag to indicate that temperature affects sap fluidity (and indirectly plant conductance).}
 #'       \item{\code{TPhase_gmin [= 37.5]}: Temperature for transition phase of gmin.}
-#'       \item{\code{Q10_1_gmin [= 1.2]}: Temperature dependance of gmin when T less than or equal to TPhase.}
-#'       \item{\code{Q10_2_gmin [= 4.8]}: Temperature dependance of gmin when T greater than TPhase.}
+#'       \item{\code{Q10_1_gmin [= 1.2]}: Temperature dependence of gmin when T less than or equal to TPhase.}
+#'       \item{\code{Q10_2_gmin [= 4.8]}: Temperature dependence of gmin when T greater than TPhase.}
 #'       \item{\code{taper [= TRUE]}: Whether taper of xylem conduits is accounted for when calculating aboveground stem conductance from xylem conductivity.}
 #'       \item{\code{thermalCapacityLAI [= 1000000]}: Thermal canopy capacitance per LAI unit.}
 #'       \item{\code{rootRadialConductance [= 4]}: Radial conductance in roots (mmol·s-1·m-2·MPa-1).}
@@ -245,7 +267,12 @@ defaultControl<-function(transpirationMode = "Granier",
     stemCavitationRecovery = "rate",
     leafCavitationRecovery = "rate",
     lfmcComponent = "fine",
-    cavitationInducedDefoliation = TRUE,
+    mistletoeParams = list(kPAR = 0.5, g = 0.8, LeafWidth = 1.0, 
+                           Tmax_LAI = 0.134, Tmax_LAIsq = -0.006, Gsw_P50_Baldocchi = -2.5, Gsw_slope_Baldocchi = 30, Gsw_AC_slope_Baldocchi = 8,
+                           Vmax298 = 80.0, Jmax298 = 120.0),
+    defoliationParams = list(cavitationInducedDefoliation = TRUE,
+                             criticalLeafPLC = 0.88,
+                             cvLeafP50 = 10.0),
     
     #spwb with granier
     hydraulicRedistributionFraction = 0.1,
@@ -254,6 +281,8 @@ defaultControl<-function(transpirationMode = "Granier",
     nsubsteps_canopy = 3600,
     taper = TRUE,
     multiLayerBalance = FALSE,
+    leafConductanceEstimation = TRUE,
+    rootConductivityEstimation = TRUE,
     sapFluidityVariation = TRUE,
     TPhase_gmin = 37.5,
     Q10_1_gmin = 1.2,

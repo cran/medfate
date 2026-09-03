@@ -9,8 +9,10 @@ double availableLight_c(double h,
                         const std::vector<double>& H, 
                         const std::vector<double>& LAI_expanded, 
                         const std::vector<double>& LAI_dead, 
+                        const std::vector<double>& LAI_mistletoe, 
                         const std::vector<double>& k, 
-                        const std::vector<double>& CR) {
+                        const std::vector<double>& CR,
+                        double k_mistletoe) {
   double s= 0.0, p=0.0;
   int n = H.size();
   for(int j=0; j< n; j++) {
@@ -19,7 +21,7 @@ double availableLight_c(double h,
     p = leafAreaProportion_c(h, H[j], cbh, H[j]);
     if(p<0.0) p = 0.0;
     else if(p>1.0) p=1.0;
-    s = s + k[j]*p*(LAI_expanded[j]+LAI_dead[j]);
+    s = s + p*(k[j]*(LAI_expanded[j]+LAI_dead[j]) + k_mistletoe*LAI_mistletoe[j]);
   }
   return(100*exp((-1)*s));
 }
@@ -28,10 +30,12 @@ void parcohortC_c(std::vector<double>& PARcohort,
                   const std::vector<double>& H, 
                   const std::vector<double>& LAI_expanded, 
                   const std::vector<double>& LAI_dead, 
+                  const std::vector<double>& LAI_mistletoe, 
                   const std::vector<double>& k, 
-                  const std::vector<double>& CR){
+                  const std::vector<double>& CR,
+                  double k_mistletoe){
   int n = H.size();
-  for(int i=0; i<n;i++) PARcohort[i] = availableLight_c( H[i]*(1.0-(1.0-CR[i])/2.0), H, LAI_expanded, LAI_dead, k, CR);
+  for(int i=0; i<n;i++) PARcohort[i] = availableLight_c( H[i]*(1.0-(1.0-CR[i])/2.0), H, LAI_expanded, LAI_dead, LAI_mistletoe, k, CR, k_mistletoe);
 }
 
 
@@ -41,13 +45,15 @@ void parcohortC_c(std::vector<double>& PARcohort,
 void layerAbsorbedSWRFractionIncident_c(std::vector<double>& f,
                                         const arma::mat& LAIme, 
                                         const arma::mat& LAImd, 
-                                        const std::vector<double>& kSWR) {
+                                        const arma::mat& LAIms, 
+                                        const std::vector<double>& kSWR,
+                                        double kSWR_mistletoe) {
   int ncanlayers = LAIme.n_rows;
   int ncoh = LAIme.n_cols;
   double s;
   for(int l = 0;l<ncanlayers;l++) {
     s = 0.0;
-    for(int c=0;c<ncoh; c++) s+=kSWR[c]*(LAIme(l,c)+LAImd(l,c));
+    for(int c=0;c<ncoh; c++) s+=(kSWR[c]*(LAIme(l,c)+LAImd(l,c)) + kSWR_mistletoe*LAIms(l,c));
     f[l] = 1.0 - exp(-1.0*s);
   }
 }
@@ -59,15 +65,17 @@ void cohortLayerAbsorbedSWRFractionIncident_c(arma::mat& fij,
                                               const std::vector<double>& fi, 
                                               const arma::mat& LAIme, 
                                               const arma::mat& LAImd, 
-                                              const std::vector<double>& kSWR) {
+                                              const arma::mat& LAIms, 
+                                              const std::vector<double>& kSWR,
+                                              double kSWR_mistletoe) {
   int ncanlayers = LAIme.n_rows;
   int ncoh = LAIme.n_cols;
   double s = 0.0;
   for(int l = 0;l<ncanlayers;l++) {
     s = 0.0;
-    for(int c=0;c<ncoh; c++) s+=kSWR[c]*(LAIme(l,c)+LAImd(l,c));
+    for(int c=0;c<ncoh; c++) s+=(kSWR[c]*(LAIme(l,c)+LAImd(l,c)) + kSWR_mistletoe*LAIms(l,c));
     if(s>0.0) {
-      for(int c=0;c<ncoh; c++) fij(l,c) = fi[l]*kSWR[c]*LAIme(l,c)/s; 
+      for(int c=0;c<ncoh; c++) fij(l,c) = fi[l]*(kSWR[c]*(LAIme(l,c)+LAImd(l,c)) + kSWR_mistletoe*LAIms(l,c))/s; 
     }
   }
 }
@@ -79,12 +87,14 @@ void cohortAbsorbedSWRFraction_c(std::vector<double>& SWRfraction,
                                  AbsorbedSWR_COMM& AbSWRcomm,
                                  const arma::mat& LAIme, 
                                  const arma::mat& LAImd, 
-                                 const std::vector<double>& kSWR) {
+                                 const arma::mat& LAIms, 
+                                 const std::vector<double>& kSWR,
+                                 double kSWR_mistletoe) {
   int ncoh = LAIme.n_cols;
   int ncanlayers = LAIme.n_rows;
   
-  layerAbsorbedSWRFractionIncident_c(AbSWRcomm.fi, LAIme, LAImd, kSWR);
-  cohortLayerAbsorbedSWRFractionIncident_c(AbSWRcomm.fij, AbSWRcomm.fi, LAIme, LAImd, kSWR);
+  layerAbsorbedSWRFractionIncident_c(AbSWRcomm.fi, LAIme, LAImd, LAIms, kSWR, kSWR_mistletoe);
+  cohortLayerAbsorbedSWRFractionIncident_c(AbSWRcomm.fij, AbSWRcomm.fi, LAIme, LAImd, LAIms, kSWR, kSWR_mistletoe);
   for(int i = 0;i<ncanlayers;i++) {
     AbSWRcomm.rem[i] = 1.0;
     for(int h = (ncanlayers-1);h>i;h--) {

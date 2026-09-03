@@ -77,6 +77,7 @@ List elements are as follows:
 \item{\code{"HerbTranspiration"}: Transpiration due to the herbaceous layer (in mm).}
 \item{\code{"PlantExtraction"}: Amount of water extracted from soil by woody plants (in mm).}
 \item{\code{"Transpiration"}: Woody plant transpiration (in mm).}
+\item{\code{"MistletoeTranspiration"}: Transpiration of hemi-parasitic mistletoe plants (in mm).}
 \item{\code{"HydraulicRedistribution"}: Water redistributed among soil layers, transported through the plant hydraulic network.}
 }
 \item{\code{"EnergyBalance"}: A data frame with the daily values of energy balance components for the soil and the canopy (only for \code{transpirationMode = "Sperry"} or \code{transpirationMode = "Sureau"}).}
@@ -102,6 +103,7 @@ List elements are as follows:
 \item{\code{"LAIlive"}: LAI of the woody plants assuming all leaves are unfolded (in m2/m2).}
 \item{\code{"LAIexpanded"}: LAI of the woody plants with leaves actually unfolded (in m2/m2).}
 \item{\code{"LAIdead"}: LAI of the woody plants corresponding to dead leaves (in m2/m2).}
+\item{\code{"LAImistletoe"}: LAI of hemi-parasitic mistletoe plants (in m2/m2).}
 \item{\code{"Cm"}: Water retention capacity of the canopy (in mm) (accounting for leaf phenology).}
 \item{\code{"LgroundPAR"}: The percentage of PAR that reaches the ground (accounting for leaf phenology).}
 \item{\code{"LgroundSWR"}: The percentage of SWR that reaches the ground (accounting for leaf phenology).}
@@ -217,6 +219,9 @@ x1 <- spwbInput(exampleforest,examplesoil, SpParamsMED, control)
 #Call simulation function
 S1 <- spwb(x1, examplemeteo, latitude = 41.82592, elevation = 100)
 
+#Examine daily results
+# shinyplot(S1)
+
 #Switch to 'Sperry' transpiration mode
 control <- defaultControl("Sperry")
 
@@ -226,14 +231,21 @@ x2 <- spwbInput(exampleforest,examplesoil, SpParamsMED, control)
 #Call simulation function
 S2 <- spwb(x2, examplemeteo, latitude = 41.82592, elevation = 100)
 
+#Examine daily results
+# shinyplot(S2)
+
 #Switch to 'Sureau' transpiration mode
 control <- defaultControl("Sureau")
+control$subdailyResults <- TRUE  # To keep subdaily results
 
 #Initialize input
 x3 <- spwbInput(exampleforest,examplesoil, SpParamsMED, control)
 
 #Call simulation function
 S3 <- spwb(x3, examplemeteo, latitude = 41.82592, elevation = 100)
+
+#Examine daily and subdaily results
+# shinyplot(S3)
 }
                 
 }

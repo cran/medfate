@@ -10,6 +10,7 @@
 #' @param byCohorts Separate profiles for each cohort.
 #' @param bySpecies Aggregate cohort profiles by species.
 #' @param includeHerbs Include herbaceous layer in the profile.
+#' @param includeMistletoes Include hemi-parasitic plants (mistletoes) in the profile.
 #' @param u The value of measured wind speed (in m/s).
 #' @param windMeasurementHeight Height corresponding to wind measurement (in cm over the canopy).
 #' @param boundaryLayerSize Size of the boundary layer (in cm) over the canopy.
@@ -50,7 +51,7 @@
 #' @keywords internal
 #' @name vprofile_leafAreaDensity
 vprofile_leafAreaDensity<-function(x, SpParams = NULL, z = NULL, gdd = NA, 
-                                   byCohorts = FALSE, bySpecies = FALSE, includeHerbs = FALSE,
+                                   byCohorts = FALSE, bySpecies = FALSE, includeHerbs = FALSE, includeMistletoes = FALSE,
                                    draw = TRUE, xlim = NULL) {
   if(!(inherits(x,"data.frame") || inherits(x, "forest"))) stop("'x' should be of class 'forest' or 'data.frame'")
   if(inherits(x, "forest")) {
@@ -72,6 +73,7 @@ vprofile_leafAreaDensity<-function(x, SpParams = NULL, z = NULL, gdd = NA,
   w <- z[2:length(z)]- z[1:(length(z)-1)]
   
   lai_vect <- x$LAI_expanded
+  if(includeMistletoes && "LAI_mistletoe" %in% names(x)) lai_vect <- lai_vect + x$LAI_mistletoe
   h_vect <- x$H
   cr_vect <- x$CR
   if(includeHerbs && !is.na(herbHeight) && !is.na(herbLAI)) {
@@ -218,13 +220,13 @@ vprofile_SWRExtinction<-function(x, SpParams, z = NULL, gdd = NA, includeHerbs =
 #' @keywords internal
 vprofile_windExtinction<-function(x, SpParams, u = 1, windMeasurementHeight = 200,
                                   boundaryLayerSize = 2000, target = "windspeed",
-                                  z = NULL, gdd = NA, includeHerbs = FALSE,
+                                  z = NULL, gdd = NA, includeHerbs = FALSE, includeMistletoes = FALSE,
                                   draw = TRUE, xlim = NULL) {
   h <- plant_height(x, SpParams)
   if(length(h)==0) stop("The forest object does not contain plant cohorts")
   if(is.null(z)) z <- seq(0, ceiling(max(h)/100)*100 +boundaryLayerSize, by=1)
   lad <- vprofile_leafAreaDensity(x=x, SpParams = SpParams, z = z, gdd = gdd,
-                                  byCohorts = FALSE, bySpecies = FALSE, includeHerbs = includeHerbs,
+                                  byCohorts = FALSE, bySpecies = FALSE, includeHerbs = includeHerbs, includeMistletoes = includeMistletoes,
                                   draw = FALSE, xlim = xlim)
   canopyHeight <- max(plant_height(x, SpParams), na.rm=T)
   zmid <- 0.5*(z[1:(length(z)-1)] + z[2:(length(z))])

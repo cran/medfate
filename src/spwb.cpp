@@ -167,12 +167,13 @@ void checkspwbInput(List x,  String transpirationMode, String soilFunctions) {
 
 DataFrame defineStandDailyOutput(CharacterVector dateStrings) {
   int numDays = dateStrings.length();
-  NumericVector LAI(numDays), LAIherb(numDays), LAIexpanded(numDays),LAIlive(numDays),LAIdead(numDays);
+  NumericVector LAI(numDays), LAIherb(numDays), LAIexpanded(numDays),LAIlive(numDays),LAIdead(numDays), LAImistletoe(numDays);
   NumericVector Cm(numDays);
   NumericVector LgroundPAR(numDays);
   NumericVector LgroundSWR(numDays);
   DataFrame Stand = DataFrame::create(_["LAI"]=LAI, _["LAIherb"]=LAIherb, 
-                                      _["LAIlive"]=LAIlive, _["LAIexpanded"] = LAIexpanded, _["LAIdead"] = LAIdead,  
+                                      _["LAIlive"]=LAIlive, _["LAIexpanded"] = LAIexpanded, _["LAIdead"] = LAIdead,
+                                      _["LAImistletoe"] = LAImistletoe,
                                       _["Cm"]=Cm, _["LgroundPAR"] = LgroundPAR, _["LgroundSWR"] = LgroundSWR);
   Stand.attr("row.names") = dateStrings;
   return(Stand);
@@ -185,7 +186,7 @@ DataFrame defineWaterBalanceDailyOutput(CharacterVector dateStrings, String tran
   NumericVector Runoff(numDays),Rain(numDays),Snow(numDays);
   NumericVector Snowmelt(numDays),NetRain(numDays);
   NumericVector Interception(numDays),Infiltration(numDays), InfiltrationExcess(numDays), DeepDrainage(numDays), SaturationExcess(numDays), CapillarityRise(numDays);
-  NumericVector SoilEvaporation(numDays), HerbTranspiration(numDays), Transpiration(numDays),PlantExtraction(numDays);
+  NumericVector SoilEvaporation(numDays), HerbTranspiration(numDays), Transpiration(numDays),MistletoeTranspiration(numDays),PlantExtraction(numDays);
   NumericVector HydraulicRedistribution(numDays, 0.0);
   
   DataFrame DWB = DataFrame::create(_["PET"]=PET, 
@@ -196,6 +197,7 @@ DataFrame defineWaterBalanceDailyOutput(CharacterVector dateStrings, String tran
                           _["Evapotranspiration"]=Evapotranspiration,_["Interception"] = Interception, 
                           _["SoilEvaporation"]=SoilEvaporation, _["HerbTranspiration"] = HerbTranspiration,
                           _["PlantExtraction"] = PlantExtraction, _["Transpiration"]=Transpiration, 
+                          _["MistletoeTranspiration"]=MistletoeTranspiration, 
                           _["HydraulicRedistribution"] = HydraulicRedistribution);
   DWB.attr("row.names") = dateStrings;
   return(DWB);
@@ -584,6 +586,7 @@ void fillWaterBalanceDailyOutput(DataFrame DWB, List sDay, int iday, String tran
   NumericVector Transpiration = DWB["Transpiration"];
   NumericVector SoilEvaporation = DWB["SoilEvaporation"];
   NumericVector HerbTranspiration = DWB["HerbTranspiration"];
+  NumericVector MistletoeTranspiration = DWB["MistletoeTranspiration"];
   NumericVector Interception = DWB["Interception"];
   NumericVector Evapotranspiration = DWB["Evapotranspiration"];
   DeepDrainage[iday] = db["DeepDrainage"];
@@ -604,8 +607,9 @@ void fillWaterBalanceDailyOutput(DataFrame DWB, List sDay, int iday, String tran
   Transpiration[iday] = db["Transpiration"];
   SoilEvaporation[iday] = db["SoilEvaporation"];
   HerbTranspiration[iday] = db["HerbTranspiration"];
+  MistletoeTranspiration[iday] = db["MistletoeTranspiration"];
   Interception[iday] = Rain[iday]-NetRain[iday];
-  Evapotranspiration[iday] = Transpiration[iday] + SoilEvaporation[iday] + HerbTranspiration[iday] + Interception[iday];
+  Evapotranspiration[iday] = Transpiration[iday] + SoilEvaporation[iday] + HerbTranspiration[iday] + MistletoeTranspiration[iday] + Interception[iday];
 }
 
 void fillWaterBalanceDailyOutput_c(DataFrame DWB, StandWB_RESULT& db, int iday) {
@@ -623,6 +627,7 @@ void fillWaterBalanceDailyOutput_c(DataFrame DWB, StandWB_RESULT& db, int iday) 
   NumericVector NetRain = DWB["NetRain"];
   NumericVector PlantExtraction = DWB["PlantExtraction"];
   NumericVector Transpiration = DWB["Transpiration"];
+  NumericVector MistletoeTranspiration = DWB["MistletoeTranspiration"];
   NumericVector SoilEvaporation = DWB["SoilEvaporation"];
   NumericVector HerbTranspiration = DWB["HerbTranspiration"];
   NumericVector Interception = DWB["Interception"];
@@ -644,10 +649,11 @@ void fillWaterBalanceDailyOutput_c(DataFrame DWB, StandWB_RESULT& db, int iday) 
   PlantExtraction[iday] = db.PlantExtraction;
   HydraulicRedistribution[iday] = db.HydraulicRedistribution;
   Transpiration[iday] = db.Transpiration;
+  MistletoeTranspiration[iday] = db.MistletoeTranspiration;
   SoilEvaporation[iday] = db.SoilEvaporation;
   HerbTranspiration[iday] = db.HerbTranspiration;
   Interception[iday] = Rain[iday]-NetRain[iday];
-  Evapotranspiration[iday] = Transpiration[iday] + SoilEvaporation[iday] + HerbTranspiration[iday] + Interception[iday];
+  Evapotranspiration[iday] = Transpiration[iday] + SoilEvaporation[iday] + HerbTranspiration[iday] + MistletoeTranspiration[iday] + Interception[iday];
 }
 
 void fillStandDailyOutput(DataFrame Stand, List sDay, int iday) {
@@ -659,6 +665,7 @@ void fillStandDailyOutput(DataFrame Stand, List sDay, int iday) {
   NumericVector LAIexpanded = Stand["LAIexpanded"];
   NumericVector LAIlive = Stand["LAIlive"];
   NumericVector LAIdead = Stand["LAIdead"];
+  NumericVector LAImistletoe = Stand["LAImistletoe"];
   NumericVector Cm = Stand["Cm"];
   
   LgroundPAR[iday] = stand["LgroundPAR"];
@@ -668,6 +675,7 @@ void fillStandDailyOutput(DataFrame Stand, List sDay, int iday) {
   LAIexpanded[iday] = stand["LAIexpanded"];
   LAIlive[iday] = stand["LAIlive"];
   LAIdead[iday] = stand["LAIdead"];
+  LAImistletoe[iday] = stand["LAImistletoe"];
   Cm[iday] = stand["Cm"];
 }
 void fillStandDailyOutput_c(DataFrame Stand, Stand_RESULT& stand, int iday) {
@@ -678,6 +686,7 @@ void fillStandDailyOutput_c(DataFrame Stand, Stand_RESULT& stand, int iday) {
   NumericVector LAIexpanded = Stand["LAIexpanded"];
   NumericVector LAIlive = Stand["LAIlive"];
   NumericVector LAIdead = Stand["LAIdead"];
+  NumericVector LAImistletoe = Stand["LAImistletoe"];
   NumericVector Cm = Stand["Cm"];
   
   LgroundPAR[iday] = stand.LgroundPAR;
@@ -687,6 +696,7 @@ void fillStandDailyOutput_c(DataFrame Stand, Stand_RESULT& stand, int iday) {
   LAIexpanded[iday] = stand.LAIexpanded;
   LAIlive[iday] = stand.LAIlive;
   LAIdead[iday] = stand.LAIdead;
+  LAImistletoe[iday] = stand.LAImistletoe;
   Cm[iday] = stand.Cm;
 }
 void fillSoilDailyOutput(List SWB, DataFrame soil, List sDay, 
@@ -1492,6 +1502,7 @@ void printWaterBalanceResult(List outputList, List x,
   NumericVector HerbTranspiration = DWB["HerbTranspiration"];
   NumericVector Interception = DWB["Interception"];
   NumericVector Evapotranspiration = DWB["Evapotranspiration"];
+  NumericVector MistletoeTranspiration = DWB["MistletoeTranspiration"];
   
   NumericMatrix PlantWaterBalance;
   if(plantResults) PlantWaterBalance = Rcpp::as<Rcpp::NumericMatrix>(plantDWOL["PlantWaterBalance"]);
@@ -1508,6 +1519,7 @@ void printWaterBalanceResult(List outputList, List x,
   double CapillarityRisesum = sum(CapillarityRise);
   double DeepDrainagesum = sum(DeepDrainage);
   double Transpirationsum = sum(Transpiration);
+  double MistletoeTranspirationsum = sum(MistletoeTranspiration);
   double Snowmeltsum = sum(Snowmelt);
   double Snowsum = sum(Snow);
   double HerbTranspirationsum = sum(HerbTranspiration);
@@ -1528,7 +1540,8 @@ void printWaterBalanceResult(List outputList, List x,
   Rcout<<"  Infiltration (mm) " << round(Infiltrationsum)  << " Infiltration excess (mm) " << round(InfiltrationExcesssum) << " Saturation excess (mm) " << round(SaturationExcesssum) << " Capillarity rise (mm) " << round(CapillarityRisesum)  <<"\n";
   Rcout<<"  Soil evaporation (mm) " << round(SoilEvaporationsum);
   Rcout<<"  Herbaceous transpiration (mm) " << round(HerbTranspirationsum);
-  Rcout<<" Woody plant transpiration (mm) "  <<round(Transpirationsum) <<"\n";
+  Rcout<<"  Woody plant transpiration (mm) "  <<round(Transpirationsum);
+  Rcout<<"  Mistletoe transpiration (mm) "  <<round(MistletoeTranspirationsum) <<"\n";
   Rcout<<"  Plant extraction from soil (mm) " << round(sum(PlantExtraction));
   if(plantResults) Rcout<<"  Plant water balance (mm) " << round(sum(PlantWaterBalance));
   NumericVector HydraulicRedistribution = DWB["HydraulicRedistribution"];
@@ -1622,6 +1635,7 @@ void printWaterBalanceResult(List outputList, List x,
 //'     \item{\code{"HerbTranspiration"}: Transpiration due to the herbaceous layer (in mm).}
 //'     \item{\code{"PlantExtraction"}: Amount of water extracted from soil by woody plants (in mm).}
 //'     \item{\code{"Transpiration"}: Woody plant transpiration (in mm).}
+//'     \item{\code{"MistletoeTranspiration"}: Transpiration of hemi-parasitic mistletoe plants (in mm).}
 //'     \item{\code{"HydraulicRedistribution"}: Water redistributed among soil layers, transported through the plant hydraulic network.}
 //'   }
 //'   \item{\code{"EnergyBalance"}: A data frame with the daily values of energy balance components for the soil and the canopy (only for \code{transpirationMode = "Sperry"} or \code{transpirationMode = "Sureau"}).}
@@ -1647,6 +1661,7 @@ void printWaterBalanceResult(List outputList, List x,
 //'     \item{\code{"LAIlive"}: LAI of the woody plants assuming all leaves are unfolded (in m2/m2).}
 //'     \item{\code{"LAIexpanded"}: LAI of the woody plants with leaves actually unfolded (in m2/m2).}
 //'     \item{\code{"LAIdead"}: LAI of the woody plants corresponding to dead leaves (in m2/m2).}
+//'     \item{\code{"LAImistletoe"}: LAI of hemi-parasitic mistletoe plants (in m2/m2).}
 //'     \item{\code{"Cm"}: Water retention capacity of the canopy (in mm) (accounting for leaf phenology).}
 //'     \item{\code{"LgroundPAR"}: The percentage of PAR that reaches the ground (accounting for leaf phenology).}
 //'     \item{\code{"LgroundSWR"}: The percentage of SWR that reaches the ground (accounting for leaf phenology).}
@@ -1763,6 +1778,9 @@ void printWaterBalanceResult(List outputList, List x,
 //' #Call simulation function
 //' S1 <- spwb(x1, examplemeteo, latitude = 41.82592, elevation = 100)
 //' 
+//' #Examine daily results
+//' # shinyplot(S1)
+//' 
 //' #Switch to 'Sperry' transpiration mode
 //' control <- defaultControl("Sperry")
 //' 
@@ -1772,14 +1790,21 @@ void printWaterBalanceResult(List outputList, List x,
 //' #Call simulation function
 //' S2 <- spwb(x2, examplemeteo, latitude = 41.82592, elevation = 100)
 //' 
+//' #Examine daily results
+//' # shinyplot(S2)
+//' 
 //' #Switch to 'Sureau' transpiration mode
 //' control <- defaultControl("Sureau")
+//' control$subdailyResults <- TRUE  # To keep subdaily results
 //' 
 //' #Initialize input
 //' x3 <- spwbInput(exampleforest,examplesoil, SpParamsMED, control)
 //' 
 //' #Call simulation function
 //' S3 <- spwb(x3, examplemeteo, latitude = 41.82592, elevation = 100)
+//' 
+//' #Examine daily and subdaily results
+//' # shinyplot(S3)
 //' }
 //'                 
 //' @name spwb
@@ -1998,7 +2023,10 @@ List spwb(List x, DataFrame meteo,
     }
     
     if(unlimitedSoilWater) {
-      for(int h=0;h<nlayers;h++) x_c.soil.setW(h, 1.0);
+      for(int h=0;h<nlayers;h++) {
+        x_c.soil.setW(h, 1.0); 
+        for(int j=0;j<numCohorts;j++) x_c.belowLayers.Wpool(j,h) = 1.0;
+      }
     }
     
     

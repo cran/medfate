@@ -1,5 +1,6 @@
 #define STRICT_R_HEADERS
 #include <RcppArmadillo.h>
+#include <cmath>
 #include "medfate.h"
 #include "inner_sureau_c.h"
 #include "biophysicsutils_c.h"
@@ -191,6 +192,9 @@ void semi_implicit_integration_inner_c(SureauNetwork& network,
   double E_nph = network.Elim; // Leaf stomatal transpiration
   double Emin_L_nph = network.Emin_L; //Leaf cuticular transpiration
   double Emin_S_nph = network.Emin_S; //Stem cuticular transpiration
+  // //Mistletoe transpiration (adds to stem cuticular transpiration)
+  // //expressed in leaf area units of the cohort
+  // double Emist = network.Emist * (network.LAImistletoe/network.LAI); 
   
   
   
@@ -407,6 +411,7 @@ void copyNetwork_c(SureauNetwork& network, SureauNetwork& sinkNetwork) {
   sinkNetwork.Emin_L_SL = network.Emin_L_SL;
   sinkNetwork.Emin_L_SH = network.Emin_L_SH;
   sinkNetwork.Emin_S = network.Emin_S;
+  sinkNetwork.Emist = network.Emist;
   sinkNetwork.Diag_nwhile_cavit = network.Diag_nwhile_cavit;
   sinkNetwork.Diag_deltaRegulMax = network.Diag_deltaRegulMax;
   sinkNetwork.Diag_deltaPLCMax = network.Diag_deltaPLCMax;
@@ -440,11 +445,11 @@ void initSureauParams_inner_c(SureauParams& params, int c,
   params.Q10_1_gmin = control.advancedWB.Q10_1_gmin;
   params.Q10_2_gmin = control.advancedWB.Q10_2_gmin;
   if(control.sureau.stomatalSubmodel=="Jarvis") {
-    params.Tgs_optim = paramsTranspiration.Gs_Toptim[c];
-    params.Tgs_sens = paramsTranspiration.Gs_Tsens[c];
+    params.Tgs_optim = paramsTranspiration.Gsw_Toptim_Jarvis[c];
+    params.Tgs_sens = paramsTranspiration.Gsw_Tsens_Jarvis[c];
     params.JarvisPAR = control.sureau.JarvisPAR;
   } else {
-    params.Gsw_AC_slope = paramsTranspiration.Gsw_AC_slope[c];
+    params.Gsw_AC_slope = paramsTranspiration.Gsw_AC_slope_Baldocchi[c];
   }
   params.fTRBToLeaf = control.sureau.fTRBToLeaf;//ratio of bark area to leaf area
   params.C_SApoInit = control.sureau.C_SApoInit; //Maximum capacitance of the stem apoplasm
@@ -458,8 +463,8 @@ void initSureauParams_inner_c(SureauParams& params, int c,
     params.k_RCApoInit[l] = sapFluidityDay*VCroot_kmax[l];
     params.VGrhizo_kmax[l] = VGrhizo_kmax[l];
   }
-  params.slope_gs = paramsTranspiration.Gs_slope[c];
-  params.P50_gs = paramsTranspiration.Gs_P50[c];
+  params.slope_gs = paramsTranspiration.Gsw_slope_Baldocchi[c];
+  params.P50_gs = paramsTranspiration.Gsw_P50_Baldocchi[c];
   
   //PLANT RELATED PARAMETERS
   double gmin20 = paramsTranspiration.Gswmin[c]*1000.0; //Leaf cuticular transpiration
@@ -488,7 +493,7 @@ void initSureauParams_inner_c(SureauParams& params, int c,
 }
 
 void initSureauNetwork_inner_c(SureauNetwork& network, int c, 
-                               std::vector<double>& LAIphe,
+                               std::vector<double>& LAIphe, std::vector<double>& LAImistletoe,
                                InternalWater& internalWater, 
                                AnatomyParams& paramsAnatomy, 
                                TranspirationParams& paramsTranspiration, 
@@ -505,6 +510,7 @@ void initSureauNetwork_inner_c(SureauNetwork& network, int c,
   
   //LAI
   network.LAI = LAIphe[c];
+  network.LAImistletoe = LAImistletoe[c];
   
   //Water potentials
   network.Psi_LApo = internalWater.LeafPsi[c]; 
@@ -562,6 +568,9 @@ void initSureauNetwork_inner_c(SureauNetwork& network, int c,
   network.Emin_L_SL = medfate::NA_DOUBLE; //Leaf cuticular transpiration (sunlit leaves)
   network.Emin_L_SH = medfate::NA_DOUBLE; //Leaf cuticular transpiration (shade leaves)
   network.Emin_S = internalWater.Emin_S[c]; //Stem cuticular transpiration
+  network.Emist = internalWater.Emist[c]; //Mistletoe transpiration
+  network.Emist_SL = medfate::NA_DOUBLE; //Mistletoe transpiration (sunlit leaves)
+  network.Emist_SH = medfate::NA_DOUBLE; //Mistletoe transpiration (shade leaves)
   
   //Diagnostics
   network.Diag_nwhile_cavit = medfate::NA_INTEGER;
@@ -693,7 +702,8 @@ void innerSureau_c(ModelInput& x,
 
   const std::vector<double>& LAIphe = x.above.LAI_expanded;
   const std::vector<double>& LAIlive = x.above.LAI_live;
-
+  const std::vector<double>& LAImistletoe = x.above.LAI_mistletoe;
+  
   // Extract parameters
   const std::vector<double>& Tair = x.canopy.Tair;
   const std::vector<double>& VPair = x.canopy.VPair;
@@ -749,9 +759,10 @@ void innerSureau_c(ModelInput& x,
       network_n.k_Soil = new double[networks[c].params.npools];
       network_n.PsiSoil = new double[networks[c].params.npools];
       
-      std::vector<double> ElayersVEC(networks[c].params.npools,0.0); //Instantaneous flow rate
+      // std::vector<double> ElayersVEC(networks[c].params.npools,0.0); //Instantaneous flow rate
       std::vector<double> fluxSoilToStem_mm(networks[c].params.npools, 0.0); //Cummulative flow
-
+      std::vector<double> fluxSoilToMistletoe_mm(networks[c].params.npools, 0.0); //Cummulative flow
+      
       // # A. LOOP ON THE IMPLICIT SOLVER IN PSI, trying different time steps until results are OK
       bool regulationWellComputed = false;
       bool cavitationWellComputed = false;
@@ -764,9 +775,19 @@ void innerSureau_c(ModelInput& x,
       double fTRBToLeaf = networks[c].params.fTRBToLeaf;
       double Gsw_AC_slope = networks[c].params.Gsw_AC_slope;
       double gsNight = networks[c].params.gsNight;
-      double slope_gs = networks[c].params.slope_gs;
-      double P50_gs = networks[c].params.P50_gs;
-      double LAI = networks[c].LAI;
+      double gsMax = networks[c].params.gsMax;
+      //Use P12 as P50 for baldocchi model
+      //And a relationship with between P50 and slope
+      double P50_gs_B = networks[c].params.P50_gs;
+      double slope_gs_B = networks[c].params.slope_gs;
+      
+      // P12 as P50 for baldocchi model for mistletoe
+      double mist_P50_gs_B = x.control.mistletoe.Gsw_P50_Baldocchi;
+      double mist_slope_gs_B = x.control.mistletoe.Gsw_slope_Baldocchi;
+      
+      // if(LAI_SL(c,n) > 0.0 && c==16) Rcpp::Rcout << " IS - " << n << " c "<< c <<" LAI_SL: "<< LAI_SL(c,n)<<" LAI_SH: "<< LAI_SH(c,n) <<" Abs_SWR: " <<SWR_SL(c,n) <<"\n";
+      
+      double LAI = LAI_SL(c,n) + LAI_SH(c,n);
 
       int nwhilecomp = 0;
 
@@ -785,12 +806,14 @@ void innerSureau_c(ModelInput& x,
         Agsum = 0.0;
         Ansum = 0.0;
         x.internalWater.Einst[c] = 0.0;
+        x.internalWater.Emist[c] = 0.0;
         x.internalWater.Elim[c] = 0.0;
         x.internalWater.Emin_L[c] = 0.0;
         x.internalWater.Emin_S[c] = 0.0;
         for(int i=0;i < networks[c].params.npools;i++) {
-          ElayersVEC[i] = 0.0;
+          // ElayersVEC[i] = 0.0;
           fluxSoilToStem_mm[i] = 0.0;
+          fluxSoilToMistletoe_mm[i] = 0.0;
         }
 
         int nts = nsmalltimesteps[nwhilecomp];// # number of small time steps
@@ -800,7 +823,7 @@ void innerSureau_c(ModelInput& x,
           //Current leaf water potential (same for sunlit and shade leaves)
           double Psi_LSym = network_n.Psi_LSym;
           // Current stomatal regulation ("Sigmoid")
-          double regul_ini = 1.0 - (1.0 / (1.0 + exp(slope_gs / 25.0 * (Psi_LSym - P50_gs))));
+          double regul_ini = 1.0 - (1.0 / (1.0 + exp(slope_gs_B / 25.0 * (Psi_LSym - P50_gs_B))));
 
           //Leaf temperature for sunlit and shade leaves
           double Elim_SL = network_n.Elim_SL;
@@ -810,6 +833,7 @@ void innerSureau_c(ModelInput& x,
           if(std::isnan(Elim_SH)) Elim_SH = Elim * (LAI_SH(c,n)/LAI);
           if(!sunlitShade) Elim_SH = Elim_SL;
 
+          //Avoid overestimation due to small LAI
           Temp_SL(c,n) = leafTemperature2_c(SWR_SL(c,n)/LAI_SL(c,n), LWR_SL(c,n)/LAI_SL(c,n),
                                             Tair[input.iLayerSunlit[c]], zWind[input.iLayerSunlit[c]],
                                             Elim_SL,  x.paramsAnatomy.LeafWidth[c]);
@@ -846,7 +870,7 @@ void innerSureau_c(ModelInput& x,
           // Rcout<< "  Emin_S "<< Emin_S<<" Emin_L_SL "<< Emin_L_SL<<" Emin_L_SH "<< Emin_L_SH<<" Emin_L "<< Emin_L<<"\n";
 
           // Current stomatal regulation ("Sigmoid")
-          double regul = 1.0 - (1.0 / (1.0 + exp(slope_gs / 25.0 * (Psi_LSym - P50_gs))));
+          double regul = 1.0 - (1.0 / (1.0 + exp(slope_gs_B / 25.0 * (Psi_LSym - P50_gs_B))));
 
           double gs_SL, gs_SH;
           if(stomatalSubmodel=="Jarvis") {
@@ -867,7 +891,8 @@ void innerSureau_c(ModelInput& x,
                                             Gsw_AC_slope,
                                             gsNight/1000.0);
             gs_SL = PB_SL.Gsw*1000.0; //From mmol to mol
-            gs_SL = std::max(gsNight, gs_SL)*regul;
+            gs_SL = std::min(gsMax,std::max(gsNight, gs_SL)*regul);
+            
             // Rcout<<c << " "<<n << " Bald gs: "<< PB_SL.Gsw << " regul: "<< regul << " gs_SL: "<< gs_SL<<"\n";
             photosynthesisBaldocchi_inner_c(PB_SH,
                                             irradianceToPhotonFlux_c(PAR_SH(c,n), defaultLambda)/LAI_SH(c,n),
@@ -880,7 +905,7 @@ void innerSureau_c(ModelInput& x,
                                             Gsw_AC_slope,
                                             gsNight/1000.0);
             gs_SH = PB_SH.Gsw*1000.0; //From mmol to mol
-            gs_SH = std::max(gsNight, gs_SH)*regul;
+            gs_SH = std::min(gsMax,std::max(gsNight, gs_SH)*regul);
           }
           if(!sunlitShade) gs_SH = gs_SL;
 
@@ -921,10 +946,70 @@ void innerSureau_c(ModelInput& x,
           network_n.Elim = Elim;
           // Rcout<< "  Elim_SL "<< Elim_SL<<"  Elim_SH "<< Elim_SH<<"  Elim "<< Elim<<"\n";
 
+          // Mistletoe transpiration
+          double Emist_SL = 0.0, Emist_SH = 0.0;
+          if(LAImistletoe[c]>0.0) {
+            double Emist = network_n.Emist;
+            Emist_SL = network_n.Emist_SL;
+            Emist_SH = network_n.Emist_SH;
+            if(std::isnan(Emist_SL)) Emist_SL = Emist * (LAI_SL(c,n)/LAI);
+            if(std::isnan(Emist_SH)) Emist_SH = Emist * (LAI_SH(c,n)/LAI);
+            //Mistletoe sunlit/shade leaf temperature
+            double Temp_SL_mist = leafTemperature2_c(SWR_SL(c,n)/LAI_SL(c,n), LWR_SL(c,n)/LAI_SL(c,n),
+                                                     Tair[input.iLayerSunlit[c]], zWind[input.iLayerSunlit[c]],
+                                                     Emist_SL,  x.control.mistletoe.LeafWidth);
+            double Temp_SH_mist = leafTemperature2_c(SWR_SH(c,n)/LAI_SH(c,n), LWR_SH(c,n)/LAI_SH(c,n),
+                                                     Tair[input.iLayerShade[c]], zWind[input.iLayerShade[c]],
+                                                     Emist_SH,  x.control.mistletoe.LeafWidth);
+            if(!sunlitShade) Temp_SH_mist = Temp_SL_mist;
+            //Mistletoe leaf VPD
+            double VPD_SL_mist = std::max(0.0,leafVapourPressure_c(Temp_SL_mist, Psi_LSym) - VPair[input.iLayerSunlit[c]]);
+            double VPD_SH_mist = std::max(0.0,leafVapourPressure_c(Temp_SH_mist, Psi_LSym) - VPair[input.iLayerShade[c]]);
+            //Mistletoe photosynthesis and stomatal conductance
+            // Current stomatal regulation ("Sigmoid")
+            double regul_mist = 1.0 - (1.0 / (1.0 + exp(mist_slope_gs_B / 25.0 * (Psi_LSym - mist_P50_gs_B))));
+            photosynthesisBaldocchi_inner_c(PB_SL,
+                                            irradianceToPhotonFlux_c(PAR_SL(c,n), defaultLambda)/LAI_SL(c,n),
+                                            Cair[input.iLayerSunlit[c]],
+                                            std::max(0.0,Temp_SL_mist),
+                                            zWind[input.iLayerCohort[c]],
+                                            x.control.mistletoe.Vmax298,
+                                            x.control.mistletoe.Jmax298,
+                                            x.control.mistletoe.LeafWidth,
+                                            x.control.mistletoe.Gsw_AC_slope_Baldocchi,
+                                            gsNight/1000.0);
+            double gs_SL_mist = PB_SL.Gsw*1000.0; //From mmol to mol
+            gs_SL_mist = std::max(gsNight, gs_SL_mist)*regul_mist;
+            // Rcout<<c << " "<<n << " Bald gs: "<< PB_SL.Gsw << " regul: "<< regul << " gs_SL: "<< gs_SL<<"\n";
+            photosynthesisBaldocchi_inner_c(PB_SH,
+                                            irradianceToPhotonFlux_c(PAR_SH(c,n), defaultLambda)/LAI_SH(c,n),
+                                            Cair[input.iLayerSunlit[c]],
+                                            std::max(0.0,Temp_SH_mist),
+                                            zWind[input.iLayerCohort[c]],
+                                            x.control.mistletoe.Vmax298,
+                                            x.control.mistletoe.Jmax298,
+                                            x.control.mistletoe.LeafWidth,
+                                            x.control.mistletoe.Gsw_AC_slope_Baldocchi,
+                                            gsNight/1000.0);
+            double gs_SH_mist = PB_SH.Gsw*1000.0; //From mmol to mol
+            gs_SH_mist = std::max(gsNight, gs_SH_mist)*regul_mist;
+            
+            //Assumes well coupled canopy (for compatibility with Sperry and leaf temperature balance)
+            //gBL = g Boundary Layer
+            double gBL_mist = 1000.0*gLeafBoundary_c(zWind[input.iLayerCohort[c]], x.control.mistletoe.LeafWidth); // mmol boundary layer conductance
+            
+            // Stomatal transpiration
+            double Gwdiff_SL_mist = 1.0/(1.0/gCR + 1.0/gs_SL_mist + 1.0/gBL_mist);
+            double Gwdiff_SH_mist = 1.0/(1.0/gCR + 1.0/gs_SH_mist + 1.0/gBL_mist);
+            Emist_SL = Gwdiff_SL_mist * (VPD_SL_mist/Patm)*f_dry; //Add f_dry to decrease transpiration in rainy days
+            Emist_SH = Gwdiff_SH_mist * (VPD_SH_mist/Patm)*f_dry;
+          }
+          
           //Add transpiration sources
           network_n.Einst = Elim + Emin_S + Emin_L;
           network_n.Einst_SL = Elim_SL + Emin_L_SL; //For sunlit photosynthesis/transpiration
           network_n.Einst_SH = Elim_SH + Emin_L_SH; //For shade photosynthesis/transpiration
+          network_n.Emist = (Emist_SL*LAI_SL(c,n) + Emist_SH*LAI_SH(c,n))/LAI; // For mistletoe transpiration
 
           //Effects on water potentials and flows
           // Rcout<< "Entering semi-implicit\n";
@@ -948,25 +1033,36 @@ void innerSureau_c(ModelInput& x,
           double Psi_SApo = network_n.Psi_SApo;
           double* k_SoilToStem = network_n.k_SoilToStem;
           double* PsiSoilNetwork = network_n.PsiSoil;
+          std::vector<double> fluxSoilToStem_mmolm2s(networks[c].params.npools);
+          double fluxSoilToStem_mmolm2s_sum = 0.0;
           for(int l=0;l < networks[c].params.npools;l++) {
-            double fluxSoilToStem_mmolm2s = k_SoilToStem[l]*(PsiSoilNetwork[l] - Psi_SApo);
-            ElayersVEC[l] += fluxSoilToStem_mmolm2s;
-            fluxSoilToStem_mm[l] += (fluxSoilToStem_mmolm2s*0.001*0.01802*LAIphe[c]*dt);
+            fluxSoilToStem_mmolm2s[l] = k_SoilToStem[l]*(PsiSoilNetwork[l] - Psi_SApo);
+            fluxSoilToStem_mmolm2s_sum += fluxSoilToStem_mmolm2s[l];
+            // ElayersVEC[l] += fluxSoilToStem_mmolm2s;
+            fluxSoilToStem_mm[l] += (fluxSoilToStem_mmolm2s[l]*0.001*0.01802*LAIphe[c]*dt);
+          }
+          if(LAImistletoe[c]>0.0) {
+            for(int l=0;l < networks[c].params.npools;l++) {
+              double fluxSoilToMistletoe_mmolm2s = network_n.Emist*(fluxSoilToStem_mmolm2s[l]/fluxSoilToStem_mmolm2s_sum);
+              fluxSoilToMistletoe_mm[l] += (fluxSoilToMistletoe_mmolm2s*0.001*0.01802*LAImistletoe[c]*dt);
+            }
           }
           //MIQUEL (27/04/2024): Changed network to network_n
           x.internalWater.Einst[c] += network_n.Einst;
           x.internalWater.Elim[c] += network_n.Elim;
           x.internalWater.Emin_L[c] += network_n.Emin_L;
           x.internalWater.Emin_S[c] += network_n.Emin_S;
+          x.internalWater.Emist[c] += network_n.Emist;
 
         } //# end loop small time step
 
         //Divide average fluxes by time steps
-        for(int l=0;l < networks[c].params.npools;l++) ElayersVEC[l] = ElayersVEC[l]/((double) nts);
+        // for(int l=0;l < networks[c].params.npools;l++) ElayersVEC[l] = ElayersVEC[l]/((double) nts);
         x.internalWater.Einst[c] = x.internalWater.Einst[c]/((double) nts);
         x.internalWater.Elim[c] = x.internalWater.Elim[c]/((double) nts);
         x.internalWater.Emin_L[c] = x.internalWater.Emin_L[c]/((double) nts);
         x.internalWater.Emin_S[c] = x.internalWater.Emin_S[c]/((double) nts);
+        x.internalWater.Emist[c] = x.internalWater.Emist[c]/((double) nts);
         Agsum = Agsum/((double) nts);
         Ansum = Ansum/((double) nts);
 
@@ -1007,6 +1103,7 @@ void innerSureau_c(ModelInput& x,
 
       //Scale from instantaneous flow to water volume in the time step
       output.plants_inst.E(c,n) = x.internalWater.Einst[c]*0.001*0.01802*LAIphe[c]*tstep;
+      double mistletoe_inst_E = x.internalWater.Emist[c]*0.001*0.01802*LAImistletoe[c]*tstep;
       // Rcout << n << "." << c<< ":" <<x.internalWater.Einst[c] << " -> " << output.plants_inst.E(c,n) <<"\n";
       
       //Calculate and copy RhizoPsi from connected layers to RhizoPsi from soil layers
@@ -1023,6 +1120,7 @@ void innerSureau_c(ModelInput& x,
       output.plants.Transpiration[c] += output.plants_inst.E(c,n);
       output.plants.NetPhotosynthesis[c] += output.plants_inst.An(c,n);
       output.plants.GrossPhotosynthesis[c] += output.plants_inst.Ag(c,n);
+      output.plants.MistletoeTranspiration[c] += mistletoe_inst_E;
       //Add PWB
       output.plants.WaterBalance[c] += output.plants_inst.PWB(c,n);
 
@@ -1032,9 +1130,9 @@ void innerSureau_c(ModelInput& x,
         int cl = 0;
         for(int l=0;l<nlayers;l++) {
           if(input.layerConnected(c,l)==1) {
-            output.extraction(c,l) += fluxSoilToStem_mm[cl]; //Add to cummulative transpiration from layers
-            output.extractionInst(l,n) += fluxSoilToStem_mm[cl];
-            innerSoilExtraction[l] += fluxSoilToStem_mm[cl];
+            output.extraction(c,l) += fluxSoilToStem_mm[cl] + fluxSoilToMistletoe_mm[cl]; //Add to cummulative transpiration from layers
+            output.extractionInst(l,n) += fluxSoilToStem_mm[cl] + fluxSoilToMistletoe_mm[cl];
+            innerSoilExtraction[l] += fluxSoilToStem_mm[cl] + fluxSoilToMistletoe_mm[cl];
             cl++;
           }
         }
@@ -1045,10 +1143,10 @@ void innerSureau_c(ModelInput& x,
           arma::mat& ExtractionPoolsCoh = output.extractionPools[j];
           for(int l=0;l<nlayers;l++) {
             if(layerConnectedCoh(j,l)==1) {
-              output.extraction(c,l) += fluxSoilToStem_mm[cl]; //Add to cummulative transpiration from layers
-              output.extractionInst(l,n) += fluxSoilToStem_mm[cl];
-              ExtractionPoolsCoh(c,l) += fluxSoilToStem_mm[cl];
-              innerSoilPoolExtraction(c,l) += fluxSoilToStem_mm[cl];
+              output.extraction(c,l) += fluxSoilToStem_mm[cl] + fluxSoilToMistletoe_mm[cl]; //Add to cummulative transpiration from layers
+              output.extractionInst(l,n) += fluxSoilToStem_mm[cl] + fluxSoilToMistletoe_mm[cl];
+              ExtractionPoolsCoh(c,l) += fluxSoilToStem_mm[cl] + fluxSoilToMistletoe_mm[cl];
+              innerSoilPoolExtraction(c,l) += fluxSoilToStem_mm[cl] + fluxSoilToMistletoe_mm[cl];
               cl++;
             }
           }
@@ -1058,11 +1156,6 @@ void innerSureau_c(ModelInput& x,
       //Delete pointers
       deleteSureauNetworkPointers_c(network_n);
     } else if(LAIlive[c]>0.0) { //Cohorts with living individuals but no LAI (or completely embolized)
-      output.sunlit_inst.E(c,n) = 0.0;
-      output.shade_inst.E(c,n) = 0.0;
-      output.shade_inst.Psi(c,n) = networks[c].Psi_LSym;
-      output.sunlit_inst.Psi(c,n) = networks[c].Psi_LSym;
-      output.plants_inst.dEdP(c,n) = networks[c].k_Plant;
       x.internalWater.LeafPsi[c] = networks[c].Psi_LApo;
       x.internalWater.LeafSympPsi[c] = networks[c].Psi_LSym;
       x.internalWater.StemPsi[c] = networks[c].Psi_SApo;
@@ -1074,6 +1167,23 @@ void innerSureau_c(ModelInput& x,
       output.plants_inst.An(c,n) = 0.0;
       output.plants_inst.E(c,n) = 0.0;
       output.plants_inst.PWB(c,n) = 0.0;
+      Ci_SL(c,n) = medfate::NA_DOUBLE;
+      Ci_SH(c,n) = medfate::NA_DOUBLE;
+      Ag_SL(c,n) = medfate::NA_DOUBLE;
+      Ag_SH(c,n) = medfate::NA_DOUBLE;
+      An_SL(c,n) = medfate::NA_DOUBLE;
+      An_SH(c,n) = medfate::NA_DOUBLE;
+      GSW_SL(c,n) = medfate::NA_DOUBLE;
+      GSW_SH(c,n) = medfate::NA_DOUBLE;
+      VPD_SL(c,n) = medfate::NA_DOUBLE;
+      VPD_SH(c,n) = medfate::NA_DOUBLE;
+      Temp_SL(c,n) = medfate::NA_DOUBLE;
+      Temp_SH(c,n) = medfate::NA_DOUBLE;
+      output.sunlit_inst.E(c,n) = medfate::NA_DOUBLE;
+      output.shade_inst.E(c,n) = medfate::NA_DOUBLE;
+      output.shade_inst.Psi(c,n) = medfate::NA_DOUBLE;
+      output.sunlit_inst.Psi(c,n) = medfate::NA_DOUBLE;
+      output.plants_inst.dEdP(c,n) = medfate::NA_DOUBLE;
     }
   }
 

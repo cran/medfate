@@ -97,6 +97,7 @@
 #'   \item{\code{Z100}: Depth (in mm) corresponding to 100% of fine roots (to specify a truncated root distribution).}
 #'   \item{\code{Age}: A numeric vector indicating age of cohorts in years. Used to track cohort age in simulations with \code{\link{fordyn}}.}
 #'   \item{\code{LAI}: Leaf area index (m2/m2).}
+#'   \item{\code{LAIMistletoe}: Leaf area index (m2/m2) of hemi-parasitic (mistletoe) plants.}
 #'   \item{\code{FoliarBiomass}: Standing dry biomass of leaves (kg/m2).}
 #'   \item{\code{FuelLoading}: Fine fuel loading (kg/m2).}
 #'   \item{\code{CrownRatio}: The ratio between crown length and total height (between 0 and 1)}
@@ -196,14 +197,14 @@ NULL
 #'   \item{\code{dates}}{Measurement dates.}
 #'   \item{\code{SWC}}{Soil moisture content (in m3/m3).}
 #'   \item{\code{ETR}}{Total evapotranspiration (mm).}
-#'   \item{\code{E_T1_148}}{Transpiration of Pinus halepensis cohort 'T1_148' (L/m2 of leaf area).}
-#'   \item{\code{E_T2_168}}{Transpiration of Quercus ilex cohort 'T2_168' (L/m2 of leaf area).}
-#'   \item{\code{FMC_T1_148}}{Fuel moisture content of Pinus halepensis cohort 'T1_148'  (in percent).}
-#'   \item{\code{FMC_T2_168}}{Fuel moisture content of Quercus ilex cohort 'T2_168' (in percent).}
-#'   \item{\code{BAI_T1_148}}{Basal area increment for Pinus halepensis cohort 'T1_148'  (in cm2).}
-#'   \item{\code{BAI_T2_168}}{Basal area increment for Quercus ilex cohort 'T2_168' (in cm2).}
-#'   \item{\code{DI_T1_148}}{Diameter increment for Pinus halepensis cohort 'T1_148'  (in cm).}
-#'   \item{\code{DI_T2_168}}{Diameter increment for Quercus ilex cohort 'T2_168' (in cm).}
+#'   \item{\code{E_T1_158}}{Transpiration of Pinus halepensis cohort 'T1_158' (L/m2 of leaf area).}
+#'   \item{\code{E_T2_179}}{Transpiration of Quercus ilex cohort 'T2_179' (L/m2 of leaf area).}
+#'   \item{\code{FMC_T1_158}}{Fuel moisture content of Pinus halepensis cohort 'T1_158'  (in percent).}
+#'   \item{\code{FMC_T2_179}}{Fuel moisture content of Quercus ilex cohort 'T2_179' (in percent).}
+#'   \item{\code{BAI_T1_158}}{Basal area increment for Pinus halepensis cohort 'T1_158'  (in cm2).}
+#'   \item{\code{BAI_T2_179}}{Basal area increment for Quercus ilex cohort 'T2_179' (in cm2).}
+#'   \item{\code{DI_T1_158}}{Diameter increment for Pinus halepensis cohort 'T1_158'  (in cm).}
+#'   \item{\code{DI_T2_179}}{Diameter increment for Quercus ilex cohort 'T2_179' (in cm).}
 #'  }
 #'  
 #' @source

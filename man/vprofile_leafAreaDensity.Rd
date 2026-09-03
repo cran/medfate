@@ -17,6 +17,7 @@ vprofile_leafAreaDensity(
   byCohorts = FALSE,
   bySpecies = FALSE,
   includeHerbs = FALSE,
+  includeMistletoes = FALSE,
   draw = TRUE,
   xlim = NULL
 )
@@ -69,6 +70,7 @@ vprofile_windExtinction(
   z = NULL,
   gdd = NA,
   includeHerbs = FALSE,
+  includeMistletoes = FALSE,
   draw = TRUE,
   xlim = NULL
 )
@@ -87,6 +89,8 @@ vprofile_windExtinction(
 \item{bySpecies}{Aggregate cohort profiles by species.}
 
 \item{includeHerbs}{Include herbaceous layer in the profile.}
+
+\item{includeMistletoes}{Include hemi-parasitic plants (mistletoes) in the profile.}
 
 \item{draw}{Logical flag to indicate that a plot is desired.}
 

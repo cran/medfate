@@ -1,10 +1,10 @@
+#include <cmath>
 #include "hydraulics_c.h"
 #include "medfate.h"
 #include "incgamma_c.h"
 #include "biophysicsutils_c.h"
 #include "numerical_solving_c.h"
 #include "meteoland/utils_c.hpp"
-#include <cmath>
 
 
 
@@ -116,7 +116,7 @@ double gmin_c(double leafTemperature, double gmin_20,
   double gmin;
   if (leafTemperature<= TPhase) {
     gmin = gmin_20 * pow(Q10_1,(leafTemperature - 20.0) / 10.0);
-  } else if (leafTemperature > TPhase) {
+  } else {
     gmin = gmin_20 * pow(Q10_1, (TPhase - 20.0) / 10.0) * pow(Q10_2, (leafTemperature- TPhase) / 10.0);
   }
   return(gmin);
@@ -145,6 +145,12 @@ double xylemPsi_c(double kxylem, double kxylemmax, double c, double d) {
   double psi = d*pow(-log(kxylem/kxylemmax),1.0/c);
   if(psi< -40.0) psi = -40.0; //Minimum value
   return(psi);
+}
+//' @rdname hydraulics_conductancefunctions
+//' @keywords internal
+// [[Rcpp::export("hydraulics_xylemPsiSigmoid")]]
+double xylemPsiSigmoid_c(double kxylem, double kxylemmax, double P50, double slope) {
+  return(P50 + log(kxylem/(kxylemmax - kxylem))*(25.0/slope));
 }
 
 //' @rdname hydraulics_conductancefunctions
@@ -443,15 +449,15 @@ double E2psiTwoElements_c(double E, double psiSoil, double krhizomax, double kxy
 //' @param psiLeaf Leaf water potential (in MPa).
 //' @param c,d Parameters of the Weibull function.
 //' @param P50,slope Parameters of the Sigmoid function.
-//' @param PLC_crit Critical leaf PLC corresponding to defoliation
-//' @param P50_cv Coefficient of variation (in percent) of leaf P50, to describe the
+//' @param criticalLeafPLC Critical leaf PLC corresponding to defoliation
+//' @param cvLeafP50 Coefficient of variation (in percent) of leaf P50, to describe the
 //' variability in hydraulic vulnerability across crown leaves.
 //' 
 //' @details The functions assume that crowns are made of a population of leaves whose
 //' hydraulic vulnerability (i.e. the water potential corresponding to 50% loss of conductance) 
-//' follows a Gaussian distribution centered on the input P50 and with a known coefficient of variation (\code{P50_cv}).
+//' follows a Gaussian distribution centered on the input P50 and with a known coefficient of variation (\code{cvLeafP50}).
 //' The slope parameter (or the c exponent in the case of a Weibull function) is considered constant.
-//' Leaves are hydraulically disconnected, and shedded, when their embolism rate exceeds a critical value (\code{PLC_crit}).
+//' Leaves are hydraulically disconnected, and shedded, when their embolism rate exceeds a critical value (\code{criticalLeafPLC}).
 //' 
 //' @return The proportion of crown defoliation.
 //' 
@@ -467,9 +473,9 @@ double E2psiTwoElements_c(double E, double psiSoil, double krhizomax, double kxy
 //' @keywords internal
 // [[Rcpp::export("hydraulics_proportionDefoliationSigmoid")]]
 double proportionDefoliationSigmoid_c(double psiLeaf, double P50, double slope, 
-                                     double PLC_crit = 0.88, double P50_cv = 10.0) {
-   double P50_crit = psiLeaf - (log((1.0 - PLC_crit)/PLC_crit)/(slope/25));
-   double pnorm =  normal_cdf(P50_crit, P50, std::abs((P50_cv/100.0)*P50));
+                                     double criticalLeafPLC = 0.88, double cvLeafP50 = 10.0) {
+   double P50_crit = psiLeaf - (log((1.0 - criticalLeafPLC)/criticalLeafPLC)/(slope/25));
+   double pnorm =  normal_cdf(P50_crit, P50, std::abs((cvLeafP50/100.0)*P50));
    double PDEF = (1.0-pnorm);
    return(PDEF);
 }
@@ -478,11 +484,11 @@ double proportionDefoliationSigmoid_c(double psiLeaf, double P50, double slope,
 //' @keywords internal
 // [[Rcpp::export("hydraulics_proportionDefoliationWeibull")]]
 double proportionDefoliationWeibull_c(double psiLeaf, double c, double d, 
-                                       double PLC_crit = 0.88, double P50_cv = 10.0) {
-   double d_crit = psiLeaf/pow(-1.0*log(1.0 - PLC_crit), 1.0/c);
+                                       double criticalLeafPLC = 0.88, double cvLeafP50 = 10.0) {
+   double d_crit = psiLeaf/pow(-1.0*log(1.0 - criticalLeafPLC), 1.0/c);
    double P50 = xylemPsi_c(0.5,1.0, c, d);
    double P50_crit = xylemPsi_c(0.5,1.0, c, d_crit);
-   double pnorm =  normal_cdf(P50_crit, P50, std::abs((P50_cv/100.0)*P50));
+   double pnorm =  normal_cdf(P50_crit, P50, std::abs((cvLeafP50/100.0)*P50));
    double PDEF = (1.0-pnorm);
    return(PDEF);
  }
@@ -521,16 +527,18 @@ std::vector<double> rootxylemConductanceProportions_c(const std::vector<double>&
 
 //' @rdname hydraulics_scalingconductance
 //' @keywords internal
+//' @param psiMin Minimum water potential  (MPa) for calculating rhizosphere resistance average.
 // [[Rcpp::export("hydraulics_averageRhizosphereResistancePercent")]]
 double averageRhizosphereResistancePercent_c(double krhizomax, double n, double alpha,
                                              double krootmax, double rootc, double rootd,
                                              double kstemmax, double stemc, double stemd, 
                                              double kleafmax, double leafc, double leafd,
+                                             double psiMin = -2.0,
                                              double psiStep = -0.01){
-  double psiC = psiCrit_c(stemc, stemd, 0.001);
+  // double psiC = psiCrit_c(stemc, stemd, 0.001); // 0.001
   double cnt = 0.0;
   double sum = 0.0;
-  for(double psi=0.0; psi>psiC;psi += psiStep) {
+  for(double psi=0.0; psi>psiMin;psi += psiStep) {
     sum +=rhizosphereResistancePercent_c(psi, krhizomax, n,alpha,krootmax, rootc, rootd,
                                          kstemmax, stemc,stemd,
                                          kleafmax, leafc,leafd);
@@ -547,6 +555,7 @@ double findRhizosphereMaximumConductance_c(double averageResistancePercent, doub
                                          double krootmax, double rootc, double rootd,
                                          double kstemmax, double stemc, double stemd,
                                          double kleafmax, double leafc, double leafd,
+                                         double psiMin,
                                          double initialValue) {
   double step = 1.0;
   double fTol = 0.1;
@@ -555,9 +564,11 @@ double findRhizosphereMaximumConductance_c(double averageResistancePercent, doub
   double krhizomaxlog = initialValue;
   int nsteps = 0;
   int max_nsteps = 100;
-  double f = averageRhizosphereResistancePercent_c(exp(krhizomaxlog), n,alpha,krootmax, rootc, rootd,
-                                                 kstemmax, stemc,stemd,
-                                                 kleafmax, leafc,leafd);
+  double f = averageRhizosphereResistancePercent_c(exp(krhizomaxlog), n,alpha,
+                                                   krootmax, rootc, rootd,
+                                                   kstemmax, stemc,stemd,
+                                                   kleafmax, leafc, leafd,
+                                                   psiMin);
   while((std::abs(f-averageResistancePercent)>fTol) && (nsteps < max_nsteps)) {
     // Rcout<< nsteps<< " "<<exp(krhizomaxlog) << " "<< f << " "<< averageResistancePercent<< " "<< step<<"\n";
     if(f>averageResistancePercent) {
@@ -566,9 +577,11 @@ double findRhizosphereMaximumConductance_c(double averageResistancePercent, doub
       if(step > 0) step = -step/2.0;
     }
     krhizomaxlog += step; 
-    f = averageRhizosphereResistancePercent_c(exp(krhizomaxlog), n,alpha,krootmax, rootc, rootd,
-                                            kstemmax, stemc,stemd,
-                                            kleafmax, leafc,leafd);
+    f = averageRhizosphereResistancePercent_c(exp(krhizomaxlog), n,
+                                              alpha,krootmax, rootc, rootd,
+                                              kstemmax, stemc,stemd,
+                                              kleafmax, leafc,leafd,
+                                              psiMin);
     nsteps++;
   }
   // Rcout<< nsteps<< " "<<exp(krhizomaxlog) << " "<< f << " "<< averageResistancePercent<< " "<< step<<"\n";

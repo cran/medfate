@@ -1,3 +1,4 @@
+#include <cmath>
 #include "inner_sperry_c.h"
 #include "hydraulics_c.h"
 #include "photosynthesis_c.h"
@@ -550,25 +551,10 @@ void innerSperry_c(ModelInput& x,
   arma::mat& SWR_SL = output.sunlit_inst.Abs_SWR;
   arma::mat& PAR_SL = output.sunlit_inst.Abs_PAR;
   arma::mat& LWR_SL = output.sunlit_inst.Net_LWR;
-  // NumericMatrix Ag_SL = Rcpp::as<Rcpp::NumericMatrix>(SunlitInst["Ag"]);
-  // NumericMatrix An_SL = Rcpp::as<Rcpp::NumericMatrix>(SunlitInst["An"]);
-  // NumericMatrix E_SL = Rcpp::as<Rcpp::NumericMatrix>(SunlitInst["E"]);
-  // NumericMatrix VPD_SL = Rcpp::as<Rcpp::NumericMatrix>(SunlitInst["VPD"]);
-  // NumericMatrix Psi_SL = Rcpp::as<Rcpp::NumericMatrix>(SunlitInst["Psi"]);
-  // NumericMatrix Temp_SL = Rcpp::as<Rcpp::NumericMatrix>(SunlitInst["Temp"]);
-  // NumericMatrix GSW_SL = Rcpp::as<Rcpp::NumericMatrix>(SunlitInst["Gsw"]);
-  // NumericMatrix Ci_SL = Rcpp::as<Rcpp::NumericMatrix>(SunlitInst["Ci"]);
-  // 
-  // //Extract input  
-  // std::vector<int>& iLayerCohort = input.iLayerCohort;
+
   std::vector<int>& iLayerSunlit = input.iLayerSunlit;
   std::vector<int>& iLayerShade = input.iLayerShade;
-  // IntegerVector iPMSunlit = input["iPMSunlit"];
-  // IntegerVector iPMShade = input["iPMShade"];
-  // std::vector<int>& nlayerscon = input.nlayerscon;
-  // LogicalMatrix layerConnected = input["layerConnected"];
-  // List layerConnectedPools = input["layerConnectedPools"];
-  
+
   for(int c=0;c<numCohorts;c++) { //Plant cohort loop
     SupplyFunction& supply = *networks[c].supply;
     if((x.above.LAI_expanded[c]>0.0) && (x.internalWater.LeafPLC[c] < 0.999)) { //Process transpiration and photosynthesis only if there are some leaves
@@ -652,6 +638,7 @@ void innerSperry_c(ModelInput& x,
         output.plants_inst.Ag(c,n) = (1e-6)*12.01017*Agsum*tstep;
         output.plants_inst.An(c,n) = (1e-6)*12.01017*Ansum*tstep;
 
+        
         //Average flow from sunlit and shade leaves
         double Eaverage = (output.sunlit_inst.E(c,n)*LAI_SL(c,n) + output.shade_inst.E(c,n)*LAI_SH(c,n))/(LAI_SL(c,n) + LAI_SH(c,n));
 
@@ -722,21 +709,126 @@ void innerSperry_c(ModelInput& x,
           }
         }
 
-        //Scale soil water extracted from leaf to cohort level
-        for(int lc=0;lc<input.nlayerscon[c];lc++) {
-          Esoilcn[lc] = ElayersVEC[lc]*0.001*0.01802*x.above.LAI_expanded[c]; //Scale from flow to water volume in the time step
-        }
 
-        //Balance between extraction and transpiration
-        output.plants_inst.PWB(c,n) = std::accumulate(Esoilcn.begin(), Esoilcn.end(), 0.0) - output.plants_inst.E(c,n);
 
         //Add step transpiration to daily plant cohort transpiration
         output.plants.Transpiration[c] += output.plants_inst.E(c,n);
         output.plants.NetPhotosynthesis[c] += output.plants_inst.An(c,n);
         output.plants.GrossPhotosynthesis[c] += output.plants_inst.Ag(c,n);
+
+        //Scale soil water extracted from leaf to cohort level
+        for(int lc=0;lc<input.nlayerscon[c];lc++) {
+          Esoilcn[lc] = ElayersVEC[lc]*0.001*0.01802*x.above.LAI_expanded[c]; //Scale from flow to water volume in the time step
+        }
+        //Balance between extraction and transpiration (Esoilcn will change after accounting for mistletoes)
+        output.plants_inst.PWB(c,n) = std::accumulate(Esoilcn.begin(), Esoilcn.end(), 0.0) - output.plants_inst.E(c,n);
+        
         //Add PWB
         output.plants.WaterBalance[c] += output.plants_inst.PWB(c,n);
-
+        
+        
+        if(x.above.LAI_mistletoe[c]>0.0) {
+          
+          //Mistletoe transpiration
+          double Emist_SL = 0.0; //Instantaneous mistletoe transpiration per leaf area
+          double Emist_SH = 0.0; //Instantaneous mistletoe transpiration per leaf area
+          double Emist = x.internalWater.Emist[c]; //Previous instantaneous mistletoe transpiration per leaf area
+          if(std::isnan(Emist)) {
+            Emist_SL = Emist * (LAI_SL(c,n)/(LAI_SL(c,n)+LAI_SH(c,n))); 
+            Emist_SH = Emist * (LAI_SH(c,n)/(LAI_SL(c,n)+LAI_SH(c,n)));
+          }
+          //Mistletoe sunlit/shade leaf temperature
+          double Temp_SL_mist = leafTemperature2_c(SWR_SL(c,n)/LAI_SL(c,n), LWR_SL(c,n)/LAI_SL(c,n),
+                                                   x.canopy.Tair[input.iLayerSunlit[c]], input.zWind[input.iLayerSunlit[c]],
+                                                   Emist_SL,  x.control.mistletoe.LeafWidth);
+          double Temp_SH_mist = leafTemperature2_c(SWR_SH(c,n)/LAI_SH(c,n), LWR_SH(c,n)/LAI_SH(c,n),
+                                                   x.canopy.Tair[input.iLayerShade[c]], input.zWind[input.iLayerShade[c]],
+                                                   Emist_SH,  x.control.mistletoe.LeafWidth);
+          if(!x.control.advancedWB.sunlitShade) Temp_SH_mist = Temp_SL_mist;
+          //Mistletoe leaf VPD
+          double VPD_SL_mist = std::max(0.0,leafVapourPressure_c(Temp_SL_mist, output.sunlit_inst.Psi(c,n)) - x.canopy.VPair[input.iLayerSunlit[c]]);
+          double VPD_SH_mist = std::max(0.0,leafVapourPressure_c(Temp_SH_mist, output.shade_inst.Psi(c,n)) - x.canopy.VPair[input.iLayerShade[c]]);
+          
+          //Mistletoe photosynthesis and stomatal conductance
+          BaldocchiPhoto PB_SL, PB_SH;
+          double gsNight = x.control.sureau.gs_NightFrac*x.paramsTranspiration.Gswmax[c]*1000.0;
+          // Current stomatal regulation ("Sigmoid")
+          // P12 as P50 for baldocchi model for mistletoe
+          double mist_P50_gs_B = x.control.mistletoe.Gsw_P50_Baldocchi;
+          double mist_slope_gs_B = x.control.mistletoe.Gsw_slope_Baldocchi;
+          
+          double regul_mist_shade = 1.0 - (1.0 / (1.0 + exp(mist_slope_gs_B / 25.0 * (output.shade_inst.Psi(c,n) - mist_P50_gs_B))));
+          double regul_mist_sunlit = 1.0 - (1.0 / (1.0 + exp(mist_slope_gs_B / 25.0 * (output.sunlit_inst.Psi(c,n) - mist_P50_gs_B))));
+          photosynthesisBaldocchi_inner_c(PB_SL,
+                                          irradianceToPhotonFlux_c(PAR_SL(c,n), defaultLambda)/LAI_SL(c,n),
+                                          x.canopy.Cair[input.iLayerSunlit[c]],
+                                          std::max(0.0,Temp_SL_mist),
+                                          input.zWind[input.iLayerCohort[c]],
+                                          x.control.mistletoe.Vmax298,
+                                          x.control.mistletoe.Jmax298,
+                                          x.control.mistletoe.LeafWidth,
+                                          x.control.mistletoe.Gsw_AC_slope_Baldocchi,
+                                          gsNight/1000.0);
+          double gs_SL_mist = PB_SL.Gsw*1000.0; //From mmol to mol
+          gs_SL_mist = std::max(gsNight, gs_SL_mist)*regul_mist_sunlit;
+          // Rcout<<c << " "<<n << " Bald gs: "<< PB_SL.Gsw << " regul: "<< regul << " gs_SL: "<< gs_SL<<"\n";
+          photosynthesisBaldocchi_inner_c(PB_SH,
+                                          irradianceToPhotonFlux_c(PAR_SH(c,n), defaultLambda)/LAI_SH(c,n),
+                                          x.canopy.Cair[input.iLayerSunlit[c]],
+                                          std::max(0.0,Temp_SH_mist),
+                                          input.zWind[input.iLayerCohort[c]],
+                                          x.control.mistletoe.Vmax298,
+                                          x.control.mistletoe.Jmax298,
+                                          x.control.mistletoe.LeafWidth,
+                                          x.control.mistletoe.Gsw_AC_slope_Baldocchi,
+                                          gsNight/1000.0);
+          double gs_SH_mist = PB_SH.Gsw*1000.0; //From mmol to mol
+          gs_SH_mist = std::max(gsNight, gs_SH_mist)*regul_mist_shade;
+          
+          //gCR = g Crown
+          double gCR = 1000.0*gCrown_c(input.zWind[input.iLayerCohort[c]]);
+          //Assumes well coupled canopy (for compatibility with Sperry and leaf temperature balance)
+          //gBL = g Boundary Layer
+          double gBL_mist = 1000.0*gLeafBoundary_c(input.zWind[input.iLayerCohort[c]], x.control.mistletoe.LeafWidth); // mmol boundary layer conductance
+          
+          // Stomatal transpiration
+          double Gwdiff_SL_mist = 1.0/(1.0/gCR + 1.0/gs_SL_mist + 1.0/gBL_mist);
+          double Gwdiff_SH_mist = 1.0/(1.0/gCR + 1.0/gs_SH_mist + 1.0/gBL_mist);
+          Emist_SL = Gwdiff_SL_mist * (VPD_SL_mist/input.Patm);
+          Emist_SH = Gwdiff_SH_mist * (VPD_SH_mist/input.Patm);
+          
+          Emist = (Emist_SL*LAI_SL(c,n) + Emist_SH*LAI_SH(c,n))/(LAI_SL(c,n) + LAI_SH(c,n));
+          
+          //Average flow from sunlit and shade leaves (including mistletoe transpiration)
+          double Eaverage_mist = (output.sunlit_inst.E(c,n)*LAI_SL(c,n) + output.shade_inst.E(c,n)*LAI_SH(c,n) + Emist*x.above.LAI_mistletoe[c])/(LAI_SL(c,n) + LAI_SH(c,n) + x.above.LAI_mistletoe[c]);
+          
+          //Find iPM for  flow corresponding to the  average flow with mistletoe
+          double absDiff_mist = 99999999.9;
+          int iPM_mist = -1;
+          for(int k=0;k< (int) supply.E.size();k++){ //Only check up to the size of fittedE
+            double adk = std::abs(supply.E[k]-Eaverage_mist);
+            // Rcpp::Rcout << supply.E[k] << "\n";
+            if(adk<absDiff_mist) {
+              absDiff_mist = adk;
+              iPM_mist = k;
+            }
+          }
+          if(iPM_mist==-1) {
+            throw medfate::MedfateInternalError("iPM_mist -1 (could not determine regulation)");
+          }
+          
+          x.internalWater.Emist[c] = Emist*input.f_dry;
+          
+          //Scale instantaneous mistletoe transpiration per leaf area to mm per time step
+          double Emist_step = 0.001*0.01802*Emist*x.above.LAI_mistletoe[c]*tstep;
+          output.plants.MistletoeTranspiration[c] += Emist_step;
+          //Scale soil water extracted, including mistletoe, from leaf to cohort level
+          for(int lc=0;lc<input.nlayerscon[c];lc++) {
+            Esoilcn[lc] = supply.ERhizo(iPM_mist,lc)*tstep*input.f_dry*0.001*0.01802*x.above.LAI_expanded[c]; //Scale from flow to water volume in the time step
+          }
+          
+        } 
+        
         //Copy transpiration and from connected layers to transpiration from soil layers
         //And update soil water content (soil water potential will not be updated until next day!)
         if(!plantWaterPools) {

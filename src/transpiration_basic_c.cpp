@@ -1,4 +1,5 @@
 #include <RcppArmadillo.h>
+#include <cmath>
 #include "biophysicsutils_c.h"
 #include "meteoland/utils_c.hpp"
 #include "control_c.h"
@@ -92,6 +93,7 @@ void transpirationBasic_c(BasicTranspiration_RESULT& BTres, BasicTranspiration_C
   std::vector<double>& LAIlive = x.above.LAI_live;
   std::vector<double>& LAIphe = x.above.LAI_expanded;
   std::vector<double>& LAIdead = x.above.LAI_dead;
+  std::vector<double>& LAImistletoe = x.above.LAI_mistletoe;
   std::vector<double>& H = x.above.H;
   std::vector<double>& CR = x.above.CR;
   int numCohorts = LAIphe.size();
@@ -147,24 +149,27 @@ void transpirationBasic_c(BasicTranspiration_RESULT& BTres, BasicTranspiration_C
   std::vector<double>& LeafPLC = x.internalWater.LeafPLC;
   arma::mat& LAIme = x.internalLAIDistribution.expanded;
   arma::mat& LAImd = x.internalLAIDistribution.dead;
+  arma::mat& LAIms = x.internalLAIDistribution.mistletoe;
   std::vector<double>& PrevLAIexpanded = x.internalLAIDistribution.PrevLAIexpanded;
   std::vector<double>& PrevLAIdead = x.internalLAIDistribution.PrevLAIdead;
+  std::vector<double>& PrevLAImistletoe = x.internalLAIDistribution.PrevLAImistletoe;
   std::vector<double>& PARcohort = x.internalLAIDistribution.PARcohort;
 
   
   // Internal communication vectors
   std::vector<double>& CohASWRF = BT_comm.CohASWRF;
-  std::vector<double>& Tmax = BT_comm.Tmax;
   std::vector<double>& TmaxCoh = BT_comm.TmaxCoh;
+  std::vector<double>& TmaxMist = BT_comm.TmaxMist;
   arma::mat& RHOPCohDyn = BT_comm.RHOPCohDyn;
   for(int c=0;c<numCohorts;c++) {
     CohASWRF[c] = 0.0;
-    Tmax[c] = 0.0;
+    TmaxMist[c] = 0.0;
     TmaxCoh[c] = 0.0;
   }
   
   //Output vectors
   std::vector<double>&  Eplant = outputPlants.Transpiration;
+  std::vector<double>&  Emistletoe = outputPlants.MistletoeTranspiration;
   std::vector<double>&  Agplant = outputPlants.GrossPhotosynthesis;
   std::vector<double>&  DDS = outputPlants.DDS;
   std::vector<double>&  LFMC = outputPlants.LFMC;
@@ -174,21 +179,22 @@ void transpirationBasic_c(BasicTranspiration_RESULT& BTres, BasicTranspiration_C
   std::vector<double>&  Extraction = outputPlants.Extraction;
 
   //Determine whether leaves are out (phenology) and the adjusted Leaf area
-  double s = 0.0, LAIcell = 0.0, LAIcelllive = 0.0, LAIcellexpanded = 0.0,LAIcelldead = 0.0;
+  double s = 0.0, LAIcell = 0.0, LAIcelllive = 0.0, LAIcellexpanded = 0.0,LAIcelldead = 0.0, LAIcellmistletoe = 0.0;
   double sum_abs_exp = 0.0, sum_abs_dead = 0.0;
   for(int c=0;c<numCohorts;c++) {
-    s += (kPAR[c]*(LAIphe[c]+LAIdead[c]));
-    LAIcell += LAIphe[c]+LAIdead[c];
+    s += (kPAR[c]*(LAIphe[c]+LAIdead[c]) + (x.control.mistletoe.kPAR*LAImistletoe[c]));
+    LAIcell += LAIphe[c]+LAIdead[c]+LAImistletoe[c];
     LAIcelldead += LAIdead[c];
     LAIcellexpanded +=LAIphe[c];
     LAIcelllive += LAIlive[c];
+    LAIcellmistletoe +=LAImistletoe[c];
     sum_abs_exp += std::abs(LAIphe[c] - PrevLAIexpanded[c]);
     sum_abs_dead += std::abs(LAIdead[c] - PrevLAIdead[c]);
   }
 
   if(numCohorts>0) {
     bool recalc_LAI = false;
-    if(std::isnan(PrevLAIexpanded[0]) || std::isnan(PrevLAIdead[0])) {
+    if(std::isnan(PrevLAIexpanded[0]) || std::isnan(PrevLAIdead[0]) || std::isnan(PrevLAImistletoe[0])) {
       recalc_LAI = true;
     } else{
       if(sum_abs_exp>0.001) {
@@ -201,34 +207,42 @@ void transpirationBasic_c(BasicTranspiration_RESULT& BTres, BasicTranspiration_C
       std::vector<double> z(ncanlayers+1,0.0);
       for(int i=1;i<=ncanlayers;i++) z[i] = z[i-1] + verticalLayerSize;
       for(int i=0; i<numCohorts;i++) {
-        PARcohort[i] = availableLight_c(H[i]*(1.0-(1.0-CR[i])/2.0), H, LAIphe, LAIdead, kPAR, CR);
+        PARcohort[i] = availableLight_c(H[i]*(1.0-(1.0-CR[i])/2.0), H, LAIphe, LAIdead, LAImistletoe, kPAR, CR, x.control.mistletoe.kPAR);
         PrevLAIexpanded[i] = LAIphe[i];
         PrevLAIdead[i] = LAIdead[i];
+        PrevLAImistletoe[i] = LAImistletoe[i];
       }
       //Update LAI distribution if necessary
+      // Rcout<<"recalc dist\n";
       updateLAIdistributionVectors_c(LAIme, z, LAIphe, H, CR);
       updateLAIdistributionVectors_c(LAImd, z, LAIdead, H, CR);
+      updateLAIdistributionVectors_c(LAIms, z, LAImistletoe, H, CR);
     }
   }
   
   //Cohort absorbed fraction
-  cohortAbsorbedSWRFraction_c(CohASWRF, BT_comm.AbSWRcomm, LAIme, LAImd, kSWR);
+  cohortAbsorbedSWRFraction_c(CohASWRF, BT_comm.AbSWRcomm, LAIme, LAImd, LAIms, 
+                              kSWR, x.control.mistletoe.kPAR/1.35);
   for(int c=0;c<numCohorts;c++) {
     CohASWRF[c] = pow(CohASWRF[c], 0.75);
   }
   
   //Apply fractions to potential evapotranspiration
-  //Maximum canopy transpiration
-  //    Tmax = PET[i]*(-0.006*pow(LAIcell[i],2.0)+0.134*LAIcell[i]+0.036); //From Granier (1999)
-  for(int c=0;c<numCohorts;c++) {
-    Tmax[c] = pet*(Tmax_LAIsq[c]*(LAIcell*LAIcell)+ Tmax_LAI[c]*LAIcell); //From Granier (1999)
-  }
-  
-  //Fraction of Tmax attributed to each plant cohort
+
+  // Maximum canopy transpiration
+  // Tmax = PET[i]*(-0.006*pow(LAIcell[i],2.0)+0.134*LAIcell[i]+0.036); //From Granier (1999)
+  // Fraction of Tmax attributed to each plant cohort
   double pabs = std::accumulate(CohASWRF.begin(),CohASWRF.end(),0.0);
+  // Cohort absorption includes expanded leaves, but also dead leaves and mistletoe
+  // Therefore, we use fractions to determine which part belongs to each component
+  double mistletoe_fraction;
+  double cohort_expanded_fraction;
   if(pabs>0.0) {
     for(int c=0;c<numCohorts;c++) {
-      TmaxCoh[c] = Tmax[c]*(CohASWRF[c]/pabs); 
+      cohort_expanded_fraction = LAIphe[c]/(LAImistletoe[c]+LAIphe[c]+LAIdead[c]);
+      mistletoe_fraction = LAImistletoe[c]/(LAImistletoe[c]+LAIphe[c]+LAIdead[c]);
+      TmaxCoh[c] = pet*(Tmax_LAIsq[c]*(LAIcell*LAIcell)+ Tmax_LAI[c]*LAIcell)*(CohASWRF[c]/pabs)*cohort_expanded_fraction; 
+      TmaxMist[c] = pet*(x.control.mistletoe.Tmax_LAIsq*(LAIcell*LAIcell)+ x.control.mistletoe.Tmax_LAI*LAIcell)*(CohASWRF[c]/pabs)*mistletoe_fraction; 
     }
   }
 
@@ -260,6 +274,7 @@ void transpirationBasic_c(BasicTranspiration_RESULT& BTres, BasicTranspiration_C
 
   ParamsVolume parsVol;
   for(int c=0;c<numCohorts;c++) {
+    
     parsVol.stem_c = VCstem_c[c];
     parsVol.stem_d = VCstem_d[c];
     parsVol.leafpi0 = LeafPI0[c];
@@ -272,9 +287,9 @@ void transpirationBasic_c(BasicTranspiration_RESULT& BTres, BasicTranspiration_C
     parsVol.Vleaf = Vleaf[c];
     parsVol.LAI = LAIphe[c];
     parsVol.LAIlive = LAIlive[c];
-
+    
     double rootCrownPsi = NA_REAL;
-
+    
     //Cuticular transpiration
     double lvp_tmax = leafVapourPressure_c(tmax,  PlantPsi[c]);
     double lvp_tmin = leafVapourPressure_c(tmin,  PlantPsi[c]);
@@ -282,7 +297,7 @@ void transpirationBasic_c(BasicTranspiration_RESULT& BTres, BasicTranspiration_C
     double lvpd_tmin = std::max(0.0, lvp_tmin - vpatm);
     double E_gmin = Gswmin[c]*(lvpd_tmin+lvpd_tmax)/(2.0*Patm); // mol·s-1·m-2
     double E_gmin_day = E_gmin*LAIphe[c]*(24.0*3600.0*0.018); //L·d-1·m-2 = mm·d-1
-
+    
     //Extraction from soil (can later be modified if there are changes in plant water content)
     if(!plantWaterPools) {
       std::vector<double> psiSoil(nlayers);
@@ -290,30 +305,50 @@ void transpirationBasic_c(BasicTranspiration_RESULT& BTres, BasicTranspiration_C
       double* Klc = new double[nlayers];
       double* Kunlc = new double[nlayers];
       double Klcmean = 0.0;
+      double Klcmist = 0.0;
       double sumKunlc = 0.0;
       for(int l=0;l<nlayers;l++) {
         psiSoil[l] = soil.getPsi(l);
         V_c[l] = V(c,l);
         Klc[l] = Psi2K_c(psiSoil[l], Psi_Extract[c], Exp_Extract[c]);
-        //Limit Mean Kl due to previous cavitation
-        if(stemCavitationRecovery!="total") {
-          Klc[l] = std::min(Klc[l], 1.0-StemPLC[c]);
-        }
         Klcmean += Klc[l]*V_c[l];
         Kunlc[l] = std::sqrt(soil.getConductivity(l,true))*V_c[l];
         sumKunlc += Kunlc[l];
       }
       // Rcout<< c << " : Tmax[c] = " << Tmax[c]<<" TmaxCoh[c] = "<< TmaxCoh[c]<<  " sumKunlc = "  <<sumKunlc<<"  Klcmean = " << Klcmean<< "\n";
-      
-      for(int l=0;l<nlayers;l++) {
-        outputExtraction(c,l) = std::max(TmaxCoh[c]*Klcmean, E_gmin_day)*(Kunlc[l]/sumKunlc);
-        // Rcout<< c << "-" << l <<" : E = "  <<outputExtraction(c,l)<<"\n";
-      }
       rootCrownPsi = averagePsi_c(psiSoil, V_c, Exp_Extract[c], Psi_Extract[c]);
+      
+      // Determine relative conductance  for mistletoe
+      Klcmist = xylemConductanceSigmoid_c(rootCrownPsi, 1.0, x.control.mistletoe.Gsw_P50_Baldocchi, x.control.mistletoe.Gsw_slope_Baldocchi);
+      
+      //Limit Mean Kl and mistletoe Kl due to previous cavitation
+      if(stemCavitationRecovery!="total") {
+        Klcmean = std::min(Klcmean, 1.0-StemPLC[c]);
+        Klcmist = std::min(Klcmist, 1.0-StemPLC[c]);
+      }
+      
+      //Determine plant transpiration and mistletoe transpiration according to their stomatal behaviour (and PLC effects)
+      if(TmaxCoh[c]>0.0) {
+        Eplant[c] = std::max(TmaxCoh[c]*Klcmean, E_gmin_day);
+      } else {
+        Eplant[c] = 0.0;
+      }
+      if(TmaxMist[c]>0.0) {
+        Emistletoe[c] = TmaxMist[c]*Klcmist;
+      } else {
+        Emistletoe[c] = 0.0;
+      }
+      //Soil extraction is the sum of plant transpiration and mistletoe transpiration
+      Extraction[c] = Eplant[c] + Emistletoe[c];
+      
+      //Divide extraction among layers depending on soil conductivity
+      for(int l=0;l<nlayers;l++) {
+        outputExtraction(c,l) = Extraction[c]*(Kunlc[l]/sumKunlc);
+      }
       delete[] Klc;
       delete[] Kunlc;
     } else {
-      //Calculate dynamic overlap      
+      //Calculate dynamic overlap 
       arma::mat& ExtractionPoolsCoh = outputExtractionPools[c]; //this is used to store extraction of a SINGLE plant cohort from all pools
       arma::mat& RHOPcoh = RHOP[c];
       for(int l=0;l<nlayers;l++) {
@@ -329,46 +364,64 @@ void transpirationBasic_c(BasicTranspiration_RESULT& BTres, BasicTranspiration_C
       arma::mat Klc(numCohorts, nlayers);
       arma::mat Kunlc(numCohorts, nlayers);
       arma::mat RHOPcohV(numCohorts, nlayers);
-      double Klcmean = 0.0;
+      double Klcmean = 0.0, Klcmist = 0.0;
       double sumKunlc = 0.0;
       for(int j = 0;j<numCohorts;j++) {
         for(int l=0;l<nlayers;l++) {
           RHOPcohV(j,l) = RHOPCohDyn(j,l)*V(c,l);
           Klc(j,l) = Psi2K_c(psiSoilM(c,l), Psi_Extract[c], Exp_Extract[c]);
-          //Limit Mean Kl due to previous cavitation
-          if(stemCavitationRecovery!="total") Klc(j,l) = std::min(Klc(j,l), 1.0-StemPLC[c]);
           Klcmean += Klc(j,l)*RHOPcohV(j,l);
           Kunlc(j,l) = std::sqrt(KunsatM(j,l))*RHOPcohV(j,l);
           sumKunlc += Kunlc(j,l);
         }
       }
+      rootCrownPsi = averagePsiPool_c(psiSoilM, RHOPcohV, Exp_Extract[c], Psi_Extract[c]);
+      
+      // Determine relative conductance  for mistletoe
+      Klcmist = xylemConductanceSigmoid_c(rootCrownPsi, 1.0, x.control.mistletoe.Gsw_P50_Baldocchi, x.control.mistletoe.Gsw_slope_Baldocchi);
+      
+      //Limit Mean Kl and mistletoe Kl due to previous cavitation
+      if(stemCavitationRecovery!="total") {
+        Klcmean = std::min(Klcmean, 1.0-StemPLC[c]);
+        Klcmist = std::min(Klcmist, 1.0-StemPLC[c]);
+      }
+      
+      //Determine plant transpiration and mistletoe transpiration according to their stomatal behaviour (and PLC effects)
+      if(TmaxCoh[c]>0.0) {
+        Eplant[c] = std::max(TmaxCoh[c]*Klcmean, E_gmin_day);
+      } else {
+        Eplant[c] = 0.0;
+      }
+      if(TmaxMist[c]>0.0) {
+        Emistletoe[c] = TmaxMist[c]*Klcmist;
+      } else {
+        Emistletoe[c] = 0.0;
+      }
+      
+      //Soil extraction is the sum of plant transpiration and mistletoe transpiration
+      Extraction[c] = Eplant[c] + Emistletoe[c];
+      
       for(int l=0;l<nlayers;l++) {
         outputExtraction(c,l) = 0.0;
         for(int j = 0;j<numCohorts;j++) {
-          ExtractionPoolsCoh(j,l) = std::max(TmaxCoh[c]*Klcmean, E_gmin_day)*(Kunlc(j,l)/sumKunlc);
+          ExtractionPoolsCoh(j,l) = Extraction[c]*(Kunlc(j,l)/sumKunlc);
           outputExtraction(c,l) += ExtractionPoolsCoh(j,l); // Sum extraction from all pools (layer l)
         }
       }
-      rootCrownPsi = averagePsiPool_c(psiSoilM, RHOPcohV, Exp_Extract[c], Psi_Extract[c]);
       // Rcout<< c << " : "<< psiSoilM(c,0) << " " << psiSoilM(c,1) << " " << psiSoilM(c,2) << " " << psiSoilM(c,3) << " " << rootCrownPsi<<"\n";
       // Rcout<< c << " : "<< RHOPcohV(c,0) << " " << RHOPcohV(c,1) << " " << RHOPcohV(c,2) << " " << RHOPcohV(c,3) << " " << rootCrownPsi<<"\n";
     }
-
+    
     double oldVol = plantVol_c(PlantPsi[c], parsVol);
-
-    //Transpiration is now equal to extraction
-    Extraction[c] = arma::sum(outputExtraction.row(c));
-    Eplant[c] = Extraction[c];
-    // Rcout<< c << " : E = "  <<Extraction[c]<<"\n";
     
     //For deciduous species, make water potential follow soil during winter
     PlantPsi[c] = rootCrownPsi;
     double newVol = plantVol_c(PlantPsi[c], parsVol);
-
+    
     double volDiff = newVol - oldVol;
     //Plant transpiration and water balance
     PWB[c] = volDiff;
-
+    
     //Photosynthesis
     double fpar = std::min(1.0, pow(PARcohort[c]/100.0,WUE_par[c]));
     double fco2 = (1.0 - exp((-1.0)*WUE_co2[c]*Catm));
@@ -376,6 +429,7 @@ void transpirationBasic_c(BasicTranspiration_RESULT& BTres, BasicTranspiration_C
     if(vpd < 0.25) fvpd = 2.5 - (2.5 - pow(0.25, WUE_vpd[c]))*(vpd/0.25);
     // Rcout<<fpar<<" "<< fco2 << " "<< fvpd<< " "<< WUE[c]*fpar*fco2*fvpd<<"\n";
     Agplant[c] = WUE[c]*Eplant[c]*fpar*fco2*fvpd;
+  
   }
   
   //Plant water status (StemPLC, RWC, DDS)
@@ -511,7 +565,8 @@ void transpirationBasic_c(BasicTranspiration_RESULT& BTres, BasicTranspiration_C
   outputStand.LAIlive = LAIcelllive;
   outputStand.LAIexpanded = LAIcellexpanded;
   outputStand.LAIdead = LAIcelldead;
-
+  outputStand.LAImistletoe = LAIcellmistletoe;
+  
   // Copy output plants
   for(int c =0;c<numCohorts;c++) {
     outputPlants.LAI[c] = LAIphe[c];
@@ -532,6 +587,7 @@ Rcpp::DataFrame copyPlantBasicTranspirationResult_c(const PlantsBasicTranspirati
     _["AbsorbedSWRFraction"] = Rcpp::wrap(plants.AbsorbedSWRFraction),
     _["Extraction"] = Rcpp::wrap(plants.Extraction),
     _["Transpiration"] = Rcpp::wrap(plants.Transpiration),
+    _["MistletoeTranspiration"] = Rcpp::wrap(plants.MistletoeTranspiration),
     _["GrossPhotosynthesis"] = Rcpp::wrap(plants.GrossPhotosynthesis),
     _["PlantPsi"] = Rcpp::wrap(plants.PlantPsi),
     _["DDS"] = Rcpp::wrap(plants.DDS),
@@ -550,7 +606,8 @@ Rcpp::NumericVector copyStandBasicTranspirationResult_c(const StandBasicTranspir
   NumericVector standVEC = Rcpp::NumericVector::create(_["LAI"] = stand.LAI,
                                                        _["LAIlive"] = stand.LAIlive, 
                                                        _["LAIexpanded"] = stand.LAIexpanded, 
-                                                       _["LAIdead"] = stand.LAIdead);
+                                                       _["LAIdead"] = stand.LAIdead,
+                                                       _["LAImistletoe"] = stand.LAImistletoe);
   return(standVEC);
 }
 

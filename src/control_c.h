@@ -38,6 +38,30 @@ struct PhenologyControlParams {
   double unfoldingDD;
 };
 
+struct MistletoeParams {
+  double kPAR = 0.5;
+  double g = 0.8;
+  double LeafWidth = 1.0;
+  double Tmax_LAI = 0.134;
+  double Tmax_LAIsq = -0.006;
+  double Gsw_P50_Baldocchi = -2.5;
+  double Gsw_slope_Baldocchi = 30.0;
+  double Gsw_AC_slope_Baldocchi = 8.0;
+  double Beta_p =  1.907817;
+  double Beta_q = 1.289641;
+  double ClumpingIndex = 0.75;
+  double alphaSWR = 0.7;
+  double gammaSWR = 0.14;
+  double Vmax298 = 80.0;
+  double Jmax298 = 120.0;
+};
+
+struct DefoliationParams {
+  bool cavitationInducedDefoliation = true;
+  double criticalLeafPLC = 0.88;
+  double cvLeafP50 = 10.0;
+};
+
 struct CommonWBParams {
   double verticalLayerSize;
   bool bareSoilEvaporation;
@@ -47,7 +71,6 @@ struct CommonWBParams {
   std::string stemCavitationRecovery;
   std::string leafCavitationRecovery;
   bool segmentedXylemVulnerability;
-  bool cavitationInducedDefoliation;
   double cavitationRecoveryMaximumRate;
   bool truncateRootDistribution;
   double fullRhizosphereOverlapConductivity;
@@ -66,6 +89,8 @@ struct AdvancedWBParams {
   int nsubsteps_canopy;
   bool taper;
   bool multiLayerBalance;
+  bool leafConductanceEstimation;
+  bool rootConductivityEstimation;
   bool sapFluidityVariation;
   double TPhase_gmin;
   double Q10_1_gmin;
@@ -200,6 +225,8 @@ struct ControlParameters {
   AdvancedWBParams advancedWB;
   SperryWBParams sperry;
   SureauWBParams sureau;
+  MistletoeParams mistletoe;
+  DefoliationParams defoliation;
   FireHazardParams fireHazard;
   GrowthControlParams growth;
   MortalityParams mortality;

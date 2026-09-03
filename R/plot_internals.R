@@ -36,8 +36,8 @@
   }
   if(model %in% c("growth", "fordyn")) {
     TYPES = c(TYPES, 
-              "Carbon balance" = "CarbonBalance",
-              "Biomass balance" = "BiomassBalance",
+              "Carbon balance components" = "CarbonBalance",
+              "Biomass balance components" = "BiomassBalance",
               "Decomposition pools" = "DecompositionPools")
   }
   return(TYPES)
@@ -45,20 +45,20 @@
 .getPlantPlotTypes<-function(transpirationMode = "Granier") {
   TYPES = c("Plant LAI" = "PlantLAI",
             "Plant LAI (live)" = "PlantLAIlive",
-            "Transpiration" = "PlantTranspiration",
-            "Transpiration per leaf" = "TranspirationPerLeaf",
-            "Plant water balance" = "PlantWaterBalance",
-            "Gross photosynthesis" = "PlantGrossPhotosynthesis",
-            "Gross photosynthesis per leaf" = "GrossPhotosynthesisPerLeaf")
+            "Transpiration per ground area" = "PlantTranspiration",
+            "Transpiration per leaf area" = "TranspirationPerLeaf",
+            "Water balance per ground area" = "PlantWaterBalance",
+            "Gross photosynthesis per ground area" = "PlantGrossPhotosynthesis",
+            "Gross photosynthesis per leaf area" = "GrossPhotosynthesisPerLeaf")
   if(transpirationMode %in% c("Sperry","Sureau")) {
     TYPES <-c(TYPES,
-              "Net photosynthesis" = "PlantNetPhotosynthesis",
-              "Net photosynthesis per leaf" = "NetPhotosynthesisPerLeaf",
+              "Net photosynthesis per ground area" = "PlantNetPhotosynthesis",
+              "Net photosynthesis per leaf area" = "NetPhotosynthesisPerLeaf",
               "Water use efficiency" = "PlantWUE",
-              "Absorbed short-wave radiation" = "PlantAbsorbedSWR",
-              "Absorbed short-wave radiation per leaf" = "AbsorbedSWRPerLeaf",
-              "Net long-wave radiation" = "PlantNetLWR",
-              "Net long-wave radiation per leaf" = "NetLWRPerLeaf")
+              "Absorbed short-wave radiation per ground area" = "PlantAbsorbedSWR",
+              "Absorbed short-wave radiation per leaf area" = "AbsorbedSWRPerLeaf",
+              "Net long-wave radiation per ground area" = "PlantNetLWR",
+              "Net long-wave radiation per leaf area" = "NetLWRPerLeaf")
   } else {
     TYPES <-c(TYPES,
               "Fraction of PAR" = "FPAR",
@@ -87,7 +87,7 @@
               "Soil-plant conductance" = "SoilPlantConductance")
   }
   TYPES <-c(TYPES,
-            "Plant stress" = "PlantStress",
+            "Plant stress (conductance reduction)" = "PlantStress",
             "Leaf percent conductance loss" = "LeafPLC",
             "Stem percent conductance loss" = "StemPLC")
   return(TYPES)
@@ -131,6 +131,7 @@
             "Fine root biomass per individual" = "FineRootBiomass",
             "Sapwood area" ="SapwoodArea",
             "Leaf area" = "LeafArea", 
+            "Crown foliage completeness" = "CrownFoliageCompleteness", 
             "Fine root area" ="FineRootArea")
   TYPES = c(TYPES,             
             "Diameter at breast height" = "DBH",
@@ -255,13 +256,13 @@
             "Stem symplastic relative water content" = "StemSympRWC", 
             "Leaf symplastic relative water content" = "LeafSympRWC",
             "Soil-plant conductance" = "SoilPlantConductance",
-            "Plant transpiration" = "PlantTranspiration", 
+            "Transpiration per ground area" = "PlantTranspiration", 
             "Transpiration per leaf area" = "TranspirationPerLeaf",
-            "Plant gross photosynthesis" = "PlantGrossPhotosynthesis",
+            "Gross photosynthesis per ground area" = "PlantGrossPhotosynthesis",
             "Gross photosynthesis per leaf area" = "GrossPhotosynthesisPerLeaf",
-            "Plant net photosynthesis" = "PlantNetPhotosynthesis",
+            "Net photosynthesis per ground area" = "PlantNetPhotosynthesis",
             "Net photosynthesis per leaf area" = "NetPhotosynthesisPerLeaf", 
-            "Plant water balance" = "PlantWaterBalance", 
+            "Water balance per ground area" = "PlantWaterBalance", 
             "Water balance per leaf area"= "WaterBalancePerLeaf")
   return(TYPES)
 }
@@ -283,8 +284,8 @@
 }
 .getSubdailyEnergyBalancePlotTypes<-function(){
   TYPES = c("Air/canopy/soil temperature" ="Temperature",
-            "CanopyEnergyBalance",
-            "SoilEnergyBalance")
+            "Canopy energy balance" = "CanopyEnergyBalance",
+            "Soil energy balance" = "SoilEnergyBalance")
   return(TYPES)
 }
 .getSubdailyLabilePlotTypes<-function(){
@@ -320,24 +321,24 @@
 
 .getYLab<-function(type) {
   ylab="Unknown"
-  if(type=="PlantTranspiration") ylab = expression(paste("Plant transpiration ",(L%.%m^{-2}%.%d^{-1})))
+  if(type=="PlantTranspiration") ylab = expression(paste("Transpiration per ground area ",(L%.%m^{-2}%.%d^{-1})))
   else if(type=="TranspirationPerLeaf") ylab = expression(paste("Transpiration per leaf area ",(L%.%m^{-2}%.%d^{-1})))
   else if(type=="LeafTranspiration") ylab = expression(paste("Leaf transpiration ",(mmol%.%m^{-2}%.%s^{-1})))
-  else if(type=="PlantPhotosynthesis") ylab = expression(paste("Plant photosynthesis ",(g*C%.%m^{-2}%.%d^{-1})))
-  else if(type=="PlantGrossPhotosynthesis") ylab = expression(paste("Plant gross photosynthesis ",(g*C%.%m^{-2}%.%d^{-1})))
+  else if(type=="PlantPhotosynthesis") ylab = expression(paste("Photosynthesis per ground area ",(g*C%.%m^{-2}%.%d^{-1})))
+  else if(type=="PlantGrossPhotosynthesis") ylab = expression(paste("Gross photosynthesis per ground area ",(g*C%.%m^{-2}%.%d^{-1})))
   else if(type=="LeafGrossPhotosynthesis") ylab = expression(paste("Leaf gross photosynthesis ",(mu%.%mol%.%m^{-2}%.%s^{-1})))
-  else if(type=="PlantNetPhotosynthesis") ylab = expression(paste("Plant net photosynthesis ",(g*C%.%m^{-2}%.%d^{-1})))
+  else if(type=="PlantNetPhotosynthesis") ylab = expression(paste("Net photosynthesis per ground area ",(g*C%.%m^{-2}%.%d^{-1})))
   else if(type=="LeafNetPhotosynthesis") ylab = expression(paste("Leaf net photosynthesis ",(mu%.%mol%.%m^{-2}%.%s^{-1})))
   else if(type=="PhotosynthesisPerLeaf") ylab = expression(paste("Photosynthesis per leaf area ",(g*C%.%m^{-2}%.%d^{-1})))
   else if(type=="GrossPhotosynthesisPerLeaf") ylab = expression(paste("Gross photosynthesis per leaf area ",(g*C%.%m^{-2}%.%d^{-1})))
   else if(type=="NetPhotosynthesisPerLeaf") ylab = expression(paste("Net photosynthesis per leaf area ",(g*C%.%m^{-2}%.%d^{-1})))
-  else if(type=="PlantWUE") ylab = expression(paste("Plant water use efficiency ",(g*C%.%L^{-1})))
+  else if(type=="PlantWUE") ylab = expression(paste("Cohort-level water use efficiency ",(g*C%.%L^{-1})))
   else if(type=="FPAR") ylab = "Average fraction of PAR (%)"
   else if(type=="AbsorbedSWRFraction") ylab = "Fraction of absorbed SWR (%)"
-  else if(type=="PlantAbsorbedSWR") ylab = expression(paste("Plant absorbed SWR ",(MJ%.%m^{-2}%.%d^{-1})))
-  else if(type=="PlantNetLWR") ylab = expression(paste("Plant net LWR ",(MJ%.%m^{-2}%.%d^{-1})))
+  else if(type=="PlantAbsorbedSWR") ylab = expression(paste("Absorbed SWR per ground area ",(MJ%.%m^{-2}%.%d^{-1})))
+  else if(type=="PlantNetLWR") ylab = expression(paste("Net LWR per ground area ",(MJ%.%m^{-2}%.%d^{-1})))
   else if(type=="PlantExtraction") ylab = expression(paste("Extraction from soil layers   ",(L%.%m^{-2})))
-  else if(type=="PlantWaterBalance") ylab = expression(paste("Plant water balance   ",(L%.%m^{-2})))
+  else if(type=="PlantWaterBalance") ylab = expression(paste("Water balance per ground area ",(L%.%m^{-2})))
   else if(type=="WaterBalancePerLeaf") ylab = expression(paste("Water balance per leaf area ",(L%.%m^{-2})))
   else if(type=="PlantLAI") ylab = expression(paste("Leaf area index ",(m^{-2}%.%m^{-2})))
   else if(type=="PlantLAIlive") ylab = expression(paste("(Live) leaf area index ",(m^{-2}%.%m^{-2})))
@@ -366,6 +367,7 @@
   else if(type=="CohortBiomassBalance") ylab=expression(paste("Cohort biomass balance ", (g%.%m^{-2})))
   else if(type=="SapwoodArea")  ylab = expression(paste("Sapwood area  ",(cm^2)))
   else if(type=="LeafArea")  ylab = expression(paste("Leaf area  ",(m^2)))
+  else if(type=="CrownFoliageCompleteness")  ylab = "Crown foliage completeness (%)"
   else if(type=="FineRootArea")  ylab = expression(paste("Fine root area  ",(m^2)))
   else if(type=="LeafBiomass")  ylab = expression(paste("Leaf structural biomass  ", (gdry%.%ind^{-1})))
   else if(type=="SapwoodBiomass")  ylab = expression(paste("Sapwood structural biomass  ", (gdry%.%ind^{-1})))
@@ -540,6 +542,9 @@
     if("HerbTranspiration" %in% names(WaterBalance)) {
       df[["Herbaceous transpiration"]] <- WaterBalance$HerbTranspiration
     }
+    if("MistletoeTranspiration" %in% names(WaterBalance)) {
+      df[["Mistletoe transpiration"]] <- WaterBalance$MistletoeTranspiration
+    }
     if(!is.null(dates)) df = df[row.names(df) %in% as.character(dates), , drop = FALSE]
     if(!is.null(summary.freq)) {
       date.factor = cut(as.Date(row.names(df)), breaks=summary.freq)
@@ -554,6 +559,9 @@
       }
       if("HerbTranspiration" %in% names(WaterBalance))  {
         df_summary[["Herbaceous transpiration"]] = tapply(df[["Herbaceous transpiration"]],INDEX=date.factor, FUN=sum, na.rm=TRUE)
+      }
+      if("MistletoeTranspiration" %in% names(WaterBalance))  {
+        df_summary[["Mistletoe transpiration"]] = tapply(df[["Mistletoe transpiration"]],INDEX=date.factor, FUN=sum, na.rm=TRUE)
       }
       df <- df_summary
     }
@@ -690,9 +698,14 @@
   if(type=="LAI") {
     if(is.null(ylab)) ylab = expression(paste("Leaf Area Index   ",(m^{2}%.%m^{-2})))
     df = Stand[,c("LAI", "LAIherb", "LAIexpanded", "LAIdead")]
-    names(df)<-c("Total (herb+unfolded+dead)", "Herbaceous", "Woody plants unfolded","Woody plants dead")
+    names(df)<-c("Total", "Herbaceous", "Woody plants unfolded","Woody plants dead")
+    if("LAImistletoe" %in% names(Stand)) {
+      df[["Mistletoe"]] <- Stand$LAImistletoe
+    }
     if(!is.null(dates)) df = df[row.names(df) %in% as.character(dates),,drop = FALSE]
-    if(!is.null(summary.freq)) df = .temporalSummary(df, summary.freq, mean, na.rm=TRUE)
+    if(!is.null(summary.freq)) {
+      df = .temporalSummary(df, summary.freq, mean, na.rm=TRUE)
+    }
     return(.multiple_dynamics(as.matrix(df), ylab = ylab, ylim = ylim))
   } 
   else if(type=="GroundIrradiance") {
@@ -973,6 +986,7 @@
       sm = .extractSubdaily(x, "SoilTemperature", dates)
       m = cbind(m, sm[,"1"])
     }
+    m <- m[,names(m)!="SolarHour"]
     names(m) = c("datetime", "Above-canopy","Inside-canopy", "Soil")
     if(is.null(ylab)) ylab = "Temperature (Celsius)"
     return(.multiple_dynamics_subdaily(m,  xlab = xlab, ylab = ylab, ylim = ylim))
@@ -986,7 +1000,7 @@
     df[["SWR abs."]] = ceb$SWRcan 
     df[["LWR net"]] = ceb$LWRcan
     df[["Latent heat vaporisation"]] = -ceb$LEVcan
-    df[["Latent heat fusion"]] = -seb$LEFsnow
+    df[["Latent heat fusion"]] = -ceb$LEFsnow
     df[["Convection can./atm."]] = -ceb$Hcan
     df[["Convection soil/can."]] = -seb$Hcansoil
     return(.multiple_dynamics_subdaily(df,  xlab = xlab, ylab = ylab, ylim = ylim))
@@ -1000,6 +1014,7 @@
     df[["LWR net"]] = seb$LWRsoil
     df[["Convection soil/can."]] = seb$Hcansoil
     df[["Latent heat vaporisation"]] = -seb$LEVsoil
+    df <- df[,names(df)!="SolarHour"]
     return(.multiple_dynamics_subdaily(df,  xlab = xlab, ylab = ylab, ylim = ylim))
   }
   else if(type=="PlantExtraction") {
@@ -1020,14 +1035,14 @@
     return(.multiple_dynamics_subdaily_sunlit_shade(mSu, mSh, ylab = ylab, ylim = ylim))
   } 
   else if(type=="LeafAbsorbedSWR") {
-    mSu = .extractSubdaily(x, "SunlitLeaves$Abs_SWR", dates)
-    mSh = .extractSubdaily(x, "ShadeLeaves$Abs_SWR", dates)
+    mSu = .extractSubdaily(x, "SunlitLeaves$Abs_SWR", dates)[,c("datetime", cohorts), drop=FALSE]
+    mSh = .extractSubdaily(x, "ShadeLeaves$Abs_SWR", dates)[,c("datetime", cohorts), drop=FALSE]
     if(is.null(ylab)) ylab=.getYLab(type)
     return(.multiple_dynamics_subdaily_sunlit_shade(mSu, mSh, ylab = ylab, ylim = ylim))
   } 
   else if(type=="LeafAbsorbedPAR") {
-    mSu = .extractSubdaily(x, "SunlitLeaves$Abs_PAR", dates)
-    mSh = .extractSubdaily(x, "ShadeLeaves$Abs_PAR", dates)
+    mSu = .extractSubdaily(x, "SunlitLeaves$Abs_PAR", dates)[,c("datetime", cohorts), drop=FALSE]
+    mSh = .extractSubdaily(x, "ShadeLeaves$Abs_PAR", dates)[,c("datetime", cohorts), drop=FALSE]
     if(is.null(ylab)) ylab=.getYLab(type)
     return(.multiple_dynamics_subdaily_sunlit_shade(mSu, mSh, ylab = ylab, ylim = ylim))
   } 

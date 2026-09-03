@@ -84,7 +84,7 @@ aspwb <- function(x, meteo, latitude, elevation, slope = NA_real_, aspect = NA_r
 #' 
 #' Function \code{biophysics_temperatureDiurnalPattern} determines diurnal temperature pattern assuming a sinusoidal pattern with T = Tmin at sunrise and T = (Tmin+Tmax)/2 at sunset and a linear change in temperature between sunset and Tmin of the day after (McMurtrie et al. 1990). 
 #' 
-#' Function \code{biophysics_waterDynamicViscosity} calculates water dynamic viscosity following the Vogel (1921) equation.
+#' Function \code{biophysics_waterDynamicViscosity} calculates water dynamic viscosity following the Vogel (1921) equation, as described in Cochard (2021).
 #' 
 #' @return
 #' Values returned for each function are:
@@ -106,6 +106,8 @@ aspwb <- function(x, meteo, latitude, elevation, slope = NA_real_, aspect = NA_r
 #' McMurtrie, R. E., D. A. Rook, and F. M. Kelliher. 1990. Modelling the yield of Pinus radiata on a site limited by water and nitrogen. Forest Ecology and Management 30:381–413.
 #' 
 #' H. Vogel, "Das Temperaturabhangigkeitsgesetz der Viskositat von Flussigkeiten", Physikalische Zeitschrift, vol. 22, pp. 645–646, 1921.
+#' 
+#' Cochard, H 2021. A new mechanism for tree mortality due to drought and heatwaves. Peer Community Journal, 1: e36 (https://doi.org/10.24072/pcjournal.45).
 #' 
 #' @seealso \code{\link{spwb}}
 #' 
@@ -1101,6 +1103,7 @@ stand_LAI <- function(x, SpParams, gdd = NA_real_, bounded = TRUE) {
 #'   \item{\code{LAI_expanded}: Leaf area index of expanded leaves (m2/m2) (one-side leaf area relative to plot area).}
 #'   \item{\code{LAI_dead}: Dead leaf area index (m2/m2) (one-side leaf area relative to plot area).}
 #'   \item{\code{LAI_nocomp}: Leaf area index (m2/m2) (one-side leaf area relative to plot area) assuming no aboveground competition.}
+#'   \item{\code{LAI_mistletoe}: Leaf area index (m2/m2) (one-side leaf area relative to plot area) of hemi-parasitic mistletoe plants.}
 #'   \item{\code{Loading}: Fine fuel loading (kg/m2), only if \code{loading = TRUE}.}
 #'   \item{\code{Age}: A numeric vector indicating age of cohorts in years. Used to track cohort age in simulations with \code{\link{fordyn}}.}
 #'   \item{\code{ObsID}: A string identifying plant cohorts at the stage of forest sampling. Used to track the fate of particular plant cohorts in simulations with \code{\link{fordyn}}.}
@@ -1352,6 +1355,7 @@ fuel_FCCS <- function(object, SpParams, cohortFMC = as.numeric( c()), loadingOff
 #'     \item{\code{"SapwoodBiomass"}: Daily amount of sapwood structural biomass (in g dry) for an average individual of each plant cohort.}
 #'     \item{\code{"FineRootBiomass"}: Daily amount of fine root biomass (in g dry) for an average individual of each plant cohort.}
 #'     \item{\code{"LeafArea"}: Daily amount of leaf area (in m2) for an average individual of each plant cohort.}
+#'     \item{\code{"CrownFoliageCompleteness"}: Leaf area expressed as a proportion of the maximum crown foliage for an average individual of each plant cohort.}
 #'     \item{\code{"SapwoodArea"}: Daily amount of sapwood area (in cm2) for an average individual of each plant cohort.}
 #'     \item{\code{"FineRootArea"}: Daily amount of fine root area (in m2) for an average individual of each plant cohort.}
 #'     \item{\code{"HuberValue"}: The ratio of sapwood area to (target) leaf area (in cm2/m2).}
@@ -1479,6 +1483,7 @@ growth <- function(x, meteo, latitude, elevation, slope = NA_real_, aspect = NA_
 #'     \item{\code{"SapwoodBiomass"}: Sapwood structural biomass (in g dry) for an average individual of each plant cohort.}
 #'     \item{\code{"FineRootBiomass"}: Fine root biomass (in g dry) for an average individual of each plant cohort.}
 #'     \item{\code{"LeafArea"}: Leaf area (in m2) for an average individual of each plant cohort.}
+#'     \item{\code{"CrownFoliageCompleteness"}: Leaf area expressed as a proportion of the maximum crown foliage for an average individual of each plant cohort.}
 #'     \item{\code{"SapwoodArea"}: Sapwood area (in cm2) for an average individual of each plant cohort.}
 #'     \item{\code{"FineRootArea"}: Fine root area (in m2) for an average individual of each plant cohort.}
 #'     \item{\code{"HuberValue"}: Sapwood area to (target) leaf area (in cm2/m2).}
@@ -1844,6 +1849,12 @@ hydraulics_xylemPsi <- function(kxylem, kxylemmax, c, d) {
 
 #' @rdname hydraulics_conductancefunctions
 #' @keywords internal
+hydraulics_xylemPsiSigmoid <- function(kxylem, kxylemmax, P50, slope) {
+    .Call(`_medfate_xylemPsiSigmoid_c`, kxylem, kxylemmax, P50, slope)
+}
+
+#' @rdname hydraulics_conductancefunctions
+#' @keywords internal
 hydraulics_psiCrit <- function(c, d, pCrit = 0.001) {
     .Call(`_medfate_psiCrit_c`, c, d, pCrit)
 }
@@ -1998,15 +2009,15 @@ hydraulics_E2psiTwoElements <- function(E, psiSoil, krhizomax, kxylemmax, n, alp
 #' @param psiLeaf Leaf water potential (in MPa).
 #' @param c,d Parameters of the Weibull function.
 #' @param P50,slope Parameters of the Sigmoid function.
-#' @param PLC_crit Critical leaf PLC corresponding to defoliation
-#' @param P50_cv Coefficient of variation (in percent) of leaf P50, to describe the
+#' @param criticalLeafPLC Critical leaf PLC corresponding to defoliation
+#' @param cvLeafP50 Coefficient of variation (in percent) of leaf P50, to describe the
 #' variability in hydraulic vulnerability across crown leaves.
 #' 
 #' @details The functions assume that crowns are made of a population of leaves whose
 #' hydraulic vulnerability (i.e. the water potential corresponding to 50% loss of conductance) 
-#' follows a Gaussian distribution centered on the input P50 and with a known coefficient of variation (\code{P50_cv}).
+#' follows a Gaussian distribution centered on the input P50 and with a known coefficient of variation (\code{cvLeafP50}).
 #' The slope parameter (or the c exponent in the case of a Weibull function) is considered constant.
-#' Leaves are hydraulically disconnected, and shedded, when their embolism rate exceeds a critical value (\code{PLC_crit}).
+#' Leaves are hydraulically disconnected, and shedded, when their embolism rate exceeds a critical value (\code{criticalLeafPLC}).
 #' 
 #' @return The proportion of crown defoliation.
 #' 
@@ -2020,26 +2031,27 @@ hydraulics_E2psiTwoElements <- function(E, psiSoil, krhizomax, kxylemmax, n, alp
 #' 
 #' @name hydraulics_defoliation
 #' @keywords internal
-hydraulics_proportionDefoliationSigmoid <- function(psiLeaf, P50, slope, PLC_crit = 0.88, P50_cv = 10.0) {
-    .Call(`_medfate_proportionDefoliationSigmoid_c`, psiLeaf, P50, slope, PLC_crit, P50_cv)
+hydraulics_proportionDefoliationSigmoid <- function(psiLeaf, P50, slope, criticalLeafPLC = 0.88, cvLeafP50 = 10.0) {
+    .Call(`_medfate_proportionDefoliationSigmoid_c`, psiLeaf, P50, slope, criticalLeafPLC, cvLeafP50)
 }
 
 #' @name hydraulics_defoliation
 #' @keywords internal
-hydraulics_proportionDefoliationWeibull <- function(psiLeaf, c, d, PLC_crit = 0.88, P50_cv = 10.0) {
-    .Call(`_medfate_proportionDefoliationWeibull_c`, psiLeaf, c, d, PLC_crit, P50_cv)
+hydraulics_proportionDefoliationWeibull <- function(psiLeaf, c, d, criticalLeafPLC = 0.88, cvLeafP50 = 10.0) {
+    .Call(`_medfate_proportionDefoliationWeibull_c`, psiLeaf, c, d, criticalLeafPLC, cvLeafP50)
 }
 
 #' @rdname hydraulics_scalingconductance
 #' @keywords internal
-hydraulics_averageRhizosphereResistancePercent <- function(krhizomax, n, alpha, krootmax, rootc, rootd, kstemmax, stemc, stemd, kleafmax, leafc, leafd, psiStep = -0.01) {
-    .Call(`_medfate_averageRhizosphereResistancePercent_c`, krhizomax, n, alpha, krootmax, rootc, rootd, kstemmax, stemc, stemd, kleafmax, leafc, leafd, psiStep)
+#' @param psiMin Minimum water potential  (MPa) for calculating rhizosphere resistance average.
+hydraulics_averageRhizosphereResistancePercent <- function(krhizomax, n, alpha, krootmax, rootc, rootd, kstemmax, stemc, stemd, kleafmax, leafc, leafd, psiMin = -2.0, psiStep = -0.01) {
+    .Call(`_medfate_averageRhizosphereResistancePercent_c`, krhizomax, n, alpha, krootmax, rootc, rootd, kstemmax, stemc, stemd, kleafmax, leafc, leafd, psiMin, psiStep)
 }
 
 #' @rdname hydraulics_scalingconductance
 #' @keywords internal
-hydraulics_findRhizosphereMaximumConductance <- function(averageResistancePercent, n, alpha, krootmax, rootc, rootd, kstemmax, stemc, stemd, kleafmax, leafc, leafd, initialValue) {
-    .Call(`_medfate_findRhizosphereMaximumConductance_c`, averageResistancePercent, n, alpha, krootmax, rootc, rootd, kstemmax, stemc, stemd, kleafmax, leafc, leafd, initialValue)
+hydraulics_findRhizosphereMaximumConductance <- function(averageResistancePercent, n, alpha, krootmax, rootc, rootd, kstemmax, stemc, stemd, kleafmax, leafc, leafd, psiMin, initialValue) {
+    .Call(`_medfate_findRhizosphereMaximumConductance_c`, averageResistancePercent, n, alpha, krootmax, rootc, rootd, kstemmax, stemc, stemd, kleafmax, leafc, leafd, psiMin, initialValue)
 }
 
 #' @rdname hydraulics_scalingconductance
@@ -2583,38 +2595,38 @@ light_leafAngleBetaParameters <- function(leafAngle, leafAngleSD) {
 
 #' @rdname light_advanced
 #' @keywords internal
-light_layerDirectIrradianceFraction <- function(LAIme, LAImd, LAImx, kb, ClumpingIndex, alpha, gamma, trunkExtinctionFraction = 0.1) {
-    .Call(`_medfate_layerDirectIrradianceFraction`, LAIme, LAImd, LAImx, kb, ClumpingIndex, alpha, gamma, trunkExtinctionFraction)
+light_layerDirectIrradianceFraction <- function(LAIme, LAImd, LAImx, LAIms, kb, ClumpingIndex, alpha, gamma, kb_mistletoe, CI_mistletoe, alpha_mistletoe, gamma_mistletoe, trunkExtinctionFraction = 0.1) {
+    .Call(`_medfate_layerDirectIrradianceFraction`, LAIme, LAImd, LAImx, LAIms, kb, ClumpingIndex, alpha, gamma, kb_mistletoe, CI_mistletoe, alpha_mistletoe, gamma_mistletoe, trunkExtinctionFraction)
 }
 
 #' @rdname light_advanced
 #' @keywords internal
-light_layerDiffuseIrradianceFraction <- function(LAIme, LAImd, LAImx, K, ClumpingIndex, ZF, alpha, gamma, trunkExtinctionFraction = 0.1) {
-    .Call(`_medfate_layerDiffuseIrradianceFraction`, LAIme, LAImd, LAImx, K, ClumpingIndex, ZF, alpha, gamma, trunkExtinctionFraction)
+light_layerDiffuseIrradianceFraction <- function(LAIme, LAImd, LAImx, LAIms, K, ClumpingIndex, ZF, alpha, gamma, K_mistletoe, CI_mistletoe, alpha_mistletoe, gamma_mistletoe, trunkExtinctionFraction = 0.1) {
+    .Call(`_medfate_layerDiffuseIrradianceFraction`, LAIme, LAImd, LAImx, LAIms, K, ClumpingIndex, ZF, alpha, gamma, K_mistletoe, CI_mistletoe, alpha_mistletoe, gamma_mistletoe, trunkExtinctionFraction)
 }
 
 #' @rdname light_advanced
 #' @keywords internal
-light_cohortSunlitShadeAbsorbedRadiation <- function(Ib0, Id0, LAIme, LAImd, LAImx, kb, K, ClumpingIndex, ZF, alpha, gamma, trunkExtinctionFraction = 0.1) {
-    .Call(`_medfate_cohortSunlitShadeAbsorbedRadiation`, Ib0, Id0, LAIme, LAImd, LAImx, kb, K, ClumpingIndex, ZF, alpha, gamma, trunkExtinctionFraction)
+light_cohortSunlitShadeAbsorbedRadiation <- function(Ib0, Id0, LAIme, LAImd, LAImx, LAIms, kb, K, ClumpingIndex, ZF, alpha, gamma, kb_mistletoe, K_mistletoe, CI_mistletoe, alpha_mistletoe, gamma_mistletoe, trunkExtinctionFraction = 0.1) {
+    .Call(`_medfate_cohortSunlitShadeAbsorbedRadiation`, Ib0, Id0, LAIme, LAImd, LAImx, LAIms, kb, K, ClumpingIndex, ZF, alpha, gamma, kb_mistletoe, K_mistletoe, CI_mistletoe, alpha_mistletoe, gamma_mistletoe, trunkExtinctionFraction)
 }
 
 #' @rdname light_advanced
 #' @keywords internal
-light_layerSunlitFraction <- function(LAIme, LAImd, kb, ClumpingIndex) {
-    .Call(`_medfate_layerSunlitFraction`, LAIme, LAImd, kb, ClumpingIndex)
+light_layerSunlitFraction <- function(LAIme, LAImd, LAIms, kb, ClumpingIndex, kb_mistletoe, CI_mistletoe) {
+    .Call(`_medfate_layerSunlitFraction`, LAIme, LAImd, LAIms, kb, ClumpingIndex, kb_mistletoe, CI_mistletoe)
 }
 
 #' @rdname light_advanced
 #' @keywords internal
-light_instantaneousLightExtinctionAbsortion <- function(LAIme, LAImd, LAImx, p, q, ClumpingIndex, alphaSWR, gammaSWR, ddd, ntimesteps = 24L, trunkExtinctionFraction = 0.1) {
-    .Call(`_medfate_instantaneousLightExtinctionAbsortion`, LAIme, LAImd, LAImx, p, q, ClumpingIndex, alphaSWR, gammaSWR, ddd, ntimesteps, trunkExtinctionFraction)
+light_instantaneousLightExtinctionAbsortion <- function(LAIme, LAImd, LAImx, LAIms, p, q, ClumpingIndex, alphaSWR, gammaSWR, p_mistletoe, q_mistletoe, CI_mistletoe, alphaSWR_mistletoe, gammaSWR_mistletoe, ddd, ntimesteps = 24L, trunkExtinctionFraction = 0.1) {
+    .Call(`_medfate_instantaneousLightExtinctionAbsortion`, LAIme, LAImd, LAImx, LAIms, p, q, ClumpingIndex, alphaSWR, gammaSWR, p_mistletoe, q_mistletoe, CI_mistletoe, alphaSWR_mistletoe, gammaSWR_mistletoe, ddd, ntimesteps, trunkExtinctionFraction)
 }
 
 #' @rdname light_advanced
 #' @keywords internal
-light_longwaveRadiationSHAW <- function(LAIme, LAImd, LAImx, LWRatm, Tsoil, Tair, trunkExtinctionFraction = 0.1) {
-    .Call(`_medfate_longwaveRadiationSHAW`, LAIme, LAImd, LAImx, LWRatm, Tsoil, Tair, trunkExtinctionFraction)
+light_longwaveRadiationSHAW <- function(LAIme, LAImd, LAImx, LAIms, LWRatm, Tsoil, Tair, trunkExtinctionFraction = 0.1) {
+    .Call(`_medfate_longwaveRadiationSHAW`, LAIme, LAImd, LAImx, LAIms, LWRatm, Tsoil, Tair, trunkExtinctionFraction)
 }
 
 #' @name light_advanced
@@ -2828,8 +2840,8 @@ light_cohortAbsorbedSWRFraction <- function(z, x, SpParams, gdd = NA_real_) {
 #'       \itemize{
 #'         \item{\code{Gswmin}: Minimum stomatal conductance to water vapor (in mol H2O·m-2·s-1).}
 #'         \item{\code{Gswmax}: Maximum stomatal conductance to water vapor (in mol H2O·m-2·s-1).}
-#'         \item{\code{Gsw_AC_slope}: Slope of the Gsw vs Ac/Cs relationship (see \code{\link{photo_photosynthesisBaldocchi}}).}
-#'         \item{\code{Gs_P50}, \code{Gs_slope}: Parameters of the curve describing the decrease in stomatal conductance as a function of leaf water potential (sigmoid).}
+#'         \item{\code{Gsw_AC_slope_Baldocchi}: Slope of the Gsw vs Ac/Cs relationship (see \code{\link{photo_photosynthesisBaldocchi}}).}
+#'         \item{\code{Gsw_P50_Baldocchi}, \code{Gsw_slope_Baldocchi}: Parameters of the curve describing the decrease in stomatal conductance as a function of leaf water potential (sigmoid).}
 #'         \item{\code{Vmax298}: Maximum Rubisco carboxylation rate at 25ºC (in micromol CO2·s-1·m-2).}
 #'         \item{\code{Jmax298}: Maximum rate of electron transport at 25ºC (in micromol photons·s-1·m-2).}
 #'         \item{\code{Kmax_stemxylem}: Sapwood-specific hydraulic conductivity of stem xylem (in kg H2O·s-1·m-1·MPa-1).}
@@ -3955,6 +3967,7 @@ soil_temperatureGradient <- function(gradTemp, widths, Temp) {
 #'     \item{\code{"HerbTranspiration"}: Transpiration due to the herbaceous layer (in mm).}
 #'     \item{\code{"PlantExtraction"}: Amount of water extracted from soil by woody plants (in mm).}
 #'     \item{\code{"Transpiration"}: Woody plant transpiration (in mm).}
+#'     \item{\code{"MistletoeTranspiration"}: Transpiration of hemi-parasitic mistletoe plants (in mm).}
 #'     \item{\code{"HydraulicRedistribution"}: Water redistributed among soil layers, transported through the plant hydraulic network.}
 #'   }
 #'   \item{\code{"EnergyBalance"}: A data frame with the daily values of energy balance components for the soil and the canopy (only for \code{transpirationMode = "Sperry"} or \code{transpirationMode = "Sureau"}).}
@@ -3980,6 +3993,7 @@ soil_temperatureGradient <- function(gradTemp, widths, Temp) {
 #'     \item{\code{"LAIlive"}: LAI of the woody plants assuming all leaves are unfolded (in m2/m2).}
 #'     \item{\code{"LAIexpanded"}: LAI of the woody plants with leaves actually unfolded (in m2/m2).}
 #'     \item{\code{"LAIdead"}: LAI of the woody plants corresponding to dead leaves (in m2/m2).}
+#'     \item{\code{"LAImistletoe"}: LAI of hemi-parasitic mistletoe plants (in m2/m2).}
 #'     \item{\code{"Cm"}: Water retention capacity of the canopy (in mm) (accounting for leaf phenology).}
 #'     \item{\code{"LgroundPAR"}: The percentage of PAR that reaches the ground (accounting for leaf phenology).}
 #'     \item{\code{"LgroundSWR"}: The percentage of SWR that reaches the ground (accounting for leaf phenology).}
@@ -4096,6 +4110,9 @@ soil_temperatureGradient <- function(gradTemp, widths, Temp) {
 #' #Call simulation function
 #' S1 <- spwb(x1, examplemeteo, latitude = 41.82592, elevation = 100)
 #' 
+#' #Examine daily results
+#' # shinyplot(S1)
+#' 
 #' #Switch to 'Sperry' transpiration mode
 #' control <- defaultControl("Sperry")
 #' 
@@ -4105,14 +4122,21 @@ soil_temperatureGradient <- function(gradTemp, widths, Temp) {
 #' #Call simulation function
 #' S2 <- spwb(x2, examplemeteo, latitude = 41.82592, elevation = 100)
 #' 
+#' #Examine daily results
+#' # shinyplot(S2)
+#' 
 #' #Switch to 'Sureau' transpiration mode
 #' control <- defaultControl("Sureau")
+#' control$subdailyResults <- TRUE  # To keep subdaily results
 #' 
 #' #Initialize input
 #' x3 <- spwbInput(exampleforest,examplesoil, SpParamsMED, control)
 #' 
 #' #Call simulation function
 #' S3 <- spwb(x3, examplemeteo, latitude = 41.82592, elevation = 100)
+#' 
+#' #Examine daily and subdaily results
+#' # shinyplot(S3)
 #' }
 #'                 
 #' @name spwb
@@ -4298,15 +4322,18 @@ pwb <- function(x, meteo, W, latitude, elevation, slope = NA_real_, aspect = NA_
 #' #Simulate water balance for one day only (Sperry mode)
 #' control <- defaultControl("Sperry")
 #' x2 <- spwbInput(exampleforest, examplesoil, SpParamsMED, control)
-#' sd2 <-spwb_day(x2, date, meteovec,
-#'               latitude = 41.82592, elevation = 100, slope=0, aspect=0)
+#' sd2 <- spwb_day(x2, date, meteovec,
+#'                 latitude = 41.82592, elevation = 100, slope=0, aspect=0)
 #' 
 #' #Simulate water balance for one day only (Sureau mode)
 #' control <- defaultControl("Sureau")
+#' control$subdailyResults <- TRUE # To keep subdaily results
 #' x3 <- spwbInput(exampleforest, examplesoil, SpParamsMED, control)
-#' sd3 <-spwb_day(x3, date, meteovec,
-#'               latitude = 41.82592, elevation = 100, slope=0, aspect=0)
+#' sd3 <- spwb_day(x3, date, meteovec,
+#'                 latitude = 41.82592, elevation = 100, slope=0, aspect=0)
 #' 
+#' #Examine subdaily results
+#' # shinyplot(sd3)
 #' 
 #' @name spwb_day
 spwb_day <- function(x, date, meteovec, latitude, elevation, slope = NA_real_, aspect = NA_real_, runon = 0.0, lateralFlows = NULL, waterTableDepth = NA_real_, modifyInput = TRUE) {

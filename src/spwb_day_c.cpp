@@ -1,6 +1,7 @@
 #include <RcppArmadillo.h>
 #include <numeric>
 #include <math.h>
+#include <cmath>
 #include "biophysicsutils_c.h"
 #include "lowlevel_structures_c.h"
 #include "lightextinction_basic_c.h"
@@ -95,6 +96,7 @@ void spwbDay_basic_c(BasicSPWB_RESULT& BSPWBres, BasicSPWB_COMM& BSPWB_comm, Mod
   std::vector<double>& LAIlive = x.above.LAI_live;
   std::vector<double>& LAIphe = x.above.LAI_expanded;
   std::vector<double>& LAIdead = x.above.LAI_dead;
+  std::vector<double>& LAImistletoe = x.above.LAI_mistletoe;
   int numCohorts = LAIphe.size();
   
   //Parameters
@@ -102,14 +104,15 @@ void spwbDay_basic_c(BasicSPWB_RESULT& BSPWBres, BasicSPWB_COMM& BSPWB_comm, Mod
   const std::vector<double>& gRainIntercept = x.paramsInterception.g;
   
   //STEP 1 - Update leaf area values according to the phenology of species and recalculate radiation extinction
-  double s = 0.0, LAIcell = 0.0, LAIcelllive = 0.0, LAIcellexpanded = 0.0, LAIcelldead = 0.0, Cm = 0.0;
+  double s = 0.0, LAIcell = 0.0, LAIcelllive = 0.0, LAIcellexpanded = 0.0, LAIcelldead = 0.0, LAIcellmistletoe = 0.0,Cm = 0.0;
   for(int c=0;c<numCohorts;c++) {
-    s += (kPAR[c]*(LAIphe[c]+LAIdead[c]));
-    LAIcell += LAIphe[c]+LAIdead[c];
+    s += (kPAR[c]*(LAIphe[c]+LAIdead[c]) + (x.control.mistletoe.kPAR*LAImistletoe[c]));
+    LAIcell += LAIphe[c]+LAIdead[c]+LAImistletoe[c];
     LAIcelldead += LAIdead[c];
     LAIcelllive += LAIlive[c];
     LAIcellexpanded +=LAIphe[c];
-    Cm += (LAIphe[c]+LAIdead[c])*gRainIntercept[c]; //LAI dead also counts on interception
+    LAIcellmistletoe +=LAImistletoe[c];
+    Cm += (LAIphe[c]+LAIdead[c])*gRainIntercept[c] + (LAImistletoe[c]*x.control.mistletoe.g); //LAI dead also counts on interception
   }
   
   //Percentage of irradiance reaching the herb layer
@@ -299,6 +302,7 @@ void spwbDay_basic_c(BasicSPWB_RESULT& BSPWBres, BasicSPWB_COMM& BSPWB_comm, Mod
   BSPWBres.WaterBalance.HerbTranspiration = std::accumulate(EherbVec.begin(), EherbVec.end(), 0.0);
   BSPWBres.WaterBalance.PlantExtraction = std::accumulate(BSPWBres.Soil.PlantExtraction.begin(), BSPWBres.Soil.PlantExtraction.end(), 0.0);
   BSPWBres.WaterBalance.Transpiration = std::accumulate(BTres.plants.Transpiration.begin(), BTres.plants.Transpiration.end(), 0.0);
+  BSPWBres.WaterBalance.MistletoeTranspiration = std::accumulate(BTres.plants.MistletoeTranspiration.begin(), BTres.plants.MistletoeTranspiration.end(), 0.0);
   BSPWBres.WaterBalance.HydraulicRedistribution =std::accumulate(BSPWBres.Soil.HydraulicInput.begin(), BSPWBres.Soil.HydraulicInput.end(), 0.0);
   
   BSPWBres.Stand.LAI = LAIcell;
@@ -306,6 +310,7 @@ void spwbDay_basic_c(BasicSPWB_RESULT& BSPWBres, BasicSPWB_COMM& BSPWB_comm, Mod
   BSPWBres.Stand.LAIlive = LAIcelllive;
   BSPWBres.Stand.LAIexpanded = LAIcellexpanded;
   BSPWBres.Stand.LAIdead = LAIcelldead;
+  BSPWBres.Stand.LAImistletoe = LAIcellmistletoe;
   BSPWBres.Stand.Cm = Cm;
   BSPWBres.Stand.LgroundPAR = LgroundPAR;
   BSPWBres.Stand.LgroundSWR = LgroundSWR;
@@ -392,6 +397,7 @@ void spwbDay_advanced_c(AdvancedSPWB_RESULT& ASPWBres, AdvancedSPWB_COMM& ASPWB_
   std::vector<double>& LAIlive = x.above.LAI_live;
   std::vector<double>& LAIphe = x.above.LAI_expanded;
   std::vector<double>& LAIdead = x.above.LAI_dead;
+  std::vector<double>& LAImistletoe = x.above.LAI_mistletoe;
   int numCohorts = LAIphe.size();
   
   //Parameters
@@ -399,14 +405,15 @@ void spwbDay_advanced_c(AdvancedSPWB_RESULT& ASPWBres, AdvancedSPWB_COMM& ASPWB_
   const std::vector<double>& gRainIntercept = x.paramsInterception.g;
   
   //STEP 1 - Update leaf area values according to the phenology of species and recalculate radiation extinction
-  double s = 0.0, LAIcell = 0.0, LAIcelllive = 0.0, LAIcellexpanded = 0.0, LAIcelldead = 0.0, Cm = 0.0;
+  double s = 0.0, LAIcell = 0.0, LAIcelllive = 0.0, LAIcellexpanded = 0.0, LAIcelldead = 0.0, LAIcellmistletoe = 0.0, Cm = 0.0;
   for(int c=0;c<numCohorts;c++) {
-    s += (kPAR[c]*(LAIphe[c]+LAIdead[c]));
-    LAIcell += LAIphe[c]+LAIdead[c];
+    s += (kPAR[c]*(LAIphe[c]+LAIdead[c]) + (x.control.mistletoe.kPAR*LAImistletoe[c]));
+    LAIcell += LAIphe[c]+LAIdead[c]+LAImistletoe[c];
     LAIcelldead += LAIdead[c];
     LAIcelllive += LAIlive[c];
     LAIcellexpanded +=LAIphe[c];
-    Cm += (LAIphe[c]+LAIdead[c])*gRainIntercept[c]; //LAI dead also counts on interception
+    LAIcellmistletoe += LAImistletoe[c];
+    Cm += ((LAIphe[c]+LAIdead[c])*gRainIntercept[c]+ (LAImistletoe[c]*x.control.mistletoe.g)); //LAI dead also counts on interception
   }
   
   //Percentage of irradiance reaching the herb layer
@@ -596,6 +603,7 @@ void spwbDay_advanced_c(AdvancedSPWB_RESULT& ASPWBres, AdvancedSPWB_COMM& ASPWB_
   ASPWBres.WaterBalance.HerbTranspiration = std::accumulate(EherbVec.begin(), EherbVec.end(), 0.0);
   ASPWBres.WaterBalance.PlantExtraction = std::accumulate(ASPWBres.Soil.PlantExtraction.begin(), ASPWBres.Soil.PlantExtraction.end(), 0.0);
   ASPWBres.WaterBalance.Transpiration = std::accumulate(ATres.plants.Transpiration.begin(), ATres.plants.Transpiration.end(), 0.0);
+  ASPWBres.WaterBalance.MistletoeTranspiration = std::accumulate(ATres.plants.MistletoeTranspiration.begin(), ATres.plants.MistletoeTranspiration.end(), 0.0);
   ASPWBres.WaterBalance.HydraulicRedistribution =std::accumulate(ASPWBres.Soil.HydraulicInput.begin(), ASPWBres.Soil.HydraulicInput.end(), 0.0);
   
   ASPWBres.Stand.LAI = LAIcell;
@@ -603,6 +611,7 @@ void spwbDay_advanced_c(AdvancedSPWB_RESULT& ASPWBres, AdvancedSPWB_COMM& ASPWB_
   ASPWBres.Stand.LAIlive = LAIcelllive;
   ASPWBres.Stand.LAIexpanded = LAIcellexpanded;
   ASPWBres.Stand.LAIdead = LAIcelldead;
+  ASPWBres.Stand.LAImistletoe = LAIcellmistletoe;
   ASPWBres.Stand.Cm = Cm;
   ASPWBres.Stand.LgroundPAR = LgroundPAR;
   ASPWBres.Stand.LgroundSWR = LgroundSWR;
@@ -1031,10 +1040,10 @@ void wb_day_inner_c(WB_RESULT& WBres, WBCommunicationStructures& WBcomm, WaterBa
       if(x_m.control.transpirationMode=="Granier") {
         try {
           BasicSPWB_RESULT& BSPWBres = dynamic_cast<BasicSPWB_RESULT&>(WBres);
-          spwbDay_basic_c(BSPWBres, WBcomm.BSPWBcomm, x_m, 
-                          meteovec, 
+          spwbDay_basic_c(BSPWBres, WBcomm.BSPWBcomm, x_m,
+                          meteovec,
                           elevation, slope, aspect,
-                          runon, 
+                          runon,
                           lateralFlows, waterTableDepth);
         } catch(const std::bad_cast&) {
           throw medfate::MedfateInternalError("Control transpiration mode set to basic(granier) but result object is not basic");

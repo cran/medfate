@@ -17,6 +17,7 @@ struct PlantsBasicTranspiration_RESULT {
   std::vector<double> AbsorbedSWRFraction;
   std::vector<double> Extraction;
   std::vector<double> Transpiration;
+  std::vector<double> MistletoeTranspiration;
   std::vector<double> GrossPhotosynthesis;
   std::vector<double> PlantPsi;
   std::vector<double> DDS;
@@ -33,6 +34,7 @@ struct PlantsBasicTranspiration_RESULT {
     FPAR = std::vector<double>(numCohorts, medfate::NA_DOUBLE);
     AbsorbedSWRFraction = std::vector<double>(numCohorts, medfate::NA_DOUBLE);
     Extraction = std::vector<double>(numCohorts, medfate::NA_DOUBLE);
+    MistletoeTranspiration = std::vector<double>(numCohorts, medfate::NA_DOUBLE);
     Transpiration = std::vector<double>(numCohorts, medfate::NA_DOUBLE);
     GrossPhotosynthesis = std::vector<double>(numCohorts, medfate::NA_DOUBLE);
     PlantPsi = std::vector<double>(numCohorts, medfate::NA_DOUBLE);
@@ -52,6 +54,7 @@ struct StandBasicTranspiration_RESULT {
   double LAIlive;
   double LAIexpanded;
   double LAIdead;
+  double LAImistletoe;
 };
 Rcpp::NumericVector copyStandBasicTranspirationResult_c(const StandBasicTranspiration_RESULT& stand);
 
@@ -84,13 +87,13 @@ Rcpp::List copyBasicTranspirationResult_c(const BasicTranspiration_RESULT& BTres
 struct BasicTranspiration_COMM {
   AbsorbedSWR_COMM AbSWRcomm;
   std::vector<double> CohASWRF;
-  std::vector<double> Tmax;
+  std::vector<double> TmaxMist;
   std::vector<double> TmaxCoh;
   arma::mat RHOPCohDyn;
   BasicTranspiration_COMM(size_t numCohorts, size_t ncanlayers, size_t nlayers) : 
     AbSWRcomm(numCohorts, ncanlayers), 
     CohASWRF(numCohorts),
-    Tmax(numCohorts),
+    TmaxMist(numCohorts),
     TmaxCoh(numCohorts), 
     RHOPCohDyn(numCohorts, nlayers){}
 };

@@ -1,4 +1,5 @@
 #include "RcppArmadillo.h"
+#include <cmath>
 #include "medfate.h"
 #include "forestutils_c.h"
 #include "incgamma_c.h"
@@ -37,6 +38,7 @@ void updateLAIdistributionVectors_c(arma::mat& LAIdist,
       } else {
         LAIdist(hi,ci) = 0.0;
       }
+      // Rcout<< hi << " " << ci << " "<< LAIdist(hi,ci)<<"\n";
     }
   }
 }

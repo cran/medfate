@@ -1,4 +1,5 @@
 #include <RcppArmadillo.h>
+#include <cmath>
 #include "biophysicsutils_c.h"
 #include "meteoland/utils_c.hpp"
 #include "lowlevel_structures_c.h"
@@ -20,6 +21,7 @@ Rcpp::DataFrame copyPlantAdvancedTranspirationResult_c(const PlantsAdvancedTrans
     _["FPAR"] = Rcpp::wrap(plants.FPAR),
     _["Extraction"] = Rcpp::wrap(plants.Extraction),
     _["Transpiration"] = Rcpp::wrap(plants.Transpiration),
+    _["MistletoeTranspiration"] = Rcpp::wrap(plants.MistletoeTranspiration),
     _["GrossPhotosynthesis"] = Rcpp::wrap(plants.GrossPhotosynthesis),
     _["NetPhotosynthesis"] = Rcpp::wrap(plants.NetPhotosynthesis),
     _["RootPsi"] = Rcpp::wrap(plants.RootPsi),
@@ -307,9 +309,6 @@ void transpirationAdvanced_c(AdvancedTranspiration_RESULT& ATres, AdvancedTransp
   double defaultWindSpeed = x.control.weather.defaultWindSpeed;
   double thermalCapacityLAI = x.control.advancedWB.thermalCapacityLAI;
   bool multiLayerBalance = x.control.advancedWB.multiLayerBalance;
-  std::string& stemCavitationRecovery = x.control.commonWB.stemCavitationRecovery;
-  std::string& leafCavitationRecovery = x.control.commonWB.leafCavitationRecovery;
-  double cavitationRecoveryMaximumRate = x.control.commonWB.cavitationRecoveryMaximumRate;
   bool sapFluidityVariation = x.control.advancedWB.sapFluidityVariation;
   std::string& lfmcComponent = x.control.fireHazard.lfmcComponent;
 
@@ -335,6 +334,7 @@ void transpirationAdvanced_c(AdvancedTranspiration_RESULT& ATres, AdvancedTransp
   std::vector<double>& LAIlive = x.above.LAI_live;
   std::vector<double>& LAIphe = x.above.LAI_expanded;
   std::vector<double>& LAIdead = x.above.LAI_dead;
+  std::vector<double>& LAImistletoe = x.above.LAI_mistletoe;
   std::vector<double>& H = x.above.H;
   std::vector<double>& CR = x.above.CR;
   
@@ -351,6 +351,7 @@ void transpirationAdvanced_c(AdvancedTranspiration_RESULT& ATres, AdvancedTransp
   std::vector<double>& LAIpx = x.canopy.LAIlive;
   std::vector<double>& LAIpe = x.canopy.LAIexpanded;
   std::vector<double>& LAIpd = x.canopy.LAIdead;
+  std::vector<double>& LAIps = x.canopy.LAImistletoe;
   std::vector<double>& Tair = x.canopy.Tair;
   std::vector<double>& VPair = x.canopy.VPair;
   std::vector<double>& Cair = x.canopy.Cair;
@@ -366,8 +367,10 @@ void transpirationAdvanced_c(AdvancedTranspiration_RESULT& ATres, AdvancedTransp
   arma::mat& LAImx = x.internalLAIDistribution.live;
   arma::mat& LAIme = x.internalLAIDistribution.expanded;
   arma::mat& LAImd = x.internalLAIDistribution.dead;
+  arma::mat& LAIms = x.internalLAIDistribution.mistletoe;
   std::vector<double>& PrevLAIexpanded = x.internalLAIDistribution.PrevLAIexpanded;
   std::vector<double>& PrevLAIdead = x.internalLAIDistribution.PrevLAIdead;
+  std::vector<double>& PrevLAImistletoe = x.internalLAIDistribution.PrevLAImistletoe;
   std::vector<double>& PARcohort = x.internalLAIDistribution.PARcohort;
 
   if(std::isnan(aspect)) aspect = 0.0;
@@ -433,6 +436,7 @@ void transpirationAdvanced_c(AdvancedTranspiration_RESULT& ATres, AdvancedTransp
 
   //Reset output data
   std::fill(outputPlants.Transpiration.begin(), outputPlants.Transpiration.end(), 0.0);
+  std::fill(outputPlants.MistletoeTranspiration.begin(), outputPlants.MistletoeTranspiration.end(), 0.0);
   std::fill(outputPlants.GrossPhotosynthesis.begin(), outputPlants.GrossPhotosynthesis.end(), 0.0);
   std::fill(outputPlants.NetPhotosynthesis.begin(), outputPlants.NetPhotosynthesis.end(), 0.0);
   std::fill(outputPlants.WaterBalance.begin(), outputPlants.WaterBalance.end(), 0.0);
@@ -455,23 +459,24 @@ void transpirationAdvanced_c(AdvancedTranspiration_RESULT& ATres, AdvancedTransp
   ////////////////////////////////////////
   // STEP 1. Estimate stand-level leaf area values and leaf distribution across layers from leaf-level live/expanded area
   ////////////////////////////////////////
-  double LAIcell = 0.0, LAIcelldead = 0.0, LAIcelllive = 0.0, LAIcellexpanded = 0.0;
+  double LAIcell = 0.0, LAIcelldead = 0.0, LAIcelllive = 0.0, LAIcellexpanded = 0.0, LAIcellmistletoe = 0.0;
   double sum_abs_exp = 0.0, sum_abs_dead = 0.0;
   double canopyHeight = 100.0; //Minimum canopy height of 1 m
   for(int c=0;c<numCohorts;c++) {
-    LAIcell += (LAIphe[c]+LAIdead[c]);
+    LAIcell += LAIphe[c]+LAIdead[c]+LAImistletoe[c];
     LAIcelldead += LAIdead[c];
     LAIcelllive += LAIlive[c];
     LAIcellexpanded +=LAIphe[c];
+    LAIcellmistletoe +=LAImistletoe[c];
     sum_abs_exp += std::abs(LAIphe[c] - PrevLAIexpanded[c]);
     sum_abs_dead += std::abs(LAIdead[c] - PrevLAIdead[c]);
-    if((canopyHeight<H[c]) && ((LAIphe[c]+LAIdead[c])>0.0)) canopyHeight = H[c];
+    if((canopyHeight<H[c]) && ((LAIphe[c]+LAIdead[c]+LAImistletoe[c])>0.0)) canopyHeight = H[c];
   }
 
   std::vector<double> lad(ncanlayers,0.0);
   if(numCohorts>0) {
     bool recalc_LAI = false;
-    if(std::isnan(PrevLAIexpanded[0]) || std::isnan(PrevLAIdead[0])) {
+    if(std::isnan(PrevLAIexpanded[0]) || std::isnan(PrevLAIdead[0]) || std::isnan(PrevLAImistletoe[0])) {
       recalc_LAI = true;
     } else{
       if(sum_abs_exp>0.001) {
@@ -484,27 +489,31 @@ void transpirationAdvanced_c(AdvancedTranspiration_RESULT& ATres, AdvancedTransp
       std::vector<double> z(ncanlayers+1,0.0);
       for(int i=1;i<=ncanlayers;i++) z[i] = z[i-1] + verticalLayerSize;
       for(int i=0; i<numCohorts;i++) {
-        PARcohort[i] = availableLight_c(H[i]*(1.0-(1.0-CR[i])/2.0), H, LAIphe, LAIdead, x.paramsInterception.kPAR, CR);
+        PARcohort[i] = availableLight_c(H[i]*(1.0-(1.0-CR[i])/2.0), H, LAIphe, LAIdead, LAImistletoe, x.paramsInterception.kPAR, CR, x.control.mistletoe.kPAR);
         PrevLAIexpanded[i] = LAIphe[i];
         PrevLAIdead[i] = LAIdead[i];
+        PrevLAImistletoe[i] = LAImistletoe[i];
       }
       //Update LAI distribution if necessary
       updateLAIdistributionVectors_c(LAIme, z, LAIphe, H, CR);
       updateLAIdistributionVectors_c(LAImd, z, LAIdead, H, CR);
       updateLAIdistributionVectors_c(LAImx, z, LAIlive, H, CR);//Maximum leaf expansion
+      updateLAIdistributionVectors_c(LAIms, z, LAImistletoe, H, CR); //Mistletoe distribution
+      
       //Update LAI profile per layer
       for(int i=0;i<ncanlayers;i++) {
-        LAIpx[i] = LAIpd[i] = LAIpe[i] = 0.0;
+        LAIpx[i] = LAIpd[i] = LAIpe[i] = LAIps[i] = 0.0;
         for(int j=0;j<numCohorts;j++) {
           LAIpx[i] += LAImx(i,j);
           LAIpe[i] += LAIme(i,j);
           LAIpd[i] += LAImd(i,j);
+          LAIps[i] += LAIms(i,j);
         }
         // Rcout<< i << " " << LAIpx[i] << " " << LAIpe[i] <<" "<< LAImx[i]<<"\n";
       }
     }
     // Add LAImax to leaf area density to have a wind speed profile in deciduous canopies
-    for(int i=0;i<ncanlayers;i++) lad[i] = 100.0*((0.9*LAIpe[i] + 0.1*LAIpx[i]) + LAIpd[i])/verticalLayerSize;
+    for(int i=0;i<ncanlayers;i++) lad[i] = 100.0*((0.9*LAIpe[i] + 0.1*LAIpx[i]) + LAIpd[i] + LAIps[i])/verticalLayerSize;
     for(int i=0; i<numCohorts;i++) {
       outputPlants.FPAR[i] = PARcohort[i];
     }
@@ -566,8 +575,9 @@ void transpirationAdvanced_c(AdvancedTranspiration_RESULT& ATres, AdvancedTransp
   double numSum = 0.0;
   double denSum = 0.0;
   for(int i=0;i<ncanlayers;i++) {
-    numSum +=Tair[i]*LAIpx[i];
-    denSum +=LAIpx[i];
+    numSum +=Tair[i]*(LAIpx[i] + LAIpd[i]+LAIps[i]);
+    denSum +=(LAIpx[i] + LAIpd[i]+LAIps[i]);
+    
   }
   Tcan[0] = numSum/denSum;
   // Rcout <<ncanlayers << " "<< numSum<< " " <<  denSum << " "<< Tcan[0] << "\n";
@@ -584,9 +594,10 @@ void transpirationAdvanced_c(AdvancedTranspiration_RESULT& ATres, AdvancedTransp
   // STEP 3c. Short-wave radiation extinction and absortion for sub-steps
   ////////////////////////////////////////
   instantaneousLightExtinctionAbsortion_c(ATres.lightExtinctionAbsortion,
-                                          LAIme, LAImd, LAImx,
+                                          LAIme, LAImd, LAImx, LAIms,
                                           x.paramsInterception.Beta_p, x.paramsInterception.Beta_q, x.paramsInterception.ClumpingIndex,
                                           x.paramsInterception.alphaSWR, x.paramsInterception.gammaSWR,
+                                          x.control.mistletoe.Beta_p, x.control.mistletoe.Beta_q, x.control.mistletoe.ClumpingIndex, x.control.mistletoe.alphaSWR, x.control.mistletoe.gammaSWR,
                                           ATres.directDiffuseDay, ntimesteps, 0.1);
 
   std::vector<std::vector<double>>& abs_PAR_SL_COH_list = ATres.lightExtinctionAbsortion.sunshade.PAR_SL;
@@ -668,7 +679,7 @@ void transpirationAdvanced_c(AdvancedTranspiration_RESULT& ATres, AdvancedTransp
         sperryNetworks[c].supply = std::make_unique<SupplyFunction>(buildSupplyFunctionNetwork_c(sperryNetworks[c]));
       } else if(transpirationMode == "Sureau") {
         //Build networks (Sureau transpiration mode)
-        initSureauNetwork_inner_c(sureauNetworks[c], c, LAIphe,
+        initSureauNetwork_inner_c(sureauNetworks[c], c, LAIphe, LAImistletoe,
                                   x.internalWater,
                                   x.paramsAnatomy, x.paramsTranspiration, x.paramsWaterStorage,
                                   VCroot_kmaxc, VGrhizo_kmaxc,
@@ -735,7 +746,7 @@ void transpirationAdvanced_c(AdvancedTranspiration_RESULT& ATres, AdvancedTransp
                                   sapFluidityDay);
         sperryNetworks[c].supply = std::make_unique<SupplyFunction>(buildSupplyFunctionNetwork_c(sperryNetworks[c]));
       } else if(transpirationMode == "Sureau") {
-        initSureauNetwork_inner_c(sureauNetworks[c], c, LAIphe,
+        initSureauNetwork_inner_c(sureauNetworks[c], c, LAIphe, LAImistletoe,
                                   x.internalWater,
                                   x.paramsAnatomy, x.paramsTranspiration, x.paramsWaterStorage,
                                   VCroot_kmaxc, VGrhizo_kmaxc,
@@ -827,8 +838,8 @@ void transpirationAdvanced_c(AdvancedTranspiration_RESULT& ATres, AdvancedTransp
         Jmax298_SL(c,n) +=Jmax298layer[i]*LAIme(i,c)*fsunlit[i];
         Vmax298_SH(c,n) +=Vmax298layer[i]*LAIme(i,c)*(1.0-fsunlit[i]);
         Jmax298_SH(c,n) +=Jmax298layer[i]*LAIme(i,c)*(1.0-fsunlit[i]);
-        // if(LAI_SL(c,n) > 0.0) Rcout<< n << " c "<< c << " l "<<i<<" LAI_SL: "<< Vmax298_SL(c,n)<<" Vmax298_SL: "<< Vmax298_SL(c,n) <<"\n";
       }
+      // if(LAI_SL(c,n) > 0.0 && c==16) Rcpp::Rcout << "TA - " << n << " c "<< c <<" LAI_SL: "<< LAI_SL(c,n)<<" LAI_SH: "<< LAI_SH(c,n) <<"\n";
     }
 
     //Determine canopy vertical layer corresponding to cohort canopy, sunlit and shade leaves for each cohort
@@ -857,7 +868,7 @@ void transpirationAdvanced_c(AdvancedTranspiration_RESULT& ATres, AdvancedTransp
     // STEP 5.1 Long-wave radiation balance
     ////////////////////////////////////////
     longwaveRadiationSHAW_inner_c(ATres.lwrExtinction[n], 
-                                  LAIme, LAImd, LAImx,
+                                  LAIme, LAImd, LAImx, LAIms,
                                   lwdr[n], x.soil.getTemp(0), Tair, 0.1);
     outputEnergyBalance.LWRsoil[n] = ATres.lwrExtinction[n].Lnet_ground;
     outputEnergyBalance.LWRcan[n]= ATres.lwrExtinction[n].Lnet_canopy; 
@@ -885,6 +896,13 @@ void transpirationAdvanced_c(AdvancedTranspiration_RESULT& ATres, AdvancedTransp
           outputShadeInst.Net_LWR(c,n) += Lnet_cohort_layer(i,c)*(1.0 - fsunlit[i]);
         }
         // if(outputSunlitInst.Net_LWR(c,n)!=0.0) Rcout << c << " " << n << " Net_LWR_SL " << outputSunlitInst.Net_LWR(c,n) << "\n";
+      } else {
+        outputSunlitInst.Abs_PAR(c,n) = medfate::NA_DOUBLE;
+        outputShadeInst.Abs_PAR(c,n) = medfate::NA_DOUBLE;
+        outputSunlitInst.Abs_SWR(c,n) = medfate::NA_DOUBLE;
+        outputShadeInst.Abs_SWR(c,n) = medfate::NA_DOUBLE;
+        outputSunlitInst.Net_LWR(c,n) = medfate::NA_DOUBLE;
+        outputShadeInst.Net_LWR(c,n) = medfate::NA_DOUBLE;
       }
     }
 
@@ -1018,7 +1036,14 @@ void transpirationAdvanced_c(AdvancedTranspiration_RESULT& ATres, AdvancedTransp
       double canopyThermalCapacity =  canopyAirThermalCapacity + (0.5*(0.8*LAIcelllive + 1.2*LAIcell) + LAIcelldead)*thermalCapacityLAI; //Avoids zero capacity for winter deciduous
       double Tcannext = Tcan[n]+ std::max(-3.0, std::min(3.0, tstep*outputEnergyBalance.Ebalcan[n]/canopyThermalCapacity)); //Avoids changes in temperature that are too fast
       if(n<(ntimesteps-1)) Tcan[n+1] = Tcannext;
-      for(int i=0;i<ncanlayers;i++) Tair[i] = Tcannext;
+      //Assumes a linear gradient between Tcannext and T
+      for(int i=0;i<ncanlayers;i++) {
+        if(n<(ntimesteps-1)) {
+          Tair[i] = (Tatm[n+1]*std::min(1.0,zup[i]/canopyHeight) + Tcannext*(1.0 - std::min(1.0,zup[i]/canopyHeight))); 
+        } else {
+          Tair[i] = (Tatm[n]*std::min(1.0,zup[i]/canopyHeight) + Tcannext*(1.0 - std::min(1.0,zup[i]/canopyHeight))); 
+        }
+      }
 
       //Soil energy balance including exchange with canopy
       if(x.snowpack==0.0) {
@@ -1253,11 +1278,11 @@ void transpirationAdvanced_c(AdvancedTranspiration_RESULT& ATres, AdvancedTransp
     }
 
     double SAmax = 10e4/x.paramsAnatomy.Al2As[c]; //cm2·m-2 of leaf area
-    double r = cavitationRecoveryMaximumRate*std::max(0.0, (x.internalWater.StemSympPsi[c] + 1.5)/1.5);
-    if(stemCavitationRecovery=="rate") {
+    double r = x.control.commonWB.cavitationRecoveryMaximumRate*std::max(0.0, (x.internalWater.StemSympPsi[c] + 1.5)/1.5);
+    if(x.control.commonWB.stemCavitationRecovery=="rate") {
       x.internalWater.StemPLC[c] = std::max(0.0, x.internalWater.StemPLC[c] - (r/SAmax));
     }
-    if(leafCavitationRecovery=="rate") {
+    if(x.control.commonWB.leafCavitationRecovery=="rate") {
       x.internalWater.LeafPLC[c] = std::max(0.0, x.internalWater.LeafPLC[c] - (r/SAmax));
     }
   }
@@ -1267,6 +1292,7 @@ void transpirationAdvanced_c(AdvancedTranspiration_RESULT& ATres, AdvancedTransp
   outputStand.LAIlive = LAIcelllive;
   outputStand.LAIexpanded = LAIcellexpanded;
   outputStand.LAIdead = LAIcelldead;
+  outputStand.LAImistletoe = LAIcellmistletoe;
   
   // Copy output plants
   for(int c =0;c<numCohorts;c++) {

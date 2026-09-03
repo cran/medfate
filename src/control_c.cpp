@@ -46,6 +46,31 @@ ControlParameters::ControlParameters(List x) {
   
   fireHazard.lfmcComponent = as<std::string>(x["lfmcComponent"]);
 
+  if(x.containsElementNamed("mistletoeParams")) {
+    List mistletoeParams = x["mistletoeParams"];
+    mistletoe.kPAR = mistletoeParams["kPAR"];
+    mistletoe.g = mistletoeParams["g"];
+    mistletoe.LeafWidth = mistletoeParams["LeafWidth"];
+    mistletoe.Tmax_LAI = mistletoeParams["Tmax_LAI"];
+    mistletoe.Tmax_LAIsq = mistletoeParams["Tmax_LAIsq"];
+    if(mistletoeParams.containsElementNamed("Gs_50")) mistletoe.Gsw_P50_Baldocchi = mistletoeParams["Gs_P50"];
+    else if(mistletoeParams.containsElementNamed("Gsw_50_Baldocchi")) mistletoe.Gsw_P50_Baldocchi = mistletoeParams["Gsw_P50_Baldocchi"];
+    if(mistletoeParams.containsElementNamed("Gs_slope")) mistletoe.Gsw_slope_Baldocchi = mistletoeParams["Gs_slope"];
+    else if(mistletoeParams.containsElementNamed("Gsw_slope_Baldocchi")) mistletoe.Gsw_slope_Baldocchi = mistletoeParams["Gsw_slope_Baldocchi"];
+    if(mistletoeParams.containsElementNamed("Gsw_AC_slope")) mistletoe.Gsw_AC_slope_Baldocchi = mistletoeParams["Gsw_AC_slope"];
+    else if(mistletoeParams.containsElementNamed("Gsw_AC_slope_Baldocchi")) mistletoe.Gsw_AC_slope_Baldocchi = mistletoeParams["Gsw_AC_slope_Baldocchi"];
+    mistletoe.Vmax298 = mistletoeParams["Vmax298"];
+    mistletoe.Jmax298 = mistletoeParams["Jmax298"];
+  }
+  if(x.containsElementNamed("defoliationParams")) {
+    List defoliationParams = x["defoliationParams"];
+    defoliation.cavitationInducedDefoliation = as<bool>(defoliationParams["cavitationInducedDefoliation"]);
+    defoliation.criticalLeafPLC = as<double>(defoliationParams["criticalLeafPLC"]);
+    defoliation.cvLeafP50 = as<double>(defoliationParams["cvLeafP50"]);
+  } else if(x.containsElementNamed("cavitationInducedDefoliation")){
+    defoliation.cavitationInducedDefoliation = as<bool>(x["cavitationInducedDefoliation"]);
+  }
+  
   if(x.containsElementNamed("truncateRootDistribution")) commonWB.truncateRootDistribution = as<bool>(x["truncateRootDistribution"]);
   commonWB.fullRhizosphereOverlapConductivity = 0.01;
   if(x.containsElementNamed("fullRhizosphereOverlapConductivity")) commonWB.fullRhizosphereOverlapConductivity = as<double>(x["fullRhizosphereOverlapConductivity"]);
@@ -62,7 +87,7 @@ ControlParameters::ControlParameters(List x) {
   commonWB.stemCavitationRecovery = as<std::string>(x["stemCavitationRecovery"]);
   commonWB.leafCavitationRecovery = as<std::string>(x["leafCavitationRecovery"]);
   commonWB.segmentedXylemVulnerability = as<bool>(x["segmentedXylemVulnerability"]);
-  commonWB.cavitationInducedDefoliation = as<bool>(x["cavitationInducedDefoliation"]);
+
 
   basicWB.hydraulicRedistributionFraction = as<double>(x["hydraulicRedistributionFraction"]);
   
@@ -70,6 +95,10 @@ ControlParameters::ControlParameters(List x) {
   advancedWB.ndailysteps = as<int>(x["ndailysteps"]);
   advancedWB.taper = as<bool>(x["taper"]);
   advancedWB.multiLayerBalance = as<bool>(x["multiLayerBalance"]);
+  advancedWB.leafConductanceEstimation = true;
+  if(x.containsElementNamed("leafConductanceEstimation")) advancedWB.leafConductanceEstimation = as<bool>(x["leafConductanceEstimation"]);
+  advancedWB.rootConductivityEstimation = true;
+  if(x.containsElementNamed("rootConductivityEstimation")) advancedWB.rootConductivityEstimation = as<bool>(x["rootConductivityEstimation"]);
   advancedWB.sapFluidityVariation = as<bool>(x["sapFluidityVariation"]);
   advancedWB.TPhase_gmin = as<double>(x["TPhase_gmin"]);
   advancedWB.Q10_1_gmin = as<double>(x["Q10_1_gmin"]);

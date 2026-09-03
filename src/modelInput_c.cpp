@@ -77,6 +77,11 @@ ModelInput::ModelInput(Rcpp::List x) : WaterBalanceModelInput(x){
   canopy.LAIlive = Rcpp::as< std::vector<double> >(canopyDF["LAIlive"]);
   canopy.LAIexpanded = Rcpp::as< std::vector<double> >(canopyDF["LAIexpanded"]);
   canopy.LAIdead = Rcpp::as< std::vector<double> >(canopyDF["LAIdead"]);
+  if(canopyDF.containsElementNamed("LAImistletoe")) {
+    canopy.LAImistletoe = Rcpp::as< std::vector<double> >(canopyDF["LAImistletoe"]);
+  } else {
+    canopy.LAImistletoe = std::vector<double>(canopyDF.nrows(), 0.0);
+  }
   canopy.Tair = Rcpp::as< std::vector<double> >(canopyDF["Tair"]);
   canopy.Cair = Rcpp::as< std::vector<double> >(canopyDF["Cair"]);
   canopy.VPair = Rcpp::as< std::vector<double> >(canopyDF["VPair"]);
@@ -95,6 +100,11 @@ ModelInput::ModelInput(Rcpp::List x) : WaterBalanceModelInput(x){
   above.LAI_expanded = Rcpp::as< std::vector<double> >(aboveDF["LAI_expanded"]);
   above.LAI_dead = Rcpp::as< std::vector<double> >(aboveDF["LAI_dead"]);
   if(aboveDF.containsElementNamed("LAI_nocomp")) above.LAI_nocomp = Rcpp::as< std::vector<double> >(aboveDF["LAI_nocomp"]);
+  if(aboveDF.containsElementNamed("LAI_mistletoe")) {
+    above.LAI_mistletoe = Rcpp::as< std::vector<double> >(aboveDF["LAI_mistletoe"]); 
+  } else {
+    above.LAI_mistletoe = std::vector<double>(aboveDF.nrows(), 0.0);
+  }
   if(aboveDF.containsElementNamed("N")) above.N = Rcpp::as< std::vector<double> >(aboveDF["N"]);
   if(aboveDF.containsElementNamed("DBH")) above.DBH = Rcpp::as< std::vector<double> >(aboveDF["DBH"]);
   if(aboveDF.containsElementNamed("Cover")) above.Cover = Rcpp::as< std::vector<double> >(aboveDF["Cover"]);
@@ -195,11 +205,16 @@ ModelInput::ModelInput(Rcpp::List x) : WaterBalanceModelInput(x){
   if(transpDF.containsElementNamed("Exp_Extract")) paramsTranspiration.Exp_Extract = Rcpp::as< std::vector<double> >(transpDF["Exp_Extract"]);
   if(transpDF.containsElementNamed("Gswmin")) paramsTranspiration.Gswmin = Rcpp::as< std::vector<double> >(transpDF["Gswmin"]);
   if(transpDF.containsElementNamed("Gswmax")) paramsTranspiration.Gswmax = Rcpp::as< std::vector<double> >(transpDF["Gswmax"]);
-  if(transpDF.containsElementNamed("Gs_Toptim")) paramsTranspiration.Gs_Toptim = Rcpp::as< std::vector<double> >(transpDF["Gs_Toptim"]);
-  if(transpDF.containsElementNamed("Gs_Tsens")) paramsTranspiration.Gs_Tsens = Rcpp::as< std::vector<double> >(transpDF["Gs_Tsens"]);
-  if(transpDF.containsElementNamed("Gsw_AC_slope")) paramsTranspiration.Gsw_AC_slope = Rcpp::as< std::vector<double> >(transpDF["Gsw_AC_slope"]);
-  if(transpDF.containsElementNamed("Gs_P50")) paramsTranspiration.Gs_P50 = Rcpp::as< std::vector<double> >(transpDF["Gs_P50"]);
-  if(transpDF.containsElementNamed("Gs_slope")) paramsTranspiration.Gs_slope = Rcpp::as< std::vector<double> >(transpDF["Gs_slope"]);
+  if(transpDF.containsElementNamed("Gs_Toptim")) paramsTranspiration.Gsw_Toptim_Jarvis = Rcpp::as< std::vector<double> >(transpDF["Gs_Toptim"]);
+  else if(transpDF.containsElementNamed("Gsw_Toptim_Jarvis")) paramsTranspiration.Gsw_Toptim_Jarvis = Rcpp::as< std::vector<double> >(transpDF["Gsw_Toptim_Jarvis"]);
+  if(transpDF.containsElementNamed("Gs_Tsens")) paramsTranspiration.Gsw_Tsens_Jarvis = Rcpp::as< std::vector<double> >(transpDF["Gs_Tsens"]);
+  else if(transpDF.containsElementNamed("Gsw_Tsens_Jarvis")) paramsTranspiration.Gsw_Tsens_Jarvis = Rcpp::as< std::vector<double> >(transpDF["Gsw_Tsens_Jarvis"]);
+  if(transpDF.containsElementNamed("Gsw_AC_slope")) paramsTranspiration.Gsw_AC_slope_Baldocchi = Rcpp::as< std::vector<double> >(transpDF["Gsw_AC_slope"]);
+  else if(transpDF.containsElementNamed("Gsw_AC_slope_Baldocchi")) paramsTranspiration.Gsw_AC_slope_Baldocchi = Rcpp::as< std::vector<double> >(transpDF["Gsw_AC_slope_Baldocchi"]);
+  if(transpDF.containsElementNamed("Gs_P50")) paramsTranspiration.Gsw_P50_Baldocchi = Rcpp::as< std::vector<double> >(transpDF["Gs_P50"]);
+  else if(transpDF.containsElementNamed("Gsw_P50_Baldocchi")) paramsTranspiration.Gsw_P50_Baldocchi = Rcpp::as< std::vector<double> >(transpDF["Gsw_P50_Baldocchi"]);
+  if(transpDF.containsElementNamed("Gs_slope")) paramsTranspiration.Gsw_slope_Baldocchi = Rcpp::as< std::vector<double> >(transpDF["Gs_slope"]);
+  else if(transpDF.containsElementNamed("Gsw_slope_Baldocchi")) paramsTranspiration.Gsw_slope_Baldocchi = Rcpp::as< std::vector<double> >(transpDF["Gsw_slope_Baldocchi"]);
   if(transpDF.containsElementNamed("WUE")) paramsTranspiration.WUE = Rcpp::as< std::vector<double> >(transpDF["WUE"]);
   if(transpDF.containsElementNamed("WUE_par")) paramsTranspiration.WUE_par = Rcpp::as< std::vector<double> >(transpDF["WUE_par"]);
   if(transpDF.containsElementNamed("WUE_co2")) paramsTranspiration.WUE_co2 = Rcpp::as< std::vector<double> >(transpDF["WUE_co2"]);
@@ -245,6 +260,11 @@ ModelInput::ModelInput(Rcpp::List x) : WaterBalanceModelInput(x){
     if(growthDF.containsElementNamed("RGRsapwoodmax")) paramsGrowth.RGRsapwoodmax = Rcpp::as< std::vector<double> >(growthDF["RGRsapwoodmax"]);
     if(growthDF.containsElementNamed("RGRcambiummax")) paramsGrowth.RGRcambiummax = Rcpp::as< std::vector<double> >(growthDF["RGRcambiummax"]);
     if(growthDF.containsElementNamed("RGRfinerootmax")) paramsGrowth.RGRfinerootmax = Rcpp::as< std::vector<double> >(growthDF["RGRfinerootmax"]);
+    if(growthDF.containsElementNamed("RGRbud")) {
+      paramsGrowth.RGRbud = Rcpp::as< std::vector<double> >(growthDF["RGRbud"]);
+    } else {
+      paramsGrowth.RGRbud = std::vector<double>(growthDF.nrows(), 10.0);
+    } 
     if(growthDF.containsElementNamed("SRsapwood")) paramsGrowth.SRsapwood = Rcpp::as< std::vector<double> >(growthDF["SRsapwood"]);
     if(growthDF.containsElementNamed("SRfineroot")) paramsGrowth.SRfineroot = Rcpp::as< std::vector<double> >(growthDF["SRfineroot"]);
     if(growthDF.containsElementNamed("RSSG")) paramsGrowth.RSSG = Rcpp::as< std::vector<double> >(growthDF["RSSG"]);
@@ -328,11 +348,24 @@ ModelInput::ModelInput(Rcpp::List x) : WaterBalanceModelInput(x){
     internalLAIDistribution.live = Rcpp::as<arma::mat>(liveMat);
     internalLAIDistribution.dead = Rcpp::as<arma::mat>(deadMat);
     internalLAIDistribution.expanded = Rcpp::as<arma::mat>(expandedMat);
+    if(intLAIDist.containsElementNamed("PrevLAImistletoe")) {
+      internalLAIDistribution.PrevLAImistletoe = Rcpp::as< std::vector<double> >(intLAIDist["PrevLAImistletoe"]);
+    } else {
+      internalLAIDistribution.PrevLAImistletoe = std::vector<double>(internalLAIDistribution.live.size(), 0.0);
+    }
+    if(intLAIDist.containsElementNamed("mistletoe")) {
+      Rcpp::NumericMatrix mistletoeMat = Rcpp::as<Rcpp::NumericMatrix>(intLAIDist["mistletoe"]);
+      internalLAIDistribution.mistletoe = Rcpp::as<arma::mat>(mistletoeMat);
+    } else {
+      internalLAIDistribution.mistletoe = arma::mat(liveMat.nrow(), liveMat.ncol());
+      internalLAIDistribution.mistletoe.fill(0.0);
+    }
   }
   //Internal water variables
   if(x.containsElementNamed("internalWater")) {
     Rcpp::DataFrame internalWaterDF = Rcpp::as<Rcpp::DataFrame>(x["internalWater"]);
     if(internalWaterDF.containsElementNamed("Einst")) internalWater.Einst = Rcpp::as< std::vector<double> >(internalWaterDF["Einst"]);
+    if(internalWaterDF.containsElementNamed("Emist")) internalWater.Emist = Rcpp::as< std::vector<double> >(internalWaterDF["Emist"]);
     if(internalWaterDF.containsElementNamed("Elim")) internalWater.Elim = Rcpp::as< std::vector<double> >(internalWaterDF["Elim"]);
     if(internalWaterDF.containsElementNamed("Emin_L")) internalWater.Emin_L = Rcpp::as< std::vector<double> >(internalWaterDF["Emin_L"]);
     if(internalWaterDF.containsElementNamed("Emin_S")) internalWater.Emin_S = Rcpp::as< std::vector<double> >(internalWaterDF["Emin_S"]);
@@ -487,6 +520,12 @@ void ModelInput::copyStateToList(Rcpp::List x) {
     Cair[l] = canopy.Cair[l];
     VPair[l] = canopy.VPair[l];
     // Rcpp::Rcout << l << ": " <<  canopy.LAIexpanded[l] << "\n";
+  }
+  if(canopyDF.containsElementNamed("LAImistletoe")) {
+    Rcpp::NumericVector LAImistletoe = canopyDF["LAImistletoe"];
+    for(int l = 0;l < ncanlayers; l++) {
+      LAImistletoe[l] = canopy.LAImistletoe[l];
+    }
   }
 
   //Cohort definition does not change with spwb/growth simulations
@@ -656,6 +695,21 @@ void ModelInput::copyStateToList(Rcpp::List x) {
         liveMat(l,c) = internalLAIDistribution.live(l,c);
         expandedMat(l,c) = internalLAIDistribution.expanded(l,c);
         deadMat(l,c) = internalLAIDistribution.dead(l,c);
+        // Rcpp::Rcout<< "In copy state: "<< l << " " << c << " "<< expandedMat(l,c)<<"\n";
+      }
+    }
+    if(intLAIDist.containsElementNamed("PrevLAIMistletoe")) {
+      Rcpp::NumericVector PrevLAIMistletoe = intLAIDist["PrevLAIMistletoe"];
+      for(int c = 0;c < numCohorts; c++) {
+        PrevLAIMistletoe[c] = internalLAIDistribution.PrevLAImistletoe[c];
+      }
+    }
+    if(intLAIDist.containsElementNamed("mistletoe")) {
+      Rcpp::NumericMatrix mistletoeMat = Rcpp::as<Rcpp::NumericMatrix>(intLAIDist["mistletoe"]);
+      for(int c = 0;c < numCohorts; c++) {
+        for(int l = 0;l < ncanlayers; l++) {
+          mistletoeMat(l,c) = internalLAIDistribution.mistletoe(l,c);
+        }
       }
     }
   }
@@ -666,6 +720,10 @@ void ModelInput::copyStateToList(Rcpp::List x) {
     if(internalWaterDF.containsElementNamed("Einst")) {
       Rcpp::NumericVector Einst = internalWaterDF["Einst"];
       for(int c = 0;c < numCohorts; c++) Einst[c] = internalWater.Einst[c];
+    }
+    if(internalWaterDF.containsElementNamed("Emist")) {
+      Rcpp::NumericVector Emist = internalWaterDF["Emist"];
+      for(int c = 0;c < numCohorts; c++) Emist[c] = internalWater.Emist[c];
     }
     if(internalWaterDF.containsElementNamed("Elim")) {
       Rcpp::NumericVector Elim = internalWaterDF["Elim"];

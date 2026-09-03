@@ -25,6 +25,7 @@ struct Above {
   std::vector<double> LAI_expanded;
   std::vector<double> LAI_dead;
   std::vector<double> LAI_nocomp;
+  std::vector<double> LAI_mistletoe;
   std::vector<double> Loading;
   std::vector<double> Age;
   std::vector<std::string> ObsID;
@@ -56,6 +57,7 @@ struct CanopyParams {
   std::vector<double> LAIlive;
   std::vector<double> LAIexpanded;
   std::vector<double> LAIdead;
+  std::vector<double> LAImistletoe;
   std::vector<double> Tair;
   std::vector<double> Cair;
   std::vector<double> VPair;
@@ -126,11 +128,11 @@ struct TranspirationParams {
   std::vector<double> Exp_Extract;
   std::vector<double> Gswmin;
   std::vector<double> Gswmax;
-  std::vector<double> Gs_Toptim;
-  std::vector<double> Gs_Tsens;
-  std::vector<double> Gsw_AC_slope;
-  std::vector<double> Gs_P50;
-  std::vector<double> Gs_slope;
+  std::vector<double> Gsw_Toptim_Jarvis;
+  std::vector<double> Gsw_Tsens_Jarvis;
+  std::vector<double> Gsw_AC_slope_Baldocchi;
+  std::vector<double> Gsw_P50_Baldocchi;
+  std::vector<double> Gsw_slope_Baldocchi;
   std::vector<double> WUE;
   std::vector<double> WUE_par;
   std::vector<double> WUE_co2;
@@ -177,6 +179,7 @@ struct GrowthParams {
   std::vector<double> RGRsapwoodmax;
   std::vector<double> RGRcambiummax;
   std::vector<double> RGRfinerootmax;
+  std::vector<double> RGRbud;
   std::vector<double> SRsapwood;
   std::vector<double> SRfineroot;
   std::vector<double> RSSG;
@@ -242,6 +245,7 @@ struct InternalPhenology {
 
 struct InternalWater {
   std::vector<double> Einst;
+  std::vector<double> Emist;
   std::vector<double> Elim;
   std::vector<double> Emin_L;
   std::vector<double> Emin_S;
@@ -319,10 +323,12 @@ struct InternalSOC {
 struct InternalLAIDistribution{
   std::vector<double> PrevLAIexpanded;
   std::vector<double> PrevLAIdead;
+  std::vector<double> PrevLAImistletoe;
   std::vector<double> PARcohort;
   arma::mat live;
   arma::mat expanded;
   arma::mat dead;
+  arma::mat mistletoe;
 };
 
 struct InternalFCCS {
