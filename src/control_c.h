@@ -35,7 +35,6 @@ struct WeatherParams {
 
 struct PhenologyControlParams {
   bool leafPhenology;
-  double unfoldingDD;
 };
 
 struct MistletoeParams {
@@ -58,8 +57,13 @@ struct MistletoeParams {
 
 struct DefoliationParams {
   bool cavitationInducedDefoliation = true;
-  double criticalLeafPLC = 0.88;
+  double criticalLeafPLC = 0.50;
+  double criticalBudPLC = 0.88;
   double cvLeafP50 = 10.0;
+  double cvBudP50 = 10.0;
+  bool temperatureInducedDefoliation = true;
+  double criticalLeafTS = 50.0;
+  double cvLeafTS = 5.0;
 };
 
 struct CommonWBParams {
@@ -70,13 +74,13 @@ struct CommonWBParams {
   std::string infiltrationMode;
   std::string stemCavitationRecovery;
   std::string leafCavitationRecovery;
-  bool segmentedXylemVulnerability;
   double cavitationRecoveryMaximumRate;
   bool truncateRootDistribution;
   double fullRhizosphereOverlapConductivity;
   std::string soilFunctions;
   std::string VG_PTF;
   int max_nsubsteps_soil;
+  double richards_tolerance;
   double infiltrationCorrection;
 };
 
@@ -160,8 +164,10 @@ struct GrowthControlParams {
   bool allowDessication;
   bool allowStarvation;
   bool sinkLimitation;
+  bool treeDynamics;
   bool shrubDynamics;
   bool herbDynamics;
+  bool herbLayerDynamics;
   std::string allocationStrategy;
   double phloemConductanceFactor;
   double nonSugarConcentration;
@@ -170,6 +176,8 @@ struct GrowthControlParams {
   ConstructionCosts constructionCosts;
   SenescenceRates senescenceRates;
   MaximumRelativeGrowthRates maximumRelativeGrowthRates;
+  double organogenesisEfficiencyModulator;
+  double elongationEfficiencyModulator;
 };
 
 struct MortalityParams {

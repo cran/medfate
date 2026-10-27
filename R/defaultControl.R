@@ -50,6 +50,7 @@
 #'       \item{\code{VG_PTF}: String indicating the pedotransfer functions for van Genuchten parameters (either 'Toth' or 'Carsel').}
 #'       \item{\code{ndailysteps [= 24]}: Number of steps into which each day is divided for determination of soil water balance, stomatal conductance, transpiration and photosynthesis (24 equals 1-hour intervals).}
 #'       \item{\code{max_nsubsteps_soil [= 300]}: Maximum number of substeps for soil water balance solving.}
+#'       \item{\code{richards_tolerance [= 0.001]}: Error tolerance for Richards solving (mm).}
 #'       \item{\code{defaultWindSpeed [= 2.5]}: Default wind speed value (in m/s) to be used when missing from data. }
 #'       \item{\code{defaultCO2 [= 386]}: Default atmospheric (abovecanopy) CO2 concentration (in micromol·mol-1 = ppm). This value will be used whenever CO2 concentration is not specified in the weather input. }
 #'       \item{\code{defaultRainfallIntensityPerMonth [= c(1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 5.6, 5.6, 5.6, 5.6, 5.6, 1.5)]}: A vector of twelve values indicating the rainfall intensity (mm/h) per month. 
@@ -57,7 +58,6 @@
 #'       \item{\code{leafPhenology [= TRUE]}: Boolean flag to indicate the simulation of leaf phenology for winter-deciduous species.}
 #'       \item{\code{bareSoilEvaporation [= TRUE]}: Boolean flag to indicate the simulation of evaporation from bare soil.}
 #'       \item{\code{unlimitedSoilWater [= FALSE]}: Boolean flag to indicate the simulation of plant transpiration assuming that soil water is always at field capacity.}
-#'       \item{\code{unfoldingDD [= 300]}: Degree-days for complete leaf unfolding after budburst has occurred.}
 #'       \item{\code{interceptionMode [= "Gash1995"]}: Infiltration model, either "Gash1995" or "Liu2001".}
 #'       \item{\code{infiltrationMode [= "GreenAmpt1911"]}: Infiltration model, either "GreenAmpt1911" or "Boughton1989".}
 #'       \item{\code{infiltrationCorrection [= 5.0]}: Factor to correct infiltration amount in the GreenAmpt1911 model in single-domain simulations.}
@@ -72,8 +72,7 @@
 #'       \item{\code{fullRhizosphereOverlapConductivity [= 0.01]}: The minimum soil hydraulic conductivity (in cm/day) allowing a full connectivity of water pools, when \code{rhizosphereOverlap = "partial"}.}
 #'       \item{\code{verticalLayerSize [= 100]}: Size of vertical layers (in cm) for the calculation of light extinction (and photosynthesis).}
 #'       \item{\code{windMeasurementHeight [= 200]}: Height (in cm) over the canopy corresponding to wind measurements.}
-#'       \item{\code{segmentedXylemVulnerability [= TRUE/FALSE]}: If \code{FALSE} leaf and root vulnerability curves will be equal to those of stem. By default, \code{segmentedXylemVulnerability = TRUE} for \code{transpirationMode = "Sperry"} and \code{segmentedXylemVulnerability = FALSE} for \code{transpirationMode = "Sureau"}.}
-#'       \item{\code{leafCavitationEffects, stemCavitationEffects [= FALSE/TRUE]}: A flag indicating whether cavitation effects on conductance of leaves and stem are applied. Only relevant for \code{transpirationMode = "Sperry"}.}
+#'       \item{\code{leafCavitationEffects, stemCavitationEffects [= TRUE/TRUE]}: A flag indicating whether cavitation effects on conductance of leaf apoplasm and stem are applied. Only relevant for \code{transpirationMode = "Sperry"}.}
 #'       \item{\code{leafCavitationRecovery, stemCavitationRecovery [= "rate"]}: A string indicating how recovery of previous cavitation leaf/stem xylem is done (only relevant for functions \code{\link{spwb}} and \code{\link{spwb_day}}):
 #'           \itemize{
 #'             \item{"none" - no recovery.}
@@ -100,9 +99,14 @@
 #'       }
 #'       \item{\code{defoliationParams}: A list with the following elements:
 #'           \itemize{
-#'              \item{\code{cavitationInducedDefoliation [= TRUE]}: Whether leaf hydraulic impairment induces defoliation.}
-#'              \item{\code{criticalLeafPLC [= 0.88]}: Level of PLC (a proportion) corresponding to 50 % crown defoliation.}
-#'              \item{\code{cvLeafP50 [= 10.0]}: Coefficient of variation (in percent) of leaf P50 within crown leaves.}
+#'              \item{\code{cavitationInducedDefoliation [= TRUE]}: Whether leaf hydraulic impairment induces defoliation (and bud senescence in the growth model).}
+#'              \item{\code{criticalLeafPLC [= 0.50]}: Default value of PLC (a proportion) associated to cavitation-induced leaf senescence.}
+#'              \item{\code{criticalBudPLC [= 0.88]}: Default value of PLC (a proportion) associated to cavitation-induced bud (branch) senescence.}
+#'              \item{\code{cvLeafP50 [= 10.0]}: Coefficient of variation (in percent) of leaf P50 within crown.}
+#'              \item{\code{cvBudP50 [= 10.0]}: Coefficient of variation (in percent) of bud (branch) P50 within crown.}
+#'              \item{\code{temperatureInducedDefoliation [=TRUE]}: Whether heat stress induces defoliation.}
+#'              \item{\code{criticalLeafTS [= 50.0]}: Default value for critical leaf temperature associated to heat-induced leaf senescence.}
+#'              \item{\code{cvLeafTS [= 5.0]}: Coefficient of variation (in percent) of leaf critical senescence temperature within crown.}
 #'           }
 #'       }
 #'     }
@@ -123,7 +127,7 @@
 #'       \item{\code{taper [= TRUE]}: Whether taper of xylem conduits is accounted for when calculating aboveground stem conductance from xylem conductivity.}
 #'       \item{\code{thermalCapacityLAI [= 1000000]}: Thermal canopy capacitance per LAI unit.}
 #'       \item{\code{rootRadialConductance [= 4]}: Radial conductance in roots (mmol·s-1·m-2·MPa-1).}
-#'       \item{\code{averageFracRhizosphereResistance [= 0.15]}: Fraction to total continuum (leaf+stem+root+rhizosphere) resistance that corresponds to rhizosphere (averaged across soil water potential values).}
+#'       \item{\code{averageFracRhizosphereResistance [= 0.25]}: Fraction to total continuum (leaf+stem+root+rhizosphere) resistance that corresponds to rhizosphere (averaged across soil water potential values down to stomatal closure).}
 #'       \item{\code{boundaryLayerSize [= 2000]}: Size of the boundary layer (in cm) over the canopy (relevant for multi-layer canopy energy balance).}
 #'     }
 #'   
@@ -161,8 +165,10 @@
 #'       \item{\code{allowDessication [= TRUE]}: Boolean flag to indicate that mortality by dessication is allowed.}
 #'       \item{\code{allowStarvation [= TRUE]}: Boolean flag to indicate that mortality by starvation is allowed.}
 #'       \item{\code{sinkLimitation [= TRUE]}: Boolean flag to indicate that temperature and turgor limitations to growth are applied.}
-#'       \item{\code{shrubDynamics [= TRUE]}: Boolean flag to allow the application of demographic processes to shrubs.}
-#'       \item{\code{herbDynamics [= TRUE]}: Boolean flag to allow dynamic herb leaf area as a function of shading due to leaf area of woody cohorts.}
+#'       \item{\code{treeDynamics [= TRUE]}: Boolean flag to allow the application of demographic processes to tree cohorts.}
+#'       \item{\code{shrubDynamics [= TRUE]}: Boolean flag to allow the application of demographic processes to shrub cohorts.}
+#'       \item{\code{herbDynamics [= TRUE]}: Boolean flag to allow the application of demographic processes to herb cohorts.}
+#'       \item{\code{herbLayerDynamics [= TRUE]}: Boolean flag to allow dynamic herb leaf area as a function of shading due to leaf area of woody cohorts.}
 #'       \item{\code{allocationStrategy [= "Al2As"]}: Strategy for allocation (either "Plant_kmax", for constant maximum plant conductance, or "Al2As" for constant Huber value).}
 #'       \item{\code{phloemConductanceFactor [= 0.2])}: Factor to transform stem xylem conductance to stem phloem conductance (only for transpirationMode = "Sperry").}
 #'       \item{\code{nonSugarConcentration [= 0.25]}: Non-sugar (inorganic) solute concentration  (mol·l-1) in cells.}
@@ -170,7 +176,9 @@
 #'       \item{\code{minimumRelativeStarchForGrowth [= 0.50]}: Default minimum concentration of storage carbon (starch), relative to the maximum storage capacity, for sapwood growth to occur, when not specified via SpParams (\code{RSSG}). }
 #'       \item{\code{constructionCosts [= c(leaf = 1.5, sapwood = 1.47, fineroot = 1.30)]}: Default construction costs, including respiration and structural carbon, per dry weight of new tissue (g gluc · g dry -1) when not specified via SpParams (\code{CCleaf}, \code{CCsapwood} and \code{CCfineroot}).}
 #'       \item{\code{senescenceRates [= c(sapwood = 0.0001261398, fineroot = 0.001897231)]}: Default senescence rates (day-1) for sapwood and fineroots when not specified via SpParams (\code{SRsapwood} and \code{SRfineroot}). Defaults are equivalent to 9%, 5% and 50% annual turnover for gymnosperm sapwood, angiosperm sapwood and fine roots, respectively.}
-#'       \item{\code{maximumRelativeGrowthRates [=   c(leaf = 0.09, cambium = 0.005, sapwood = 0.002, fineroot = 0.1)]}: Default maximum relative growth rates for leaves (m2 leaf ·cm-2 sapwood· day-1), tree sapwood (cm2 sapwood· cm-1 cambium · day-1), shrub sapwood (cm2 sapwood ·cm-2 sapwood· day-1) and fine roots (g dw · g dw -1 · day -1) when not specified via SpParams (\code{RGRleafmax}, \code{RGRcambiummax} , \code{RGRsapwoodmax} and \code{RGRfinerootmax}, respectively).}
+#'       \item{\code{maximumRelativeGrowthRates [=   c(leaf = 0.001, cambium = 0.005, sapwood = 0.002, fineroot = 0.1)]}: Default maximum relative growth rates for leaves (m2 leaf ·cm-2 sapwood· day-1), tree sapwood (cm2 sapwood· cm-1 cambium · day-1), shrub sapwood (cm2 sapwood ·cm-2 sapwood· day-1) and fine roots (g dw · g dw -1 · day -1) when not specified via SpParams (\code{RGRleafmax}, \code{RGRcambiummax} , \code{RGRsapwoodmax} and \code{RGRfinerootmax}, respectively).}
+#'       \item{\code{organogenesisEfficiencyModulator [= 1]}: Exponent relating turgor-related relative growth rate with organogenesis efficiency.}
+#'       \item{\code{elongationEfficiencyModulator [= 1]}: Exponent relating turgor-related relative growth rate with leaf elongation efficiency.}
 #'       \item{\code{mortalityMode [= "density/deterministic"]}: String describing how mortality is applied. Current accepted values are combinations of "cohort" vs "density" (for whole-cohort mortality vs reduction of stem density) and "deterministic" vs. "stochastic".}
 #'       \item{\code{mortalityBaselineRate [= 0.0015]}: Default deterministic proportion or probability specifying the baseline reduction of cohort's density occurring in a year (for \code{mortalityMode = "density/deterministic" or "density/stochastic").}}
 #'       \item{\code{mortalityRelativeSugarThreshold [= 0.4]}: Threshold of stem sugar concentration relative to the equilibrium sugar concentration, resulting in an increased starvation mortality rate/probability whenever levels are below.}
@@ -251,6 +259,7 @@ defaultControl<-function(transpirationMode = "Granier",
     VG_PTF = "Toth",
     ndailysteps = 24,
     max_nsubsteps_soil = 300,
+    richards_tolerance = 0.0001,
     defaultWindSpeed = 2.5, #m/s
     defaultCO2 = 386, #ppm
     defaultRainfallIntensityPerMonth = c(1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 5.6, 5.6, 5.6, 5.6, 5.6, 1.5),
@@ -260,10 +269,8 @@ defaultControl<-function(transpirationMode = "Granier",
     interceptionMode = "Gash1995",
     infiltrationMode = "GreenAmpt1911",
     infiltrationCorrection = 5.0,
-    unfoldingDD = 300,
     verticalLayerSize = 100,
     windMeasurementHeight = 200,
-    segmentedXylemVulnerability = TRUE,
     stemCavitationRecovery = "rate",
     leafCavitationRecovery = "rate",
     lfmcComponent = "fine",
@@ -271,8 +278,13 @@ defaultControl<-function(transpirationMode = "Granier",
                            Tmax_LAI = 0.134, Tmax_LAIsq = -0.006, Gsw_P50_Baldocchi = -2.5, Gsw_slope_Baldocchi = 30, Gsw_AC_slope_Baldocchi = 8,
                            Vmax298 = 80.0, Jmax298 = 120.0),
     defoliationParams = list(cavitationInducedDefoliation = TRUE,
-                             criticalLeafPLC = 0.88,
-                             cvLeafP50 = 10.0),
+                             criticalLeafPLC = 0.50,
+                             criticalBudPLC = 0.88,
+                             cvLeafP50 = 10.0,
+                             cvBudP50 = 10.0,
+                             temperatureInducedDefoliation = TRUE,
+                             criticalLeafTS = 50.0,
+                             cvLeafTS = 5.0),
     
     #spwb with granier
     hydraulicRedistributionFraction = 0.1,
@@ -288,7 +300,7 @@ defaultControl<-function(transpirationMode = "Granier",
     Q10_1_gmin = 1.2,
     Q10_2_gmin = 4.8,
     rootRadialConductance = 4,
-    averageFracRhizosphereResistance = 0.15,
+    averageFracRhizosphereResistance = 0.25,
     thermalCapacityLAI = 1000000,
     boundaryLayerSize = 2000,
     cavitationRecoveryMaximumRate = 0.05,
@@ -296,7 +308,7 @@ defaultControl<-function(transpirationMode = "Granier",
 
     #spwb with sperry
     numericParams=list(maxNsteps = 400, ntrial = 200, psiTol = 0.0001, ETol = 0.0000001),
-    leafCavitationEffects = FALSE,
+    leafCavitationEffects = TRUE,
     stemCavitationEffects = TRUE,
     
     #spwb with sureau
@@ -318,6 +330,7 @@ defaultControl<-function(transpirationMode = "Granier",
     allowDessication = TRUE,
     allowStarvation = TRUE,
     sinkLimitation = TRUE,
+    treeDynamics = TRUE,
     shrubDynamics = TRUE,
     herbDynamics = TRUE,
     allocationStrategy = "Al2As",
@@ -330,10 +343,12 @@ defaultControl<-function(transpirationMode = "Granier",
                              fineroot = 1.30), #  g gluc · g dw -1
     senescenceRates = list(sapwood = 0.000135, # day-1 Equivalent to annual 4.8% 1-(1-0.048)^(1.0/365)
                       fineroot = 0.001897231), #day-1 Equivalent to annual 50% 1-(1-0.5)^(1.0/365)
-    maximumRelativeGrowthRates = list(leaf = 0.09, # m2 leaf ·cm-2 sapwood· day-1
+    maximumRelativeGrowthRates = list(leaf = 0.001, # m2 leaf ·cm-2 sapwood· day-1
                                       cambium = 0.0025, # cm2 sapwood ·cm-1 cambium· day-1
                                       sapwood = 0.002, # cm2 sapwood ·cm-2 sapwood· day-1
                                       fineroot = 0.1), # g dw · g dw -1 · day -1
+    organogenesisEfficiencyModulator = 1,
+    elongationEfficiencyModulator = 1,
     mortalityMode = "density/deterministic",
     mortalityBaselineRate = 0.0015,
     mortalityRelativeSugarThreshold = 0.4,
@@ -378,6 +393,5 @@ defaultControl<-function(transpirationMode = "Granier",
     recrShrubCover = 1,
     recrShrubHeight = 25
   )
-  if(transpirationMode=="Sureau") l$segmentedXylemVulnerability = FALSE
   return(l)
 }

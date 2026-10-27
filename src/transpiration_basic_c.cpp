@@ -120,8 +120,6 @@ void transpirationBasic_c(BasicTranspiration_RESULT& BTres, BasicTranspiration_C
   const std::vector<double>& Exp_Extract = x.paramsTranspiration.Exp_Extract;
   const std::vector<double>& VCstem_c = x.paramsTranspiration.VCstem_c;
   const std::vector<double>& VCstem_d = x.paramsTranspiration.VCstem_d;
-  const std::vector<double>& VCleaf_c = x.paramsTranspiration.VCleaf_c;
-  const std::vector<double>& VCleaf_d = x.paramsTranspiration.VCleaf_d;
   const std::vector<double>& WUE = x.paramsTranspiration.WUE;
   const std::vector<double>& WUE_par = x.paramsTranspiration.WUE_par;
   const std::vector<double>& WUE_co2 = x.paramsTranspiration.WUE_co2;
@@ -143,7 +141,6 @@ void transpirationBasic_c(BasicTranspiration_RESULT& BTres, BasicTranspiration_C
 
   
   //Internal state variables
-  std::vector<double>& phi = x.internalPhenology.phi;
   std::vector<double>& PlantPsi = x.internalWater.PlantPsi;
   std::vector<double>& StemPLC = x.internalWater.StemPLC;
   std::vector<double>& LeafPLC = x.internalWater.LeafPLC;
@@ -435,14 +432,14 @@ void transpirationBasic_c(BasicTranspiration_RESULT& BTres, BasicTranspiration_C
   //Plant water status (StemPLC, RWC, DDS)
   for(int c=0;c<numCohorts;c++) {
     if(stemCavitationRecovery!="total") {
-      StemPLC[c] = std::max(1.0 - xylemConductance_c(PlantPsi[c], 1.0, VCstem_c[c], VCstem_d[c]), StemPLC[c]); //Track current embolism if no refill
+      StemPLC[c] = std::max(1.0 - xylemConductance_c(PlantPsi[c], 1.0, x.paramsTranspiration.VCstem_c[c], x.paramsTranspiration.VCstem_d[c]), StemPLC[c]); //Track current embolism if no refill
     } else {
-      StemPLC[c] = 1.0 - xylemConductance_c(PlantPsi[c], 1.0, VCstem_c[c], VCstem_d[c]);
+      StemPLC[c] = 1.0 - xylemConductance_c(PlantPsi[c], 1.0, x.paramsTranspiration.VCstem_c[c], x.paramsTranspiration.VCstem_d[c]);
     }
     if(leafCavitationRecovery!="total") {
-      LeafPLC[c] = std::max(1.0 - xylemConductance_c(PlantPsi[c], 1.0, VCleaf_c[c], VCleaf_d[c]), LeafPLC[c]); //Track current embolism if no refill
+      LeafPLC[c] = std::max(1.0 - xylemConductance_c(PlantPsi[c], 1.0, x.paramsTranspiration.VCleafapo_c[c], x.paramsTranspiration.VCleafapo_d[c]), LeafPLC[c]); //Track current embolism if no refill
     } else {
-      LeafPLC[c] = 1.0 - xylemConductance_c(PlantPsi[c], 1.0, VCleaf_c[c], VCleaf_d[c]);
+      LeafPLC[c] = 1.0 - xylemConductance_c(PlantPsi[c], 1.0, x.paramsTranspiration.VCleafapo_c[c], x.paramsTranspiration.VCleafapo_d[c]);
     }
 
     //Relative water content and fuel moisture from plant water potential
@@ -462,7 +459,7 @@ void transpirationBasic_c(BasicTranspiration_RESULT& BTres, BasicTranspiration_C
 
     //Daily drought stress from plant WP
     DDS[c] = (1.0 - Psi2K_c(PlantPsi[c],Psi_Extract[c],Exp_Extract[c]));
-    if(phenoType[c] == "winter-deciduous" || phenoType[c] == "winter-semideciduous") DDS[c] = phi[c]*DDS[c];
+    if(phenoType[c] == "winter-deciduous" || phenoType[c] == "winter-semideciduous") DDS[c] = x.internalPhenology.phi[c]*DDS[c];
 
     double SAmax = 10e4/Al2As[c]; //cm2·m-2 of leaf area
     double r = cavitationRecoveryMaximumRate*std::max(0.0, (PlantPsi[c] + 1.5)/1.5);
@@ -571,6 +568,10 @@ void transpirationBasic_c(BasicTranspiration_RESULT& BTres, BasicTranspiration_C
   for(int c =0;c<numCohorts;c++) {
     outputPlants.LAI[c] = LAIphe[c];
     outputPlants.LAIlive[c] = LAIlive[c];
+    outputPlants.Phenology[c] = ((int) x.internalPhenology.budFormation[c])*8 +
+      ((int) x.internalPhenology.leafUnfolding[c]*4) + 
+      ((int) x.internalPhenology.leafSenescence[c]*2) + 
+      ((int) x.internalPhenology.budDormancy[c]);
     outputPlants.FPAR[c] = PARcohort[c];
     outputPlants.AbsorbedSWRFraction[c] = 100.0*CohASWRF[c];
     outputPlants.PlantPsi[c] = PlantPsi[c];
@@ -583,6 +584,7 @@ Rcpp::DataFrame copyPlantBasicTranspirationResult_c(const PlantsBasicTranspirati
   DataFrame plantsDF = DataFrame::create(
     _["LAI"] = Rcpp::wrap(plants.LAI),
     _["LAIlive"] = Rcpp::wrap(plants.LAIlive),
+    _["Phenology"] = Rcpp::wrap(plants.Phenology),
     _["FPAR"] = Rcpp::wrap(plants.FPAR),
     _["AbsorbedSWRFraction"] = Rcpp::wrap(plants.AbsorbedSWRFraction),
     _["Extraction"] = Rcpp::wrap(plants.Extraction),

@@ -314,6 +314,7 @@ NumericVector agricultureWaterInputs(List x,
 //' @param soilDomains Either "buckets" (multi-bucket domain), "single" (for single-domain Richards) or "dual" (for dual-permeability model).
 //' @param nsteps Number of time steps per day
 //' @param max_nsubsteps Maximum number of substeps per time step
+//' @param richards_tolerance Error tolerance for Richards solving (in mm)
 //' @param modifySoil Boolean flag to indicate that the input \code{soil} object should be modified during the simulation.
 //' 
 //' @seealso  \code{\link{spwb}}, \code{\link{hydrology_waterInputs}}, \code{\link{hydrology_infiltration}}
@@ -354,6 +355,7 @@ NumericVector agricultureWaterInputs(List x,
 //'   \itemize{
 //'     \item{\code{Correction}: Amount of water (mm) added to deep drainage to correct the water balance.}
 //'     \item{\code{VolumeChange}: Change in soil water volume (mm).}
+//'     \item{\code{FlowBalance}: Balance of water fluxes, to be compared with volume change (mm).}
 //'     \item{\code{Substep}: Time step of the moisture solving (seconds).}
 //'   }
 //'  If \code{soilDomains == "dual"} the named vector contains the following additional elements:
@@ -404,7 +406,7 @@ NumericVector soilWaterBalance(DataFrame soil, String soilFunctions,
                                double rainfallInput, double rainfallIntensity, double snowmelt, NumericVector sourceSink, 
                                double runon = 0.0, Nullable<NumericVector> lateralFlows = R_NilValue, double waterTableDepth = NA_REAL,
                                String infiltrationMode = "GreenAmpt1911", double infiltrationCorrection = 5.0, String soilDomains = "buckets", 
-                               int nsteps = 24, int max_nsubsteps = 3600, bool modifySoil = true) {
+                               int nsteps = 24, int max_nsubsteps = 3600, double richards_tolerance= 0.001, bool modifySoil = true) {
   std::string infiltrationMode_str = infiltrationMode.get_cstring();
   std::string soilDomains_str = soilDomains.get_cstring();
   SoilWaterBalance_COMM SWBcomm = SoilWaterBalance_COMM(soil.nrow());
@@ -424,7 +426,7 @@ NumericVector soilWaterBalance(DataFrame soil, String soilFunctions,
                            runon, lateralFlows_c, waterTableDepth,
                            infiltrationMode_str, infiltrationCorrection,
                            soilDomains_str,
-                           nsteps, max_nsubsteps);
+                           nsteps, max_nsubsteps, richards_tolerance);
   NumericVector res;
   if(soilDomains== "buckets") {
     res = NumericVector::create(_["Local source/sinks"] = SWBres.localSourceSinks_mm,
@@ -445,6 +447,7 @@ NumericVector soilWaterBalance(DataFrame soil, String soilFunctions,
                                 _["CapillarityRise"] = SWBres.capillarityRise_mm,
                                 _["Correction"] = SWBres.correction_mm,
                                 _["VolumeChange"] = SWBres.volumeChange_mm,
+                                _["FlowBalance"] = SWBres.flowBalance_mm,
                                 _["Substeps"] = SWBres.substeps);
   } else if(soilDomains == "dual") {
     res = NumericVector::create(_["Local source/sinks"] = SWBres.localSourceSinks_mm,
@@ -472,6 +475,7 @@ NumericVector soilWaterBalance(DataFrame soil, String soilFunctions,
     res.push_back(SWBres.capillarityRise_mm, "CapillarityRise");
     res.push_back(SWBres.correction_mm, "Correction");
     res.push_back(SWBres.volumeChange_mm, "VolumeChange");
+    res.push_back(SWBres.flowBalance_mm, "FlowBalance");
     res.push_back((double) SWBres.substeps, "Substeps");
   }
   if(modifySoil) {

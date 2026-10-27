@@ -18,6 +18,7 @@ Rcpp::DataFrame copyPlantAdvancedTranspirationResult_c(const PlantsAdvancedTrans
   DataFrame plantsDF = DataFrame::create(
     _["LAI"] = Rcpp::wrap(plants.LAI),
     _["LAIlive"] = Rcpp::wrap(plants.LAIlive),
+    _["Phenology"] = Rcpp::wrap(plants.Phenology),
     _["FPAR"] = Rcpp::wrap(plants.FPAR),
     _["Extraction"] = Rcpp::wrap(plants.Extraction),
     _["Transpiration"] = Rcpp::wrap(plants.Transpiration),
@@ -75,6 +76,8 @@ Rcpp::List copyPlantAdvancedTranspirationInstResult_c(const PlantsAdvancedTransp
   LeafRWC.attr("dimnames") = List::create(x.cohorts.CohortCode, Rcpp::seq(1,ntimesteps));
   NumericMatrix StemRWC = copyNumericMatrix_c(plants_inst.StemRWC, numCohorts, ntimesteps);
   StemRWC.attr("dimnames") = List::create(x.cohorts.CohortCode, Rcpp::seq(1,ntimesteps));
+  NumericMatrix LFMC = copyNumericMatrix_c(plants_inst.LFMC, numCohorts, ntimesteps);
+  LFMC.attr("dimnames") = List::create(x.cohorts.CohortCode, Rcpp::seq(1,ntimesteps));
   NumericMatrix PWB = copyNumericMatrix_c(plants_inst.PWB, numCohorts, ntimesteps);
   PWB.attr("dimnames") = List::create(x.cohorts.CohortCode, Rcpp::seq(1,ntimesteps));
   
@@ -92,6 +95,7 @@ Rcpp::List copyPlantAdvancedTranspirationInstResult_c(const PlantsAdvancedTransp
     _["LeafRWC"] = LeafRWC,
     _["StemSympRWC"] = StemSympRWC,
     _["LeafSympRWC"] = LeafSympRWC,
+    _["LFMC"] = LFMC,
     _["PWB"] = PWB);
   return(PlantsInst);
 }
@@ -990,6 +994,16 @@ void transpirationAdvanced_c(AdvancedTranspiration_RESULT& ATres, AdvancedTransp
         outputPlantsInst.LeafSympRWC(c,n) = symplasticRelativeWaterContent_c(x.internalWater.LeafSympPsi[c], x.paramsWaterStorage.LeafPI0[c], x.paramsWaterStorage.LeafEPS[c]);
         outputPlantsInst.StemRWC(c,n) = outputPlantsInst.StemSympRWC(c,n)*(1.0 - x.paramsWaterStorage.StemAF[c]) + (1.0 - x.internalWater.StemPLC[c])*x.paramsWaterStorage.StemAF[c];
         outputPlantsInst.LeafRWC(c,n) = outputPlantsInst.LeafSympRWC(c,n)*(1.0 - x.paramsWaterStorage.LeafAF[c]) + (1.0 - x.internalWater.LeafPLC[c])*x.paramsWaterStorage.LeafAF[c];
+        
+      }
+      
+      // The fraction of leaves will decrease due to phenology or processes leading to defoliation
+      double fleaf = (1.0/x.paramsAnatomy.r635[c])*(LAIphe[c]/LAIlive[c]);
+      if(LAIlive[c]==0.0) fleaf = 0.0;
+      if(lfmcComponent=="fine") { //fine fuel moisture
+        outputPlantsInst.LFMC(c,n) = x.paramsWaterStorage.maxMCleaf[c]*outputPlantsInst.LeafRWC(c,n)*fleaf + x.paramsWaterStorage.maxMCstem[c]*outputPlantsInst.StemRWC(c,n)*(1.0 - fleaf);
+      } else { //"leaf"
+        outputPlantsInst.LFMC(c,n) = x.paramsWaterStorage.maxFMC[c]*outputPlantsInst.LeafRWC(c,n);
       }
     }
 
@@ -1274,7 +1288,6 @@ void transpirationAdvanced_c(AdvancedTranspiration_RESULT& ATres, AdvancedTransp
     outputPlants.DDS[c] = (1.0 - (outputPlants.dEdP[c]/(sapFluidityDay*x.paramsTranspiration.Plant_kmax[c])));
     if(x.paramsPhenology.phenoType[c] == "winter-deciduous" || x.paramsPhenology.phenoType[c] == "winter-semideciduous") {
       outputPlants.DDS[c] = x.internalPhenology.phi[c]*outputPlants.DDS[c];
-      if(x.internalPhenology.phi[c] == 0.0) outputPlants.DDS[c] = 0.0;
     }
 
     double SAmax = 10e4/x.paramsAnatomy.Al2As[c]; //cm2·m-2 of leaf area
@@ -1298,5 +1311,9 @@ void transpirationAdvanced_c(AdvancedTranspiration_RESULT& ATres, AdvancedTransp
   for(int c =0;c<numCohorts;c++) {
     outputPlants.LAI[c] = LAIphe[c];
     outputPlants.LAIlive[c] = LAIlive[c];
+    outputPlants.Phenology[c] = ((int) x.internalPhenology.budFormation[c])*8 +
+      ((int) x.internalPhenology.leafUnfolding[c]*4) + 
+      ((int) x.internalPhenology.leafSenescence[c]*2) + 
+      ((int) x.internalPhenology.budDormancy[c]);
   }
 }

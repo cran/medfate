@@ -78,6 +78,7 @@ void spwbDay_basic_c(BasicSPWB_RESULT& BSPWBres, BasicSPWB_COMM& BSPWB_comm, Mod
   std::string& soilDomains = x.control.soilDomains;
   int ndailysteps = x.control.advancedWB.ndailysteps; // MAYBE CHANGE TO COMMONWB parameters
   int max_nsubsteps_soil = x.control.commonWB.max_nsubsteps_soil;
+  double richards_tolerance = x.control.commonWB.richards_tolerance;
   bool fireHazardResults = x.control.results.fireHazardResults;
 
   //Soil
@@ -216,7 +217,7 @@ void spwbDay_basic_c(BasicSPWB_RESULT& BSPWBres, BasicSPWB_COMM& BSPWB_comm, Mod
                                runon, lateralFlows, waterTableDepth,
                                infiltrationMode, infiltrationCorrection,
                                soilDomains,
-                               ndailysteps, max_nsubsteps_soil);
+                               ndailysteps, max_nsubsteps_soil, richards_tolerance);
       DeepDrainage = SWBres.deepDrainage_mm;
       Infiltration = SWBres.infiltration_mm;
       Runoff = SWBres.runoff_mm;
@@ -254,7 +255,7 @@ void spwbDay_basic_c(BasicSPWB_RESULT& BSPWBres, BasicSPWB_COMM& BSPWB_comm, Mod
                                  runon, lateralFlows, waterTableDepth,
                                  infiltrationMode, infiltrationCorrection,
                                  soilDomains,
-                                 ndailysteps, max_nsubsteps_soil);
+                                 ndailysteps, max_nsubsteps_soil, richards_tolerance);
 
         DeepDrainage +=  SWBres.deepDrainage_mm*poolProportions[c];
         Runoff += SWBres.runoff_mm*poolProportions[c];
@@ -382,6 +383,7 @@ void spwbDay_advanced_c(AdvancedSPWB_RESULT& ASPWBres, AdvancedSPWB_COMM& ASPWB_
   std::string& soilDomains = x.control.soilDomains;
   int ndailysteps = x.control.advancedWB.ndailysteps; // MAYBE CHANGE TO COMMONWB parameters
   int max_nsubsteps_soil = x.control.commonWB.max_nsubsteps_soil;
+  double richards_tolerance = x.control.commonWB.richards_tolerance;
   bool fireHazardResults = x.control.results.fireHazardResults;
   
   //Soil
@@ -519,7 +521,7 @@ void spwbDay_advanced_c(AdvancedSPWB_RESULT& ASPWBres, AdvancedSPWB_COMM& ASPWB_
                                runon, lateralFlows, waterTableDepth,
                                infiltrationMode, infiltrationCorrection,
                                soilDomains,
-                               ndailysteps, max_nsubsteps_soil);
+                               ndailysteps, max_nsubsteps_soil, richards_tolerance);
       DeepDrainage = SWBres.deepDrainage_mm;
       Infiltration = SWBres.infiltration_mm;
       Runoff = SWBres.runoff_mm;
@@ -556,7 +558,7 @@ void spwbDay_advanced_c(AdvancedSPWB_RESULT& ASPWBres, AdvancedSPWB_COMM& ASPWB_
                                  runon, lateralFlows, waterTableDepth,
                                  infiltrationMode, infiltrationCorrection,
                                  soilDomains,
-                                 ndailysteps, max_nsubsteps_soil);
+                                 ndailysteps, max_nsubsteps_soil, richards_tolerance);
         
         DeepDrainage +=  SWBres.deepDrainage_mm*poolProportions[c];
         Runoff += SWBres.runoff_mm*poolProportions[c];
@@ -702,7 +704,8 @@ void aspwbDay_c(AgricultureWB_RESULT& AgrWBres, AgricultureWB_COMM& AgrWBcomm, A
                              runon, lateralFlows, waterTableDepth,
                              x.control.commonWB.infiltrationMode, x.control.commonWB.infiltrationCorrection,
                              x.control.soilDomains,
-                             x.control.advancedWB.ndailysteps, x.control.commonWB.max_nsubsteps_soil);
+                             x.control.advancedWB.ndailysteps, x.control.commonWB.max_nsubsteps_soil,
+                             x.control.commonWB.richards_tolerance);
     
     DeepDrainage = SWBres.deepDrainage_mm;
     Infiltration = SWBres.infiltration_mm;
@@ -1016,6 +1019,10 @@ void wb_day_inner_c(WB_RESULT& WBres, WBCommunicationStructures& WBcomm, WaterBa
   //Derive doy from date  
   int J0101 = julianDay_c(std::atoi(date.substr(0, 4).c_str()),1,1);
   int doy = J - J0101+1;
+  if(latitude < 0.0) {
+    doy = doy - 181; //Shift DOY 1 from Jan 1st to Jul 1st
+    if(doy<1) doy = doy + 365; //Avoid negative or zero values
+  }
   
   std::vector<double> defaultRainfallIntensityPerMonth = x.control.weather.defaultRainfallIntensityPerMonth;
   if(std::isnan(meteovec.rint)) meteovec.rint = rainfallIntensity_c(month, meteovec.prec, defaultRainfallIntensityPerMonth);

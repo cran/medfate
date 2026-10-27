@@ -42,8 +42,7 @@ ControlParameters::ControlParameters(List x) {
   weather.defaultRainfallIntensityPerMonth = as< std::vector<double> >(x["defaultRainfallIntensityPerMonth"]);
   
   phenology.leafPhenology = as<bool>(x["leafPhenology"]);
-  phenology.unfoldingDD = as<double>(x["unfoldingDD"]);
-  
+
   fireHazard.lfmcComponent = as<std::string>(x["lfmcComponent"]);
 
   if(x.containsElementNamed("mistletoeParams")) {
@@ -66,7 +65,12 @@ ControlParameters::ControlParameters(List x) {
     List defoliationParams = x["defoliationParams"];
     defoliation.cavitationInducedDefoliation = as<bool>(defoliationParams["cavitationInducedDefoliation"]);
     defoliation.criticalLeafPLC = as<double>(defoliationParams["criticalLeafPLC"]);
+    if(defoliationParams.containsElementNamed("criticalBudPLC")) defoliation.criticalBudPLC = as<double>(defoliationParams["criticalBudPLC"]);
     defoliation.cvLeafP50 = as<double>(defoliationParams["cvLeafP50"]);
+    if(defoliationParams.containsElementNamed("cvBudP50")) defoliation.cvBudP50 = as<double>(defoliationParams["cvBudP50"]);
+    if(defoliationParams.containsElementNamed("temperatureInducedDefoliation")) defoliation.temperatureInducedDefoliation = as<bool>(defoliationParams["temperatureInducedDefoliation"]);
+    if(defoliationParams.containsElementNamed("criticalLeafTS")) defoliation.criticalLeafTS = as<double>(defoliationParams["criticalLeafTS"]);
+    if(defoliationParams.containsElementNamed("cvLeafTS")) defoliation.cvLeafTS = as<double>(defoliationParams["cvLeafTS"]);
   } else if(x.containsElementNamed("cavitationInducedDefoliation")){
     defoliation.cavitationInducedDefoliation = as<bool>(x["cavitationInducedDefoliation"]);
   }
@@ -77,6 +81,8 @@ ControlParameters::ControlParameters(List x) {
   commonWB.soilFunctions = as<std::string>(x["soilFunctions"]);
   commonWB.VG_PTF = as<std::string>(x["VG_PTF"]);
   commonWB.max_nsubsteps_soil = as<int>(x["max_nsubsteps_soil"]);
+  if(x.containsElementNamed("richards_tolerance")) commonWB.richards_tolerance = as<double>(x["richards_tolerance"]);
+  else commonWB.richards_tolerance = 0.001;
   commonWB.infiltrationCorrection = as<double>(x["infiltrationCorrection"]);
   commonWB.verticalLayerSize = as<double>(x["verticalLayerSize"]);
   commonWB.bareSoilEvaporation = as<bool>(x["bareSoilEvaporation"]);
@@ -86,7 +92,6 @@ ControlParameters::ControlParameters(List x) {
   commonWB.cavitationRecoveryMaximumRate = as<double>(x["cavitationRecoveryMaximumRate"]);
   commonWB.stemCavitationRecovery = as<std::string>(x["stemCavitationRecovery"]);
   commonWB.leafCavitationRecovery = as<std::string>(x["leafCavitationRecovery"]);
-  commonWB.segmentedXylemVulnerability = as<bool>(x["segmentedXylemVulnerability"]);
 
 
   basicWB.hydraulicRedistributionFraction = as<double>(x["hydraulicRedistributionFraction"]);
@@ -135,8 +140,14 @@ ControlParameters::ControlParameters(List x) {
   growth.allowDessication = as<bool>(x["allowDessication"]);
   growth.allowStarvation = as<bool>(x["allowStarvation"]);
   growth.sinkLimitation = as<bool>(x["sinkLimitation"]);
-  growth.shrubDynamics = as<bool>(x["shrubDynamics"]);
-  growth.herbDynamics = as<bool>(x["herbDynamics"]);
+  if(x.containsElementNamed("treeDynamics")) growth.treeDynamics = as<bool>(x["treeDynamics"]);
+  else growth.treeDynamics = true;
+  if(x.containsElementNamed("shrubDynamics")) growth.shrubDynamics = as<bool>(x["shrubDynamics"]);
+  else growth.shrubDynamics = true;
+  if(x.containsElementNamed("herbDynamics")) growth.herbDynamics = as<bool>(x["herbDynamics"]);
+  else growth.herbDynamics = true;
+  if(x.containsElementNamed("herbLayerDynamics")) growth.herbLayerDynamics = as<bool>(x["herbLayerDynamics"]);
+  else growth.herbLayerDynamics = true;
   growth.allocationStrategy = as<std::string>(x["allocationStrategy"]);
   growth.phloemConductanceFactor = as<double>(x["phloemConductanceFactor"]);
   growth.nonSugarConcentration = as<double>(x["nonSugarConcentration"]);
@@ -157,6 +168,10 @@ ControlParameters::ControlParameters(List x) {
   growth.maximumRelativeGrowthRates.cambium = as<double>(maximumRelativeGrowthRates["cambium"]);
   growth.maximumRelativeGrowthRates.sapwood = as<double>(maximumRelativeGrowthRates["sapwood"]);
   growth.maximumRelativeGrowthRates.fineroot = as<double>(maximumRelativeGrowthRates["fineroot"]);
+  if(x.containsElementNamed("organogenesisEfficiencyModulator")) growth.organogenesisEfficiencyModulator = as<double>(x["organogenesisEfficiencyModulator"]);
+  else growth.organogenesisEfficiencyModulator = 1.0;
+  if(x.containsElementNamed("elongationEfficiencyModulator")) growth.elongationEfficiencyModulator = as<double>(x["elongationEfficiencyModulator"]);
+  else growth.elongationEfficiencyModulator = 1.0;
   
   mortality.mortalityMode = as<std::string>(x["mortalityMode"]);
   mortality.mortalityBaselineRate = as<double>(x["mortalityBaselineRate"]);

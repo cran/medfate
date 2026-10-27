@@ -12,7 +12,8 @@ spwb(
   slope = NA_real_,
   aspect = NA_real_,
   CO2ByYear = numeric(0),
-  waterTableDepth = NA_real_
+  runon = numeric(0),
+  waterTableDepth = numeric(0)
 )
 }
 \arguments{
@@ -46,7 +47,9 @@ The following columns are optional:
 
 \item{CO2ByYear}{A named numeric vector with years as names and atmospheric CO2 concentration (in ppm) as values. Used to specify annual changes in CO2 concentration along the simulation (as an alternative to specifying daily values in \code{meteo}).}
 
-\item{waterTableDepth}{Water table depth (in mm). When not missing, capillarity rise will be allowed if lower than total soil depth.}
+\item{runon}{A single value or a vector (with length equal to the number of rows in meteo) of daily runon values (in mm). Conceptually, runon can also represent an irrigation term.}
+
+\item{waterTableDepth}{A single value or a vector (with length equal to the number of rows in meteo) of daily water table depth values (in mm). When not missing, capillarity rise will be allowed if lower than total soil depth.}
 }
 \value{
 Function \code{spwb} returns a list of class 'spwb'. Since lists are difficult to handle, we recommend using
@@ -118,6 +121,7 @@ When \code{transpirationMode = "Granier"}, element \code{"Plants"} is a list wit
 \itemize{
 \item{\code{"LAI"}: A data frame with the daily leaf area index for each plant cohort.}
 \item{\code{"LAIlive"}: A data frame with the daily leaf area index for each plant cohort, assuming all leaves are unfolded (in m2/m2).}
+\item{\code{"Phenology"}: A data frame with the daily phenological status for each plant cohort, codified into an integer value.}
 \item{\code{"FPAR"}: A data frame with the fraction of PAR at the canopy level of each plant cohort. }
 \item{\code{"AbsorbedSWRFraction"}: A data frame with the fraction of SWR absorbed by each plant cohort. }
 \item{\code{"Transpiration"}: A data frame with the amount of daily transpiration (in mm) for each plant cohort.}
@@ -135,6 +139,7 @@ If \code{transpirationMode="Sperry"} or \code{transpirationMode="Sureau"}, eleme
 \itemize{
 \item{\code{"LAI"}: A data frame with the daily leaf area index for each plant cohort.}
 \item{\code{"LAIlive"}: A data frame with the daily leaf area index for each plant cohort, assuming all leaves are unfolded (in m2/m2).}
+\item{\code{"Phenology"}: A data frame with the daily phenological status for each plant cohort, codified into an integer value.}
 \item{\code{"FPAR"}: A data frame with the fraction of PAR at the canopy level of each plant cohort. }
 \item{\code{"AbsorbedSWR"}: A data frame with the daily SWR absorbed by each plant cohort.}
 \item{\code{"NetLWR"}: A data frame with the daily net LWR by each plant cohort.}
@@ -149,7 +154,7 @@ If \code{transpirationMode="Sperry"} or \code{transpirationMode="Sureau"}, eleme
 \item{\code{"StemRWC"}: A data frame with the average daily stem relative water content of each plant (in percent). }
 \item{\code{"LFMC"}: A data frame with the daily live fuel moisture content (in percent of dry weight).}
 \item{\code{"StemPsi"}: A data frame with the minimum daily stem water potential of each plant (in MPa). }
-\item{\code{"LeafPLC"}: A data frame with the average daily proportion of leaf conductance loss of each plant ([0-1]).}
+\item{\code{"LeafPLC"}: A data frame with the average daily proportion of leaf apoplasmic conductance loss of each plant ([0-1]).}
 \item{\code{"StemPLC"}: A data frame with the average daily proportion of stem conductance loss of each plant ([0-1]).}
 \item{\code{"RootPsi"}: A data frame with the minimum daily root water potential of each plant (in MPa). }
 \item{\code{"RhizoPsi"}: A list of data frames (one per plant cohort) with the minimum daily root water potential of each plant (in MPa).}

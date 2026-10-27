@@ -211,6 +211,7 @@ struct SoilWaterBalance_RESULT {
   double correction_mm;
   double correctionMatrix_mm;
   double correctionMacropores_mm;
+  double flowBalance_mm;
   double volumeChange_mm;
   double matrixVolumeChange_mm;
   double macroporeVolumeChange_mm;
@@ -265,6 +266,6 @@ void soilWaterBalance_inner_c(SoilWaterBalance_RESULT &SWBres, SoilWaterBalance_
                               double runon, const std::vector<double> &lateralFlows, double waterTableDepth,
                               std::string infiltrationMode, double infiltrationCorrection, 
                               std::string soilDomains, 
-                              int nsteps, int max_nsubsteps);
+                              int nsteps, int max_nsubsteps, double richards_tolerance);
 
 #endif

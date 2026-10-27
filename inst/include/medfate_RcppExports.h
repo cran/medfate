@@ -108,17 +108,17 @@ namespace medfate {
             throw Rcpp::exception(Rcpp::as<std::string>(rcpp_result_gen).c_str());
     }
 
-    inline List aspwb(List x, DataFrame meteo, double latitude, double elevation, double slope = NA_REAL, double aspect = NA_REAL, double waterTableDepth = NA_REAL) {
-        typedef SEXP(*Ptr_aspwb)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
+    inline List aspwb(List x, DataFrame meteo, double latitude, double elevation, double slope = NA_REAL, double aspect = NA_REAL, NumericVector runon = NumericVector(0), NumericVector waterTableDepth = NumericVector(0)) {
+        typedef SEXP(*Ptr_aspwb)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
         static Ptr_aspwb p_aspwb = NULL;
         if (p_aspwb == NULL) {
-            validateSignature("List(*aspwb)(List,DataFrame,double,double,double,double,double)");
+            validateSignature("List(*aspwb)(List,DataFrame,double,double,double,double,NumericVector,NumericVector)");
             p_aspwb = (Ptr_aspwb)R_GetCCallable("medfate", "_medfate_aspwb");
         }
         RObject rcpp_result_gen;
         {
             RNGScope RCPP_rngScope_gen;
-            rcpp_result_gen = p_aspwb(Shield<SEXP>(Rcpp::wrap(x)), Shield<SEXP>(Rcpp::wrap(meteo)), Shield<SEXP>(Rcpp::wrap(latitude)), Shield<SEXP>(Rcpp::wrap(elevation)), Shield<SEXP>(Rcpp::wrap(slope)), Shield<SEXP>(Rcpp::wrap(aspect)), Shield<SEXP>(Rcpp::wrap(waterTableDepth)));
+            rcpp_result_gen = p_aspwb(Shield<SEXP>(Rcpp::wrap(x)), Shield<SEXP>(Rcpp::wrap(meteo)), Shield<SEXP>(Rcpp::wrap(latitude)), Shield<SEXP>(Rcpp::wrap(elevation)), Shield<SEXP>(Rcpp::wrap(slope)), Shield<SEXP>(Rcpp::wrap(aspect)), Shield<SEXP>(Rcpp::wrap(runon)), Shield<SEXP>(Rcpp::wrap(waterTableDepth)));
         }
         if (rcpp_result_gen.inherits("interrupted-error"))
             throw Rcpp::internal::InterruptedException();
@@ -191,17 +191,17 @@ namespace medfate {
             throw Rcpp::exception(Rcpp::as<std::string>(rcpp_result_gen).c_str());
     }
 
-    inline List growth(List x, DataFrame meteo, double latitude, double elevation, double slope = NA_REAL, double aspect = NA_REAL, NumericVector CO2ByYear = NumericVector(0), double waterTableDepth = NA_REAL) {
-        typedef SEXP(*Ptr_growth)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
+    inline List growth(List x, DataFrame meteo, double latitude, double elevation, double slope = NA_REAL, double aspect = NA_REAL, NumericVector CO2ByYear = NumericVector(0), NumericVector runon = NumericVector(0), NumericVector waterTableDepth = NumericVector(0)) {
+        typedef SEXP(*Ptr_growth)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
         static Ptr_growth p_growth = NULL;
         if (p_growth == NULL) {
-            validateSignature("List(*growth)(List,DataFrame,double,double,double,double,NumericVector,double)");
+            validateSignature("List(*growth)(List,DataFrame,double,double,double,double,NumericVector,NumericVector,NumericVector)");
             p_growth = (Ptr_growth)R_GetCCallable("medfate", "_medfate_growth");
         }
         RObject rcpp_result_gen;
         {
             RNGScope RCPP_rngScope_gen;
-            rcpp_result_gen = p_growth(Shield<SEXP>(Rcpp::wrap(x)), Shield<SEXP>(Rcpp::wrap(meteo)), Shield<SEXP>(Rcpp::wrap(latitude)), Shield<SEXP>(Rcpp::wrap(elevation)), Shield<SEXP>(Rcpp::wrap(slope)), Shield<SEXP>(Rcpp::wrap(aspect)), Shield<SEXP>(Rcpp::wrap(CO2ByYear)), Shield<SEXP>(Rcpp::wrap(waterTableDepth)));
+            rcpp_result_gen = p_growth(Shield<SEXP>(Rcpp::wrap(x)), Shield<SEXP>(Rcpp::wrap(meteo)), Shield<SEXP>(Rcpp::wrap(latitude)), Shield<SEXP>(Rcpp::wrap(elevation)), Shield<SEXP>(Rcpp::wrap(slope)), Shield<SEXP>(Rcpp::wrap(aspect)), Shield<SEXP>(Rcpp::wrap(CO2ByYear)), Shield<SEXP>(Rcpp::wrap(runon)), Shield<SEXP>(Rcpp::wrap(waterTableDepth)));
         }
         if (rcpp_result_gen.inherits("interrupted-error"))
             throw Rcpp::internal::InterruptedException();
@@ -380,17 +380,17 @@ namespace medfate {
         return Rcpp::as<NumericVector >(rcpp_result_gen);
     }
 
-    inline NumericVector hydrology_soilWaterBalance(DataFrame soil, String soilFunctions, double rainfallInput, double rainfallIntensity, double snowmelt, NumericVector sourceSink, double runon = 0.0, Nullable<NumericVector> lateralFlows = R_NilValue, double waterTableDepth = NA_REAL, String infiltrationMode = "GreenAmpt1911", double infiltrationCorrection = 5.0, String soilDomains = "buckets", int nsteps = 24, int max_nsubsteps = 3600, bool modifySoil = true) {
-        typedef SEXP(*Ptr_hydrology_soilWaterBalance)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
+    inline NumericVector hydrology_soilWaterBalance(DataFrame soil, String soilFunctions, double rainfallInput, double rainfallIntensity, double snowmelt, NumericVector sourceSink, double runon = 0.0, Nullable<NumericVector> lateralFlows = R_NilValue, double waterTableDepth = NA_REAL, String infiltrationMode = "GreenAmpt1911", double infiltrationCorrection = 5.0, String soilDomains = "buckets", int nsteps = 24, int max_nsubsteps = 3600, double richards_tolerance = 0.001, bool modifySoil = true) {
+        typedef SEXP(*Ptr_hydrology_soilWaterBalance)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
         static Ptr_hydrology_soilWaterBalance p_hydrology_soilWaterBalance = NULL;
         if (p_hydrology_soilWaterBalance == NULL) {
-            validateSignature("NumericVector(*hydrology_soilWaterBalance)(DataFrame,String,double,double,double,NumericVector,double,Nullable<NumericVector>,double,String,double,String,int,int,bool)");
+            validateSignature("NumericVector(*hydrology_soilWaterBalance)(DataFrame,String,double,double,double,NumericVector,double,Nullable<NumericVector>,double,String,double,String,int,int,double,bool)");
             p_hydrology_soilWaterBalance = (Ptr_hydrology_soilWaterBalance)R_GetCCallable("medfate", "_medfate_hydrology_soilWaterBalance");
         }
         RObject rcpp_result_gen;
         {
             RNGScope RCPP_rngScope_gen;
-            rcpp_result_gen = p_hydrology_soilWaterBalance(Shield<SEXP>(Rcpp::wrap(soil)), Shield<SEXP>(Rcpp::wrap(soilFunctions)), Shield<SEXP>(Rcpp::wrap(rainfallInput)), Shield<SEXP>(Rcpp::wrap(rainfallIntensity)), Shield<SEXP>(Rcpp::wrap(snowmelt)), Shield<SEXP>(Rcpp::wrap(sourceSink)), Shield<SEXP>(Rcpp::wrap(runon)), Shield<SEXP>(Rcpp::wrap(lateralFlows)), Shield<SEXP>(Rcpp::wrap(waterTableDepth)), Shield<SEXP>(Rcpp::wrap(infiltrationMode)), Shield<SEXP>(Rcpp::wrap(infiltrationCorrection)), Shield<SEXP>(Rcpp::wrap(soilDomains)), Shield<SEXP>(Rcpp::wrap(nsteps)), Shield<SEXP>(Rcpp::wrap(max_nsubsteps)), Shield<SEXP>(Rcpp::wrap(modifySoil)));
+            rcpp_result_gen = p_hydrology_soilWaterBalance(Shield<SEXP>(Rcpp::wrap(soil)), Shield<SEXP>(Rcpp::wrap(soilFunctions)), Shield<SEXP>(Rcpp::wrap(rainfallInput)), Shield<SEXP>(Rcpp::wrap(rainfallIntensity)), Shield<SEXP>(Rcpp::wrap(snowmelt)), Shield<SEXP>(Rcpp::wrap(sourceSink)), Shield<SEXP>(Rcpp::wrap(runon)), Shield<SEXP>(Rcpp::wrap(lateralFlows)), Shield<SEXP>(Rcpp::wrap(waterTableDepth)), Shield<SEXP>(Rcpp::wrap(infiltrationMode)), Shield<SEXP>(Rcpp::wrap(infiltrationCorrection)), Shield<SEXP>(Rcpp::wrap(soilDomains)), Shield<SEXP>(Rcpp::wrap(nsteps)), Shield<SEXP>(Rcpp::wrap(max_nsubsteps)), Shield<SEXP>(Rcpp::wrap(richards_tolerance)), Shield<SEXP>(Rcpp::wrap(modifySoil)));
         }
         if (rcpp_result_gen.inherits("interrupted-error"))
             throw Rcpp::internal::InterruptedException();
@@ -1154,17 +1154,17 @@ namespace medfate {
             throw Rcpp::exception(Rcpp::as<std::string>(rcpp_result_gen).c_str());
     }
 
-    inline List spwb(List x, DataFrame meteo, double latitude, double elevation, double slope = NA_REAL, double aspect = NA_REAL, NumericVector CO2ByYear = NumericVector(0), double waterTableDepth = NA_REAL) {
-        typedef SEXP(*Ptr_spwb)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
+    inline List spwb(List x, DataFrame meteo, double latitude, double elevation, double slope = NA_REAL, double aspect = NA_REAL, NumericVector CO2ByYear = NumericVector(0), NumericVector runon = NumericVector(0), NumericVector waterTableDepth = NumericVector(0)) {
+        typedef SEXP(*Ptr_spwb)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
         static Ptr_spwb p_spwb = NULL;
         if (p_spwb == NULL) {
-            validateSignature("List(*spwb)(List,DataFrame,double,double,double,double,NumericVector,double)");
+            validateSignature("List(*spwb)(List,DataFrame,double,double,double,double,NumericVector,NumericVector,NumericVector)");
             p_spwb = (Ptr_spwb)R_GetCCallable("medfate", "_medfate_spwb");
         }
         RObject rcpp_result_gen;
         {
             RNGScope RCPP_rngScope_gen;
-            rcpp_result_gen = p_spwb(Shield<SEXP>(Rcpp::wrap(x)), Shield<SEXP>(Rcpp::wrap(meteo)), Shield<SEXP>(Rcpp::wrap(latitude)), Shield<SEXP>(Rcpp::wrap(elevation)), Shield<SEXP>(Rcpp::wrap(slope)), Shield<SEXP>(Rcpp::wrap(aspect)), Shield<SEXP>(Rcpp::wrap(CO2ByYear)), Shield<SEXP>(Rcpp::wrap(waterTableDepth)));
+            rcpp_result_gen = p_spwb(Shield<SEXP>(Rcpp::wrap(x)), Shield<SEXP>(Rcpp::wrap(meteo)), Shield<SEXP>(Rcpp::wrap(latitude)), Shield<SEXP>(Rcpp::wrap(elevation)), Shield<SEXP>(Rcpp::wrap(slope)), Shield<SEXP>(Rcpp::wrap(aspect)), Shield<SEXP>(Rcpp::wrap(CO2ByYear)), Shield<SEXP>(Rcpp::wrap(runon)), Shield<SEXP>(Rcpp::wrap(waterTableDepth)));
         }
         if (rcpp_result_gen.inherits("interrupted-error"))
             throw Rcpp::internal::InterruptedException();

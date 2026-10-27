@@ -29,6 +29,23 @@
   return(g)
 }
 
+.multiple_heatmap <- function(x, xlab = "", ylab=NULL, ylim = NULL, labels = NULL, legendLabel = NULL) {
+  if(is.null(labels)) labels = colnames(x)
+  df = data.frame("Y" = as.vector(x), 
+                  "Date" = as.Date(rownames(x)),
+                  "Cohort" = gl(length(colnames(x)), nrow(x), labels=labels))
+  g <- ggplot(df,
+              aes(.data$Date, .data$Cohort, fill = factor(.data$Y))) +
+    geom_tile()
+  if(!is.null(legendLabel)) {
+    g <- g +
+      scale_fill_discrete(name = legendLabel)
+  }
+  g<-g+theme_bw()+xlab(xlab)
+  if(!is.null(ylim)) g <- g+ylim(ylim)
+  if(!is.null(ylab)) g <- g+ylab(ylab)
+  return(g)
+}
 .multiple_dynamics<-function(x, xlab = "", ylab=NULL, ylim = NULL, labels = NULL) {
   if(is.null(labels)) labels = colnames(x)
   df = data.frame("Y" = as.vector(x), 

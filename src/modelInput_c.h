@@ -64,16 +64,24 @@ struct CanopyParams {
 };
 struct PhenologyParams {
   std::vector<std::string> phenoType;
+  std::vector<std::string> senescencePeriod;
+  std::vector<std::string> growthPeriod;
+  std::vector<std::string> growthDeterminacy;
   std::vector<double> leafDuration;
+  std::vector<int> budFormationDays;
   std::vector<double> t0gdd;
-  std::vector<double> Sgdd;
   std::vector<double> Tbgdd;
+  std::vector<double> Sgdd;
+  std::vector<double> Ugdd;
   std::vector<double> Ssen;
   std::vector<double> Phsen;
   std::vector<double> Tbsen;
   std::vector<double> xsen;
   std::vector<double> ysen;
-  
+  std::vector<double> Fsen;
+  std::vector<double> LeafPLCCrit;
+  std::vector<double> BudPLCCrit;
+  std::vector<double> LeafTSCrit;
 };
 
 struct InterceptionParams {
@@ -142,11 +150,15 @@ struct TranspirationParams {
   std::vector<double> Kmax_stemxylem;
   std::vector<double> Kmax_rootxylem;
   std::vector<double> VCleaf_kmax;
-  std::vector<double> VCleafapo_kmax;
   std::vector<double> VCleaf_slope;
   std::vector<double> VCleaf_P50;
   std::vector<double> VCleaf_c;
   std::vector<double> VCleaf_d;
+  std::vector<double> VCleafapo_kmax;
+  std::vector<double> VCleafapo_slope;
+  std::vector<double> VCleafapo_P50;
+  std::vector<double> VCleafapo_c;
+  std::vector<double> VCleafapo_d;
   std::vector<double> kleaf_symp;
   std::vector<double> VCstem_kmax;
   std::vector<double> VCstem_slope;
@@ -237,10 +249,12 @@ struct InternalPhenology {
   std::vector<double> gdd;
   std::vector<double> sen;
   std::vector<bool> budFormation;
+  std::vector<int> leafOrganogenesisDuration;
   std::vector<bool> leafUnfolding;
   std::vector<bool> leafSenescence;
-  std::vector<bool> leafDormancy;
+  std::vector<bool> budDormancy;
   std::vector<double> phi;
+  std::vector<double> phiPrev;
 };
 
 struct InternalWater {
@@ -286,6 +300,9 @@ struct InternalMortality {
 struct InternalAllocation {
   std::vector<double> allocationTarget;
   std::vector<double> leafAreaTarget;
+  std::vector<double> leafOrganogenesisEfficiency;
+  std::vector<double> leafAreaPreformed;
+  std::vector<double> leafAreaSenescence;
   std::vector<double> sapwoodAreaTarget;
   std::vector<double> fineRootBiomassTarget;
   std::vector<double> crownBudPercent;

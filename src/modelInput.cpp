@@ -22,7 +22,7 @@
 using namespace Rcpp;
 
 
-DataFrame paramsPhenology(DataFrame above, DataFrame SpParams, bool fillMissingSpParams, bool fillWithGenus) {
+DataFrame paramsPhenology(DataFrame above, DataFrame SpParams, bool fillMissingSpParams, bool fillWithGenus, List control, String model = "spwb") {
   IntegerVector SP = above["SP"];
   NumericVector LAI_expanded = above["LAI_expanded"];
   NumericVector LAI_live = above["LAI_live"];
@@ -30,32 +30,110 @@ DataFrame paramsPhenology(DataFrame above, DataFrame SpParams, bool fillMissingS
   int numCohorts = SP.size();
   
   NumericVector leafDuration  = speciesNumericParameterWithImputation(SP, SpParams, "LeafDuration", fillMissingSpParams, fillWithGenus);
+  IntegerVector budFormationDays(SP.size(), 20);
+  if(SpParams.containsElementNamed("BudFormationDays")) budFormationDays = speciesIntegerParameterWithImputation(SP, SpParams, "BudFormationDays", true, true);
   NumericVector t0gdd  = speciesNumericParameterWithImputation(SP, SpParams, "t0gdd", fillMissingSpParams, fillWithGenus);
   NumericVector Sgdd  = speciesNumericParameterWithImputation(SP, SpParams, "Sgdd", fillMissingSpParams, fillWithGenus);
+  NumericVector Ugdd(SP.size(), 300.0);
+  if(SpParams.containsElementNamed("Ugdd")) Ugdd = speciesNumericParameterWithImputation(SP, SpParams, "Ugdd", true, true);
   NumericVector Tbgdd = speciesNumericParameterWithImputation(SP, SpParams, "Tbgdd", fillMissingSpParams, fillWithGenus);
   NumericVector Ssen = speciesNumericParameterWithImputation(SP, SpParams, "Ssen", fillMissingSpParams, fillWithGenus);
   NumericVector Phsen = speciesNumericParameterWithImputation(SP, SpParams, "Phsen", fillMissingSpParams, fillWithGenus);
   NumericVector Tbsen  = speciesNumericParameterWithImputation(SP, SpParams, "Tbsen", fillMissingSpParams, fillWithGenus);
   NumericVector xsen  = speciesNumericParameterWithImputation(SP, SpParams, "xsen", fillMissingSpParams, fillWithGenus);
   NumericVector ysen  = speciesNumericParameterWithImputation(SP, SpParams, "ysen", fillMissingSpParams, fillWithGenus);
+  NumericVector Fsen(SP.size(), 4000.0);
+  if(SpParams.containsElementNamed("Fsen")) Fsen  = speciesNumericParameterWithImputation(SP, SpParams, "Fsen", fillMissingSpParams, fillWithGenus);
+  
+  double defaultLeafPLCCrit = 0.50;
+  double defaultBudPLCCrit = 0.50;
+  double defaultLeafTSCrit = 50.0;
+  if(control.containsElementNamed("defoliationParams")) {
+    List defoliationParams = control["defoliationParams"];
+    if(defoliationParams.containsElementNamed("criticalLeafPLC")) defaultLeafPLCCrit = defoliationParams["criticalLeafPLC"];
+    if(defoliationParams.containsElementNamed("criticalBudPLC")) defaultBudPLCCrit = defoliationParams["criticalBudPLC"];
+    if(defoliationParams.containsElementNamed("criticalLeafTS")) defaultLeafTSCrit = defoliationParams["criticalLeafTS"];
+  }
   
   CharacterVector phenoType = speciesCharacterParameterFromIndex(SP, SpParams, "PhenologyType");
+  CharacterVector growthDeterminacy(SP.size(), NA_STRING);
+  if(SpParams.containsElementNamed("GrowthDeterminacy")) {
+    growthDeterminacy = speciesCharacterParameterFromIndex(SP, SpParams, "GrowthDeterminacy"); 
+  }
+  CharacterVector senescencePeriod(SP.size(), NA_STRING);
+  if(SpParams.containsElementNamed("SenescencePeriod")) {
+    senescencePeriod = speciesCharacterParameterFromIndex(SP, SpParams, "SenescencePeriod"); 
+  }
+  CharacterVector growthPeriod(SP.size(), NA_STRING);
+  if(SpParams.containsElementNamed("GrowthPeriod")) {
+    growthPeriod = speciesCharacterParameterFromIndex(SP, SpParams, "GrowthPeriod"); 
+  }
+  NumericVector leafPLCCrit(SP.size(), NA_REAL);
+  if(SpParams.containsElementNamed("LeafPLCCrit")) {
+    leafPLCCrit = speciesNumericParameterFromIndex(SP, SpParams, "LeafPLCCrit"); 
+  }
+  NumericVector budPLCCrit(SP.size(), NA_REAL);
+  if(SpParams.containsElementNamed("BudPLCCrit")) {
+    budPLCCrit = speciesNumericParameterFromIndex(SP, SpParams, "BudPLCCrit"); 
+  }
+  NumericVector leafTSCrit(SP.size(), NA_REAL);
+  if(SpParams.containsElementNamed("LeafTSCrit")) {
+    leafTSCrit = speciesNumericParameterFromIndex(SP, SpParams, "LeafTSCrit"); 
+  }
   for(int j=0; j<numCohorts;j++) {
     if(phenoType[j] == "winter-deciduous" || phenoType[j] == "winter-semideciduous") { 
       LAI_expanded[j] = 0.0; //Set initial LAI to zero, assuming simulations start at Jan 1st
       if(phenoType[j] == "winter-semideciduous") LAI_dead[j] = LAI_live[j];
-    }
-    if(phenoType[j]=="oneflush-evergreen") {
+      if(CharacterVector::is_na(growthDeterminacy[j])) {
+        growthDeterminacy[j] = "determinate";
+      }
+      growthPeriod[j] = "spring";
+      senescencePeriod[j] = "autumn";
+    } else {
+      //For back-compatibility
+      phenoType[j] = "evergreen";
       //Do not allow flushing all leaves at once (i.e. limit leaf duration to 1.25 yrs)
       leafDuration[j] = std::max(leafDuration[j], 1.25);
+      if(CharacterVector::is_na(senescencePeriod[j])) {
+        senescencePeriod[j] = "spring";
+      }
+      if(CharacterVector::is_na(growthPeriod[j])) {
+        growthPeriod[j] = "spring";
+      }
+      if(CharacterVector::is_na(growthDeterminacy[j])) {
+        growthDeterminacy[j] = "intermediate";
+      }
+      if((senescencePeriod[j]=="autumn") && (growthPeriod[j]=="spring")) {
+        LAI_expanded[j] = LAI_live[j]*(1.0 - (1.0/leafDuration[j]));
+      }
     }
+    if(NumericVector::is_na(leafPLCCrit[j])) leafPLCCrit[j] = defaultLeafPLCCrit;
+    if(NumericVector::is_na(budPLCCrit[j])) budPLCCrit[j] = defaultBudPLCCrit;
+    if(NumericVector::is_na(leafTSCrit[j])) leafTSCrit[j] = defaultLeafTSCrit;
   } 
-  DataFrame paramsPhenologydf = DataFrame::create(
-    _["PhenologyType"] = phenoType,
-    _["LeafDuration"] = leafDuration,
-    _["t0gdd"] = t0gdd,_["Sgdd"] = Sgdd, _["Tbgdd"] = Tbgdd, 
-    _["Ssen"] = Ssen, _["Phsen"] = Phsen, _["Tbsen"] = Tbsen, _["xsen"] = xsen, _["ysen"] = ysen 
-  );
+  DataFrame paramsPhenologydf;
+  if(model=="spwb") {
+    paramsPhenologydf = DataFrame::create(
+      _["PhenologyType"] = phenoType,
+      _["SenescencePeriod"] = senescencePeriod,
+      _["GrowthPeriod"] = growthPeriod,
+      _["LeafDuration"] = leafDuration,
+      _["t0gdd"] = t0gdd, _["Tbgdd"] = Tbgdd, _["Sgdd"] = Sgdd, _["Ugdd"] = Ugdd,
+      _["Ssen"] = Ssen, _["Phsen"] = Phsen, _["Tbsen"] = Tbsen, _["xsen"] = xsen, _["ysen"] = ysen, _["Fsen"] = Fsen,
+      _["LeafPLCCrit"] = leafPLCCrit);
+  } else if(model=="growth"){
+    paramsPhenologydf = DataFrame::create(
+      _["PhenologyType"] = phenoType,
+      _["SenescencePeriod"] = senescencePeriod,
+      _["GrowthPeriod"] = growthPeriod,
+      _["GrowthDeterminacy"] = growthDeterminacy,
+      _["LeafDuration"] = leafDuration,
+      _["BudFormationDays"] = budFormationDays,
+      _["t0gdd"] = t0gdd, _["Tbgdd"] = Tbgdd, _["Sgdd"] = Sgdd, _["Ugdd"] = Ugdd,
+      _["Ssen"] = Ssen, _["Phsen"] = Phsen, _["Tbsen"] = Tbsen, _["xsen"] = xsen, _["ysen"] = ysen, _["Fsen"] = Fsen,
+      _["LeafPLCCrit"] = leafPLCCrit, _["BudPLCCrit"] = budPLCCrit, _["LeafTSCrit"] = leafTSCrit
+    );
+  }
   paramsPhenologydf.attr("row.names") = above.attr("row.names");
   return(paramsPhenologydf);
 }
@@ -126,14 +204,14 @@ DataFrame paramsAnatomy(DataFrame above, DataFrame SpParams, bool fillMissingSpP
     if(transpirationMode=="Granier") {
       paramsAnatomydf = DataFrame::create(
         _["Al2As"] = Al2As, _["Ar2Al"] = Ar2Al, _["SLA"] = SLA,
-          _["LeafDensity"] = LeafDensity, _["WoodDensity"] = WoodDensity, _["FineRootDensity"] = LeafDensity, 
+          _["LeafDensity"] = LeafDensity, _["WoodDensity"] = WoodDensity, _["FineRootDensity"] = FineRootDensity, 
             _["SRL"] = SRL, _["RLD"] = RLD,  
             _["r635"] = r635);
     } else {
       paramsAnatomydf = DataFrame::create(
         _["Hmed"] = Hmed,
         _["Al2As"] = Al2As, _["SLA"] = SLA, _["LeafWidth"] = leafwidth, 
-        _["LeafDensity"] = LeafDensity, _["WoodDensity"] = WoodDensity, _["FineRootDensity"] = LeafDensity, 
+        _["LeafDensity"] = LeafDensity, _["WoodDensity"] = WoodDensity, _["FineRootDensity"] = FineRootDensity, 
           _["conduit2sapwood"] = conduit2sapwood,
           _["SRL"] = SRL, _["RLD"] = RLD,  
           _["r635"] = r635);
@@ -143,7 +221,7 @@ DataFrame paramsAnatomy(DataFrame above, DataFrame SpParams, bool fillMissingSpP
       paramsAnatomydf = DataFrame::create(
         _["Hmax"] = Hmax,_["Hmed"] = Hmed,
         _["Al2As"] = Al2As, _["Ar2Al"] = Ar2Al, _["SLA"] = SLA, _["LeafWidth"] = leafwidth, 
-          _["LeafDensity"] = LeafDensity, _["WoodDensity"] = WoodDensity, _["FineRootDensity"] = LeafDensity, 
+          _["LeafDensity"] = LeafDensity, _["WoodDensity"] = WoodDensity, _["FineRootDensity"] = FineRootDensity, 
             _["conduit2sapwood"] = conduit2sapwood,
             _["SRL"] = SRL, _["RLD"] = RLD,  
             _["r635"] = r635);
@@ -151,7 +229,7 @@ DataFrame paramsAnatomy(DataFrame above, DataFrame SpParams, bool fillMissingSpP
       paramsAnatomydf = DataFrame::create(
         _["Hmax"] = Hmax,_["Hmed"] = Hmed,
         _["Al2As"] = Al2As, _["SLA"] = SLA, _["LeafWidth"] = leafwidth, 
-        _["LeafDensity"] = LeafDensity, _["WoodDensity"] = WoodDensity, _["FineRootDensity"] = LeafDensity, 
+        _["LeafDensity"] = LeafDensity, _["WoodDensity"] = WoodDensity, _["FineRootDensity"] = FineRootDensity, 
           _["conduit2sapwood"] = conduit2sapwood,
           _["SRL"] = SRL, _["RLD"] = RLD,  
           _["r635"] = r635);
@@ -212,8 +290,7 @@ DataFrame paramsTranspirationGranier(DataFrame above,  DataFrame SpParams, List 
   
   bool fillMissingSpParams = control["fillMissingSpParams"];
   bool fillWithGenus = control["fillMissingWithGenusParams"];
-  bool segmentedXylemVulnerability = control["segmentedXylemVulnerability"];
-  
+
   NumericVector Tmax_LAI = speciesNumericParameterWithImputation(SP, SpParams, "Tmax_LAI", true);
   NumericVector Tmax_LAIsq = speciesNumericParameterWithImputation(SP, SpParams, "Tmax_LAIsq", true, true);
   NumericVector WUE = speciesNumericParameterWithImputation(SP, SpParams, "WUE", fillMissingSpParams, fillWithGenus);
@@ -222,31 +299,24 @@ DataFrame paramsTranspirationGranier(DataFrame above,  DataFrame SpParams, List 
   NumericVector WUE_vpd = speciesNumericParameterWithImputation(SP, SpParams, "WUE_vpd", true, true);
   NumericVector Psi_Extract = speciesNumericParameterWithImputation(SP, SpParams, "Psi_Extract", fillMissingSpParams, fillWithGenus);
   NumericVector Exp_Extract = speciesNumericParameterWithImputation(SP, SpParams, "Exp_Extract", fillMissingSpParams, fillWithGenus);
-  NumericVector VCleaf_P12 = speciesNumericParameterWithImputation(SP, SpParams, "VCleaf_P12", fillMissingSpParams, fillWithGenus);
-  NumericVector VCleaf_P50 = speciesNumericParameterWithImputation(SP, SpParams, "VCleaf_P50", fillMissingSpParams, fillWithGenus);
-  NumericVector VCleaf_P88 = speciesNumericParameterWithImputation(SP, SpParams, "VCleaf_P88", fillMissingSpParams, fillWithGenus);
+  NumericVector VCleafapo_P12 = speciesNumericParameterWithImputation(SP, SpParams, "VCleafapo_P12", fillMissingSpParams, fillWithGenus);
+  NumericVector VCleafapo_P50 = speciesNumericParameterWithImputation(SP, SpParams, "VCleafapo_P50", fillMissingSpParams, fillWithGenus);
+  NumericVector VCleafapo_P88 = speciesNumericParameterWithImputation(SP, SpParams, "VCleafapo_P88", fillMissingSpParams, fillWithGenus);
   NumericVector VCstem_P12 = speciesNumericParameterWithImputation(SP, SpParams, "VCstem_P12", fillMissingSpParams, fillWithGenus);
   NumericVector VCstem_P50 = speciesNumericParameterWithImputation(SP, SpParams, "VCstem_P50", fillMissingSpParams, fillWithGenus);
   NumericVector VCstem_P88 = speciesNumericParameterWithImputation(SP, SpParams, "VCstem_P88", fillMissingSpParams, fillWithGenus);
   NumericVector Gswmin = speciesNumericParameterWithImputation(SP, SpParams, "Gswmin", fillMissingSpParams, fillWithGenus);
   
-  NumericVector VCstem_c(numCohorts, 0.0), VCstem_d(numCohorts, 0.0), VCleaf_c(numCohorts, 0.0), VCleaf_d(numCohorts, 0.0);
+  NumericVector VCstem_c(numCohorts, 0.0), VCstem_d(numCohorts, 0.0), VCleafapo_c(numCohorts, 0.0), VCleafapo_d(numCohorts, 0.0);
   for(int c=0;c<numCohorts;c++){
-    
-    if(!segmentedXylemVulnerability) {
-      VCleaf_P12[c] = VCstem_P12[c];
-      VCleaf_P50[c] = VCstem_P50[c];
-      VCleaf_P88[c] = VCstem_P88[c];
-    }
-    
     //Stem Weibull
     NumericVector wb_stem = psi2Weibull(VCstem_P50[c], VCstem_P88[c], VCstem_P12[c]);
     VCstem_c[c] = wb_stem["c"];
     VCstem_d[c] = wb_stem["d"];
-    //Leaf Weibull
-    NumericVector wb_leaf = psi2Weibull(VCleaf_P50[c], VCleaf_P88[c], VCleaf_P12[c]);
-    VCleaf_c[c] = wb_leaf["c"];
-    VCleaf_d[c] = wb_leaf["d"];
+    //Leaf apo Weibull
+    NumericVector wb_leafapo = psi2Weibull(VCleafapo_P50[c], VCleafapo_P88[c], VCleafapo_P12[c]);
+    VCleafapo_c[c] = wb_leafapo["c"];
+    VCleafapo_d[c] = wb_leafapo["d"];
   }
   
   
@@ -255,8 +325,8 @@ DataFrame paramsTranspirationGranier(DataFrame above,  DataFrame SpParams, List 
                                                       _["Tmax_LAIsq"] = Tmax_LAIsq,
                                                       _["Psi_Extract"]=Psi_Extract,
                                                       _["Exp_Extract"]=Exp_Extract,
-                                                      _["VCleaf_c"] = VCleaf_c,
-                                                      _["VCleaf_d"] = VCleaf_d,
+                                                      _["VCleafapo_c"] = VCleafapo_c,
+                                                      _["VCleafapo_d"] = VCleafapo_d,
                                                       _["VCstem_c"] = VCstem_c,
                                                       _["VCstem_d"] = VCstem_d,
                                                       _["WUE"] = WUE, 
@@ -275,7 +345,6 @@ DataFrame paramsTranspirationSperry(DataFrame above, NumericVector Z95, DataFram
   String transpirationMode = control["transpirationMode"];
   bool fillMissingSpParams = control["fillMissingSpParams"];
   bool fillWithGenus = control["fillMissingWithGenusParams"];
-  bool segmentedXylemVulnerability = control["segmentedXylemVulnerability"];
   double rootRadialConductance = control["rootRadialConductance"];
   bool leafConductanceEstimation = true;
   if(control.containsElementNamed("leafConductanceEstimation")) leafConductanceEstimation = as<bool>(control["leafConductanceEstimation"]);
@@ -298,6 +367,9 @@ DataFrame paramsTranspirationSperry(DataFrame above, NumericVector Z95, DataFram
   NumericVector VCleaf_P12 = speciesNumericParameterWithImputation(SP, SpParams, "VCleaf_P12", fillMissingSpParams, fillWithGenus);
   NumericVector VCleaf_P50 = speciesNumericParameterWithImputation(SP, SpParams, "VCleaf_P50", fillMissingSpParams, fillWithGenus);
   NumericVector VCleaf_P88 = speciesNumericParameterWithImputation(SP, SpParams, "VCleaf_P88", fillMissingSpParams, fillWithGenus);
+  NumericVector VCleafapo_P12 = speciesNumericParameterWithImputation(SP, SpParams, "VCleafapo_P12", fillMissingSpParams, fillWithGenus);
+  NumericVector VCleafapo_P50 = speciesNumericParameterWithImputation(SP, SpParams, "VCleafapo_P50", fillMissingSpParams, fillWithGenus);
+  NumericVector VCleafapo_P88 = speciesNumericParameterWithImputation(SP, SpParams, "VCleafapo_P88", fillMissingSpParams, fillWithGenus);
   NumericVector VCroot_P12 = speciesNumericParameterWithImputation(SP, SpParams, "VCroot_P12", fillMissingSpParams, fillWithGenus);
   NumericVector VCroot_P50 = speciesNumericParameterWithImputation(SP, SpParams, "VCroot_P50", fillMissingSpParams, fillWithGenus);
   NumericVector VCroot_P88 = speciesNumericParameterWithImputation(SP, SpParams, "VCroot_P88", fillMissingSpParams, fillWithGenus);
@@ -309,8 +381,8 @@ DataFrame paramsTranspirationSperry(DataFrame above, NumericVector Z95, DataFram
   
   NumericVector VCstem_kmax(numCohorts, 0.0), VCleaf_kmax(numCohorts, 0.0), VCroottot_kmax(numCohorts, 0.0), VGrhizotot_kmax(numCohorts, 0.0);
   NumericVector Plant_kmax(numCohorts, 0.0), FR_leaf(numCohorts, 0.0), FR_stem(numCohorts, 0.0), FR_root(numCohorts, 0.0);
-  NumericVector VCstem_c(numCohorts, 0.0), VCstem_d(numCohorts, 0.0), VCleaf_c(numCohorts, 0.0), VCleaf_d(numCohorts, 0.0), VCroot_c(numCohorts, 0.0), VCroot_d(numCohorts, 0.0);
-  NumericVector VCstem_slope(numCohorts, 0.0), VCroot_slope(numCohorts, 0.0), VCleaf_slope(numCohorts, 0.0);
+  NumericVector VCstem_c(numCohorts, 0.0), VCstem_d(numCohorts, 0.0), VCleaf_c(numCohorts, 0.0), VCleaf_d(numCohorts, 0.0), VCleafapo_c(numCohorts, 0.0), VCleafapo_d(numCohorts, 0.0), VCroot_c(numCohorts, 0.0), VCroot_d(numCohorts, 0.0);
+  NumericVector VCstem_slope(numCohorts, 0.0), VCroot_slope(numCohorts, 0.0), VCleaf_slope(numCohorts, 0.0), VCleafapo_slope(numCohorts, 0.0);
   NumericVector VCleafapo_kmax(numCohorts, NA_REAL);
   NumericVector kleaf_symp(numCohorts, NA_REAL);
   NumericVector Kmax_rootxylem(numCohorts, NA_REAL);
@@ -339,14 +411,7 @@ DataFrame paramsTranspirationSperry(DataFrame above, NumericVector Z95, DataFram
       VCleaf_kmax[c] = VCleaf_kmax_measured[c];
     }
 
-    if(!segmentedXylemVulnerability) {
-      VCleaf_P12[c] = VCstem_P12[c];
-      VCleaf_P50[c] = VCstem_P50[c];
-      VCleaf_P88[c] = VCstem_P88[c];
-      VCroot_P12[c] = VCstem_P12[c];
-      VCroot_P50[c] = VCstem_P50[c];
-      VCroot_P88[c] = VCstem_P88[c];
-    }
+    VCleafapo_slope[c] = (88.0 - 12.0)/(std::abs(VCleafapo_P88[c]) - std::abs(VCleafapo_P12[c]));
     VCleaf_slope[c] = (88.0 - 12.0)/(std::abs(VCleaf_P88[c]) - std::abs(VCleaf_P12[c]));
     VCstem_slope[c] = (88.0 - 12.0)/(std::abs(VCstem_P88[c]) - std::abs(VCstem_P12[c]));
     VCroot_slope[c] = (88.0 - 12.0)/(std::abs(VCroot_P88[c]) - std::abs(VCroot_P12[c]));
@@ -363,6 +428,10 @@ DataFrame paramsTranspirationSperry(DataFrame above, NumericVector Z95, DataFram
     NumericVector wb_leaf = psi2Weibull(VCleaf_P50[c], VCleaf_P88[c], VCleaf_P12[c]);
     VCleaf_c[c] = wb_leaf["c"];
     VCleaf_d[c] = wb_leaf["d"];
+    //Leaf apo Weibull
+    NumericVector wb_leafapo = psi2Weibull(VCleafapo_P50[c], VCleafapo_P88[c], VCleafapo_P12[c]);
+    VCleafapo_c[c] = wb_leafapo["c"];
+    VCleafapo_d[c] = wb_leafapo["d"];
     //Plant kmax
     Plant_kmax[c] = 1.0/((1.0/VCleaf_kmax[c])+(1.0/VCstem_kmax[c])+(1.0/VCroottot_kmax[c]));
     FR_leaf[c] = (1.0/VCleaf_kmax[c])/(1.0/Plant_kmax[c]);
@@ -378,11 +447,15 @@ DataFrame paramsTranspirationSperry(DataFrame above, NumericVector Z95, DataFram
   paramsTranspirationdf.push_back(Kmax_stemxylem, "Kmax_stemxylem");
   paramsTranspirationdf.push_back(Kmax_rootxylem, "Kmax_rootxylem");
   paramsTranspirationdf.push_back(VCleaf_kmax, "VCleaf_kmax");
-  paramsTranspirationdf.push_back(VCleafapo_kmax, "VCleafapo_kmax");
   paramsTranspirationdf.push_back(VCleaf_slope, "VCleaf_slope");
   paramsTranspirationdf.push_back(VCleaf_P50, "VCleaf_P50");
   paramsTranspirationdf.push_back(VCleaf_c, "VCleaf_c");
   paramsTranspirationdf.push_back(VCleaf_d, "VCleaf_d");
+  paramsTranspirationdf.push_back(VCleafapo_kmax, "VCleafapo_kmax");
+  paramsTranspirationdf.push_back(VCleafapo_slope, "VCleafapo_slope");
+  paramsTranspirationdf.push_back(VCleafapo_P50, "VCleafapo_P50");
+  paramsTranspirationdf.push_back(VCleafapo_c, "VCleafapo_c");
+  paramsTranspirationdf.push_back(VCleafapo_d, "VCleafapo_d");
   paramsTranspirationdf.push_back(kleaf_symp, "kleaf_symp");
   paramsTranspirationdf.push_back(VCstem_kmax, "VCstem_kmax");
   paramsTranspirationdf.push_back(VCstem_slope, "VCstem_slope");
@@ -412,7 +485,6 @@ DataFrame paramsTranspirationSureau(DataFrame above, NumericVector Z95, DataFram
   String stomatalSubmodel = control["stomatalSubmodel"];
   bool fillMissingSpParams = control["fillMissingSpParams"];
   bool fillWithGenus = control["fillMissingWithGenusParams"];
-  bool segmentedXylemVulnerability = control["segmentedXylemVulnerability"];
   double rootRadialConductance = control["rootRadialConductance"];
   double k_SSym = control["k_SSym"];
   double fractionLeafSymplasm = control["fractionLeafSymplasm"]; // Fraction of leaf symplasmic resistance
@@ -443,15 +515,19 @@ DataFrame paramsTranspirationSureau(DataFrame above, NumericVector Z95, DataFram
   NumericVector VCleaf_P12 = speciesNumericParameterWithImputation(SP, SpParams, "VCleaf_P12", fillMissingSpParams, fillWithGenus);
   NumericVector VCleaf_P50 = speciesNumericParameterWithImputation(SP, SpParams, "VCleaf_P50", fillMissingSpParams, fillWithGenus);
   NumericVector VCleaf_P88 = speciesNumericParameterWithImputation(SP, SpParams, "VCleaf_P88", fillMissingSpParams, fillWithGenus);
+  NumericVector VCleafapo_P12 = speciesNumericParameterWithImputation(SP, SpParams, "VCleafapo_P12", fillMissingSpParams, fillWithGenus);
+  NumericVector VCleafapo_P50 = speciesNumericParameterWithImputation(SP, SpParams, "VCleafapo_P50", fillMissingSpParams, fillWithGenus);
+  NumericVector VCleafapo_P88 = speciesNumericParameterWithImputation(SP, SpParams, "VCleafapo_P88", fillMissingSpParams, fillWithGenus);
   NumericVector VCroot_P12 = speciesNumericParameterWithImputation(SP, SpParams, "VCroot_P12", fillMissingSpParams, fillWithGenus);
   NumericVector VCroot_P50 = speciesNumericParameterWithImputation(SP, SpParams, "VCroot_P50", fillMissingSpParams, fillWithGenus);
   NumericVector VCroot_P88 = speciesNumericParameterWithImputation(SP, SpParams, "VCroot_P88", fillMissingSpParams, fillWithGenus);
   
   NumericVector VCleaf_slope = speciesNumericParameterFromIndex(SP, SpParams, "VCleaf_slope");
+  NumericVector VCleafapo_slope = speciesNumericParameterFromIndex(SP, SpParams, "VCleafapo_slope");
   NumericVector VCstem_slope = speciesNumericParameterFromIndex(SP, SpParams, "VCstem_slope");
   NumericVector VCroot_slope = speciesNumericParameterFromIndex(SP, SpParams, "VCroot_slope");
   
-  NumericVector VCstem_c(numCohorts, 0.0), VCstem_d(numCohorts, 0.0), VCleaf_c(numCohorts, 0.0), VCleaf_d(numCohorts, 0.0), VCroot_c(numCohorts, 0.0), VCroot_d(numCohorts, 0.0);
+  NumericVector VCstem_c(numCohorts, 0.0), VCstem_d(numCohorts, 0.0), VCleaf_c(numCohorts, 0.0), VCleaf_d(numCohorts, 0.0), VCleafapo_c(numCohorts, 0.0), VCleafapo_d(numCohorts, 0.0), VCroot_c(numCohorts, 0.0), VCroot_d(numCohorts, 0.0);
   NumericVector Gsw_AC_slope_Baldocchi(numCohorts, NA_REAL);
   if(SpParams.containsElementNamed("Gsw_AC_slope_Baldocchi")) Gsw_AC_slope_Baldocchi = speciesNumericParameterFromIndex(SP, SpParams, "Gsw_AC_slope_Baldocchi");
   else if(SpParams.containsElementNamed("Gsw_AC_slope")) Gsw_AC_slope_Baldocchi = speciesNumericParameterFromIndex(SP, SpParams, "Gsw_AC_slope");
@@ -492,21 +568,19 @@ DataFrame paramsTranspirationSureau(DataFrame above, NumericVector Z95, DataFram
     }
     kleaf_symp[c] = 1.0/(fractionLeafSymplasm*(1.0/VCleaf_kmax[c]));
     VCleafapo_kmax[c] = 1.0/((1.0- fractionLeafSymplasm)*(1.0/VCleaf_kmax[c]));
+    
     //Sigmoid slopes if missing
     if(NumericVector::is_na(VCleaf_slope[c])) VCleaf_slope[c] = (88.0 - 12.0)/(std::abs(VCleaf_P88[c]) - std::abs(VCleaf_P12[c]));
+    if(NumericVector::is_na(VCleafapo_slope[c])) VCleafapo_slope[c] = (88.0 - 12.0)/(std::abs(VCleafapo_P88[c]) - std::abs(VCleafapo_P12[c]));
     if(NumericVector::is_na(VCstem_slope[c])) VCstem_slope[c] = (88.0 - 12.0)/(std::abs(VCstem_P88[c]) - std::abs(VCstem_P12[c]));
     if(NumericVector::is_na(VCroot_slope[c])) VCroot_slope[c] = (88.0 - 12.0)/(std::abs(VCroot_P88[c]) - std::abs(VCroot_P12[c]));
 
-    if(!segmentedXylemVulnerability) {
-      VCleaf_P12[c] = VCstem_P12[c];
-      VCleaf_P50[c] = VCstem_P50[c];
-      VCleaf_P88[c] = VCstem_P88[c];
-      VCleaf_slope[c] = VCstem_slope[c];
-      VCroot_P12[c] = VCstem_P12[c];
-      VCroot_P50[c] = VCstem_P50[c];
-      VCroot_P88[c] = VCstem_P88[c];
-      VCroot_slope[c] = VCstem_slope[c];
-    }
+    //Assume lack of segmentation between stem and root
+    VCroot_P12[c] = VCstem_P12[c];
+    VCroot_P50[c] = VCstem_P50[c];
+    VCroot_P88[c] = VCstem_P88[c];
+    VCroot_slope[c] = VCstem_slope[c];
+    
     //Stem Weibull
     NumericVector wb_stem = psi2Weibull(VCstem_P50[c], VCstem_P88[c], VCstem_P12[c]);
     VCstem_c[c] = wb_stem["c"];
@@ -515,6 +589,10 @@ DataFrame paramsTranspirationSureau(DataFrame above, NumericVector Z95, DataFram
     NumericVector wb_leaf = psi2Weibull(VCleaf_P50[c], VCleaf_P88[c], VCleaf_P12[c]);
     VCleaf_c[c] = wb_leaf["c"];
     VCleaf_d[c] = wb_leaf["d"];
+    //Leaf apo Weibull
+    NumericVector wb_leafapo = psi2Weibull(VCleafapo_P50[c], VCleafapo_P88[c], VCleafapo_P12[c]);
+    VCleafapo_c[c] = wb_leafapo["c"];
+    VCleafapo_d[c] = wb_leafapo["d"];
     //Root Weibull
     NumericVector wb_root = psi2Weibull(VCroot_P50[c], VCroot_P88[c], VCroot_P12[c]);
     VCroot_c[c] = wb_root["c"];
@@ -551,11 +629,15 @@ DataFrame paramsTranspirationSureau(DataFrame above, NumericVector Z95, DataFram
   paramsTranspirationdf.push_back(Kmax_stemxylem, "Kmax_stemxylem");
   paramsTranspirationdf.push_back(Kmax_rootxylem, "Kmax_rootxylem");
   paramsTranspirationdf.push_back(VCleaf_kmax, "VCleaf_kmax");
-  paramsTranspirationdf.push_back(VCleafapo_kmax, "VCleafapo_kmax");
   paramsTranspirationdf.push_back(VCleaf_slope, "VCleaf_slope");
   paramsTranspirationdf.push_back(VCleaf_P50, "VCleaf_P50");
   paramsTranspirationdf.push_back(VCleaf_c, "VCleaf_c");
   paramsTranspirationdf.push_back(VCleaf_d, "VCleaf_d");
+  paramsTranspirationdf.push_back(VCleafapo_kmax, "VCleafapo_kmax");
+  paramsTranspirationdf.push_back(VCleafapo_slope, "VCleafapo_slope");
+  paramsTranspirationdf.push_back(VCleafapo_P50, "VCleafapo_P50");
+  paramsTranspirationdf.push_back(VCleafapo_c, "VCleafapo_c");
+  paramsTranspirationdf.push_back(VCleafapo_d, "VCleafapo_d");
   paramsTranspirationdf.push_back(kleaf_symp, "kleaf_symp");
   paramsTranspirationdf.push_back(VCstem_kmax, "VCstem_kmax");
   paramsTranspirationdf.push_back(VCstem_slope, "VCstem_slope");
@@ -779,6 +861,7 @@ DataFrame paramsGrowth(DataFrame above, DataFrame SpParams, List control) {
   NumericVector CCleaf = speciesNumericParameterFromIndex(SP, SpParams, "CCleaf");
   NumericVector CCsapwood = speciesNumericParameterFromIndex(SP, SpParams, "CCsapwood");
   NumericVector CCfineroot = speciesNumericParameterFromIndex(SP, SpParams, "CCfineroot");
+
   NumericVector RGRleafmax = speciesNumericParameterFromIndex(SP, SpParams, "RGRleafmax");
   NumericVector RGRsapwoodmax = speciesNumericParameterFromIndex(SP, SpParams, "RGRsapwoodmax");
   NumericVector RGRcambiummax = speciesNumericParameterFromIndex(SP, SpParams, "RGRcambiummax");
@@ -790,6 +873,7 @@ DataFrame paramsGrowth(DataFrame above, DataFrame SpParams, List control) {
   NumericVector RSSG = speciesNumericParameterFromIndex(SP, SpParams, "RSSG");
 
   List maximumRelativeGrowthRates = control["maximumRelativeGrowthRates"];
+  
   double RGRleafmax_default = maximumRelativeGrowthRates["leaf"];
   double RGRsapwoodmax_default = maximumRelativeGrowthRates["sapwood"];
   double RGRcambiummax_default = maximumRelativeGrowthRates["cambium"];
@@ -885,6 +969,9 @@ DataFrame paramsMortalityRegeneration(DataFrame above, DataFrame SpParams, List 
         if(NumericVector::is_na(IngrowthTreeDBH[c])) IngrowthTreeDBH[c] = ingrowthTreeDBH_default;
         if(NumericVector::is_na(RespDist[c])) RespDist[c] = 0.0;
         if(NumericVector::is_na(RespFire[c])) RespFire[c] = 0.0;
+      } else {
+        if(NumericVector::is_na(RespDist[c])) RespDist[c] = 0.0;
+        if(NumericVector::is_na(RespFire[c])) RespFire[c] = 0.0;
       }
     }
   }
@@ -958,20 +1045,24 @@ DataFrame paramsLitterDecomposition(DataFrame internalLitter, DataFrame SpParams
 DataFrame internalPhenologyDataFrame(DataFrame above) {
   int numCohorts = above.nrow();
   NumericVector phi(numCohorts,0.0);
+  NumericVector phiPrev(numCohorts,0.0);
   NumericVector gdd(numCohorts,0.0);
   NumericVector sen(numCohorts,0.0);
   LogicalVector budFormation(numCohorts, false);
+  IntegerVector leafOrganogenesisDuration(numCohorts, 0);
   LogicalVector leafUnfolding(numCohorts, false);
   LogicalVector leafSenescence(numCohorts, false);
-  LogicalVector leafDormancy(numCohorts, false);
+  LogicalVector budDormancy(numCohorts, false);
   
   DataFrame df = DataFrame::create(Named("gdd") = gdd,
                                    Named("sen") = sen,
                                    Named("budFormation") = budFormation,
+                                   Named("budDormancy") = budDormancy,
                                    Named("leafUnfolding") = leafUnfolding,
                                    Named("leafSenescence") = leafSenescence,
-                                   Named("leafDormancy") = leafDormancy,
-                                   Named("phi") = phi);
+                                   Named("leafOrganogenesisDuration") = leafOrganogenesisDuration,
+                                   Named("phi") = phi,
+                                   Named("phiPrev") = phiPrev);
   df.attr("row.names") = above.attr("row.names");
   return(df);
 }
@@ -1083,6 +1174,7 @@ DataFrame internalMortalityDataFrame(DataFrame above) {
 }
 DataFrame internalAllocationDataFrame(DataFrame above, 
                                       DataFrame belowdf, 
+                                      DataFrame paramsPhenologydf,
                                       DataFrame paramsAnatomydf,
                                       DataFrame paramsTranspirationdf,
                                       List control) {
@@ -1090,12 +1182,17 @@ DataFrame internalAllocationDataFrame(DataFrame above,
 
   NumericVector allocationTarget(numCohorts,0.0);
   NumericVector leafAreaTarget(numCohorts,0.0);
+  NumericVector leafOrganogenesisEfficiency(numCohorts,medfate::NA_DOUBLE);
+  NumericVector leafAreaPreformed(numCohorts,0.0);
+  NumericVector leafAreaSenescence(numCohorts,0.0);
   NumericVector sapwoodAreaTarget(numCohorts,0.0);
   NumericVector fineRootBiomassTarget(numCohorts, 0.0);
   NumericVector crownBudPercent(numCohorts, 100.0);
   
   String transpirationMode = control["transpirationMode"];
   NumericVector SA = above["SA"];
+  NumericVector LeafDuration = paramsPhenologydf["LeafDuration"];
+  StringVector GrowthDeterminacy = paramsPhenologydf["GrowthDeterminacy"];
   NumericVector Al2As = paramsAnatomydf["Al2As"];
   NumericVector fineRootBiomass = belowdf["fineRootBiomass"];
   DataFrame df;
@@ -1122,8 +1219,18 @@ DataFrame internalAllocationDataFrame(DataFrame above,
       fineRootBiomassTarget[c] = fineRootBiomass[c];
     }
   }
+  for(int c=0;c<numCohorts;c++){
+    if(GrowthDeterminacy[c]!="indeterminate") {
+      //Set maximum preformation to the expected defoliation next year + 10% to counterbalance potential sink limitations
+      double maxPreformation = 1.1*leafAreaTarget[c]/LeafDuration[c];
+      leafAreaPreformed[c] = maxPreformation; 
+    }
+  }
   df = DataFrame::create(Named("allocationTarget") = allocationTarget,
                          Named("leafAreaTarget") = leafAreaTarget,
+                         Named("leafOrganogenesisEfficiency") = leafOrganogenesisEfficiency,
+                         Named("leafAreaPreformed") = leafAreaPreformed,
+                         Named("leafAreaSenescence") = leafAreaSenescence,
                          Named("sapwoodAreaTarget") = sapwoodAreaTarget,
                          Named("fineRootBiomassTarget") = fineRootBiomassTarget,
                          Named("crownBudPercent") = crownBudPercent);
@@ -1531,7 +1638,7 @@ List spwbInputInner(DataFrame above, NumericVector Z50, NumericVector Z95, Numer
                             _["above"] = plantsdf,
                             _["below"] = belowdf,
                             _["belowLayers"] = belowLayers,
-                            _["paramsPhenology"] = paramsPhenology(above, SpParams, fillMissingSpParams, fillWithGenus),
+                            _["paramsPhenology"] = paramsPhenology(above, SpParams, fillMissingSpParams, fillWithGenus, control, "spwb"),
                             _["paramsAnatomy"] = paramsAnatomydf,
                             _["paramsInterception"] = paramsInterception(above, SpParams, control),
                             _["paramsTranspiration"] = paramsTranspirationdf,
@@ -1663,6 +1770,8 @@ List growthInputInner(DataFrame above, NumericVector Z50, NumericVector Z95, Num
   double SWE = 0.0;
   
   DataFrame paramsCanopydf = paramsCanopy(above, control);
+  DataFrame paramsPhenologydf = paramsPhenology(above, SpParams, fillMissingSpParams, fillWithGenus, control, "growth");
+  
   List ctl = clone(control);
   //For backward compatibility
   if(!ctl.containsElementNamed("soilPoolResults")) ctl.push_back(false, "soilPoolResults");
@@ -1684,7 +1793,7 @@ List growthInputInner(DataFrame above, NumericVector Z50, NumericVector Z95, Num
                        _["above"] = plantsdf,
                        _["below"] = belowdf,
                        _["belowLayers"] = belowLayers,
-                       _["paramsPhenology"] = paramsPhenology(above, SpParams, fillMissingSpParams, fillWithGenus),
+                       _["paramsPhenology"] = paramsPhenologydf,
                        _["paramsAnatomy"] = paramsAnatomydf,
                        _["paramsInterception"] = paramsInterception(above, SpParams, control),
                        _["paramsTranspiration"] = paramsTranspirationdf,
@@ -1701,6 +1810,7 @@ List growthInputInner(DataFrame above, NumericVector Z50, NumericVector Z95, Num
                                           paramsWaterStoragedf,
                                           paramsGrowthdf, control), "internalCarbon");
   input.push_back(internalAllocationDataFrame(plantsdf, belowdf,
+                                              paramsPhenologydf,
                                               paramsAnatomydf,
                                               paramsTranspirationdf, control), "internalAllocation");
   
@@ -1860,15 +1970,26 @@ DataFrame rootDistributionComplete(List x, DataFrame SpParams, bool fillMissingR
 //'         \item{\code{RhizoPsi}: A matrix with the water potential around the rhizosphere of each cohort (in rows) in each soil layer (in columns).}
 //'       }
 //'     }
-//'     \item{\code{paramsPhenology}: A data frame with leaf phenology parameters:
+//'     \item{\code{paramsPhenology}: A data frame with leaf phenology parameters (some are only relevant for \code{\link{growth}} simulations):
 //'       \itemize{
 //'         \item{\code{PhenologyType}: Leaf phenology type.}
+//'         \item{\code{SenescencePeriod}: Leaf senescence period ("whole-year", "spring" or "autumn").}
+//'         \item{\code{GrowthPeriod}: Leaf growth period ("whole-year" or "spring").}
+//'         \item{\code{GrowthDeterminacy}: Primary growth determinacy type ("determinate", "indeterminate" or "intermediate").}
 //'         \item{\code{LeafDuration}: Leaf duration (in years).}
-//'         \item{\code{Sgdd}: Degree days needed for leaf budburst (for winter decideous species).}
+//'         \item{\code{BudFormationDays}: Number of days required to complete bud formation.}
+//'         \item{\code{t0gdd}: Date to start the accumulation of growth degree days.}
 //'         \item{\code{Tbgdd}: Base temperature for the calculation of degree days to leaf budburst.}
-//'         \item{\code{Ssen}: Degree days corresponding to leaf senescence.}
+//'         \item{\code{Sgdd}: Degree days needed for leaf budburst.}
+//'         \item{\code{Ugdd}: Degree days needed to complete leaf unfolding.} 
+//'         \item{\code{Ssen}: Degree days corresponding to leaf senescence (pigment degradation and nutrient translocation).}
 //'         \item{\code{Phsen}: Photoperiod corresponding to start counting senescence degree-days.}
 //'         \item{\code{Tbsen}: Base temperature for the calculation of degree days to leaf senescence.}
+//'         \item{\code{xsen, ysen}: Discrete values, to allow for any absent/proportional/more than proportional effects of photoperiod  on senescence.}
+//'         \item{\code{Fsen}: Degree days required to for leaves to be ready for abscission.}
+//'         \item{\code{LeafPLCCrit}: Leaf PLC (a proportion) associated to cavitation-induced leaf senescence.}
+//'         \item{\code{BudPLCCrit}: Stem PLC (a proportion) associated to cavitation-induced bud (branch) senescence.}
+//'         \item{\code{LeafTSCrit}: Critical leaf temperature associated to heat-induced leaf senescence.}
 //'       }
 //'     }
 //'     \item{\code{paramsAnatomy}: A data frame with plant anatomy parameters for each cohort:
@@ -1982,7 +2103,7 @@ DataFrame rootDistributionComplete(List x, DataFrame SpParams, bool fillMissingR
 //'       \item{\code{CCleaf}: Leaf construction costs (in g gluc·g dry-1).}
 //'       \item{\code{CCsapwood}: Sapwood construction costs (in g gluc·g dry-1).}
 //'       \item{\code{CCfineroot}: Fine root construction costs (in g gluc·g dry-1).}
-//'       \item{\code{RGRleafmax}: Maximum leaf relative growth rate (in m2·cm-2·day-1).}
+//'       \item{\code{RGRleafmax}: Maximum leaf relative growth (expansion) rate (in m2·cm-2·day-1).}
 //'       \item{\code{RGRsapwoodmax}: Maximum sapwood relative growth rate (in cm2·cm-2·day-1).}
 //'       \item{\code{RGRfinerootmax}: Maximum fine root relative growth rate (in g dry·g dry-1·day-1).}
 //'       \item{\code{SRsapwood}: Sapwood daily senescence rate (in day-1).}
@@ -2018,10 +2139,13 @@ DataFrame rootDistributionComplete(List x, DataFrame SpParams, bool fillMissingR
 //'   \item {\code{internalAllocation}: A data frame with internal allocation variables for each cohort:
 //'     \itemize{
 //'       \item{\code{allocationTarget}: Value of the allocation target variable.}
-//'       \item{\code{leafAreaTarget}: Target leaf area (m2) per individual.}
+//'       \item{\code{leafAreaTarget}: Target leaf area (m2) per individual, assuming a fully-developed crown.}
+//'       \item{\code{leafOrganogenesisEfficiency}: For species with separated phases of leaf organogenesis and leaf expansion, proportion of the target leaf area that is preformed in buds, after accounting for crown bud availability and environmental effects in organogenesis.}
+//'       \item{\code{leafAreaPreformed}: For species with separated phases of leaf organogenesis and expansion, preformed (in buds) leaf area (m2) per individual, to be expanded.}
+//'       \item{\code{leafAreaSenescence}: Leaf area (m2) that is programmed to enter senescence.}
 //'       \item{\code{sapwoodAreaTarget}: Target sapwood area (cm2) per individual.}
 //'       \item{\code{fineRootBiomassTarget}: Target fine root biomass (g dry) per individual.}
-//'       \item{\code{crownBudPercent}: Percentage of the crown with buds.}
+//'       \item{\code{crownBudPercent}: Percentage of the crown with buds available, related to availability of branches and dormant buds.}
 //'     }
 //'   }
 //'   \item{\code{internalCarbon}: A data frame with the concentration (mol·gluc·l-1) of metabolic and storage carbon compartments for leaves and sapwood.}
@@ -2388,10 +2512,12 @@ void multiplyInputParam(List x, String paramType, String paramName,
       DataFrame above = Rcpp::as<Rcpp::DataFrame>(x["above"]);
       DataFrame belowdf = Rcpp::as<Rcpp::DataFrame>(x["below"]);
       DataFrame paramsTranspirationdf = Rcpp::as<Rcpp::DataFrame>(x["paramsTranspiration"]);
+      DataFrame paramsPhenologydf = Rcpp::as<Rcpp::DataFrame>(x["paramsPhenology"]);
       DataFrame paramsAnatomydf = Rcpp::as<Rcpp::DataFrame>(x["paramsAnatomy"]);
       if(message) Rcerr<< "[Message] Rebuilding allocation targets for cohort " << cohNames[cohort] <<".\n";
       x["internalAllocation"]  = internalAllocationDataFrame(above, 
                                            belowdf, 
+                                           paramsPhenologydf,
                                            paramsAnatomydf,
                                            paramsTranspirationdf,
                                            control);
@@ -2530,10 +2656,12 @@ void modifyInputParam(List x, String paramType, String paramName,
   if(x.containsElementNamed("internalAllocation")) {
     DataFrame belowdf = Rcpp::as<Rcpp::DataFrame>(x["below"]);
     DataFrame paramsTranspirationdf = Rcpp::as<Rcpp::DataFrame>(x["paramsTranspiration"]);
+    DataFrame paramsPhenologydf = Rcpp::as<Rcpp::DataFrame>(x["paramsPhenology"]);
     DataFrame paramsAnatomydf = Rcpp::as<Rcpp::DataFrame>(x["paramsAnatomy"]);
     if(message) Rcerr<< "[Message] Rebuilding allocation targets.\n";
     x["internalAllocation"]  = internalAllocationDataFrame(above, 
                                          belowdf, 
+                                         paramsPhenologydf,
                                          paramsAnatomydf,
                                          paramsTranspirationdf,
                                          control);

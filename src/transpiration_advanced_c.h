@@ -18,6 +18,7 @@
 struct PlantsAdvancedTranspiration_RESULT {
   std::vector<double> LAI;
   std::vector<double> LAIlive;
+  std::vector<int> Phenology;
   std::vector<double> FPAR;
   std::vector<double> Extraction;
   std::vector<double> Transpiration;
@@ -40,6 +41,7 @@ struct PlantsAdvancedTranspiration_RESULT {
   PlantsAdvancedTranspiration_RESULT(size_t numCohorts = 0) {
     LAI = std::vector<double>(numCohorts, medfate::NA_DOUBLE);
     LAIlive = std::vector<double>(numCohorts, medfate::NA_DOUBLE);
+    Phenology = std::vector<int>(numCohorts, medfate::NA_INTEGER);
     FPAR = std::vector<double>(numCohorts, medfate::NA_DOUBLE);
     Extraction = std::vector<double>(numCohorts, medfate::NA_DOUBLE);
     Transpiration = std::vector<double>(numCohorts, medfate::NA_DOUBLE);
@@ -66,7 +68,7 @@ Rcpp::DataFrame copyPlantAdvancedTranspirationResult_c(const PlantsAdvancedTrans
 struct PlantsAdvancedTranspirationInst_RESULT {
   arma::mat E, Ag, An, dEdP, RootPsi, StemPsi, LeafPsi;
   arma::mat StemSympPsi, LeafSympPsi, StemPLC, LeafPLC, StemRWC, LeafRWC, StemSympRWC, LeafSympRWC;
-  arma::mat PWB;
+  arma::mat LFMC, PWB;
   
   PlantsAdvancedTranspirationInst_RESULT(size_t numCohorts, size_t ntimesteps) : 
     E(numCohorts, ntimesteps),
@@ -84,6 +86,7 @@ struct PlantsAdvancedTranspirationInst_RESULT {
     LeafRWC(numCohorts, ntimesteps),
     StemSympRWC(numCohorts, ntimesteps),
     LeafSympRWC(numCohorts, ntimesteps),
+    LFMC(numCohorts, ntimesteps),
     PWB(numCohorts, ntimesteps) {
     
   }

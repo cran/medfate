@@ -19,6 +19,7 @@ hydrology_soilWaterBalance(
   soilDomains = "buckets",
   nsteps = 24L,
   max_nsubsteps = 3600L,
+  richards_tolerance = 0.001,
   modifySoil = TRUE
 )
 }
@@ -52,6 +53,8 @@ as mm/day.}
 
 \item{max_nsubsteps}{Maximum number of substeps per time step}
 
+\item{richards_tolerance}{Error tolerance for Richards solving (in mm)}
+
 \item{modifySoil}{Boolean flag to indicate that the input \code{soil} object should be modified during the simulation.}
 }
 \value{
@@ -72,6 +75,7 @@ If \code{soilDomains == "single"} the named vector contains the following additi
 \itemize{
 \item{\code{Correction}: Amount of water (mm) added to deep drainage to correct the water balance.}
 \item{\code{VolumeChange}: Change in soil water volume (mm).}
+\item{\code{FlowBalance}: Balance of water fluxes, to be compared with volume change (mm).}
 \item{\code{Substep}: Time step of the moisture solving (seconds).}
 }
 If \code{soilDomains == "dual"} the named vector contains the following additional elements:

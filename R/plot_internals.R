@@ -45,6 +45,7 @@
 .getPlantPlotTypes<-function(transpirationMode = "Granier") {
   TYPES = c("Plant LAI" = "PlantLAI",
             "Plant LAI (live)" = "PlantLAIlive",
+            "Phenological status" = "Phenology",
             "Transpiration per ground area" = "PlantTranspiration",
             "Transpiration per leaf area" = "TranspirationPerLeaf",
             "Water balance per ground area" = "PlantWaterBalance",
@@ -87,8 +88,8 @@
               "Soil-plant conductance" = "SoilPlantConductance")
   }
   TYPES <-c(TYPES,
-            "Plant stress (conductance reduction)" = "PlantStress",
-            "Leaf percent conductance loss" = "LeafPLC",
+            "Plant drought stress" = "PlantStress",
+            "Leaf apoplasm percent conductance loss" = "LeafPLC",
             "Stem percent conductance loss" = "StemPLC")
   return(TYPES)
 }
@@ -123,6 +124,16 @@
               "Canopy energy balance components" = "CanopyEnergyBalance",
               "Soil energy balance components" = "SoilEnergyBalance")
   }
+  return(TYPES)
+}
+.getFireHazardPlotTypes<-function() {
+  TYPES = c("Fuel loading" = "FuelLoading",
+            "Fuel moisture" = "FuelMoisture",
+            "Rate of spread" = "RateOfSpread",
+            "Fireline intensity" = "FirelineIntensity",
+            "Flame length" = "FlameLength",
+            "Residence time" = "ResidenceTime",
+            "Fire potential" = "FirePotential")
   return(TYPES)
 }
 .getStructuralGROWTHPlotTypes<-function(transpirationMode = "Granier"){
@@ -255,6 +266,7 @@
             "Leaf relative water content" = "LeafRWC",
             "Stem symplastic relative water content" = "StemSympRWC", 
             "Leaf symplastic relative water content" = "LeafSympRWC",
+            "Live fuel moisture content" = "LFMC",
             "Soil-plant conductance" = "SoilPlantConductance",
             "Transpiration per ground area" = "PlantTranspiration", 
             "Transpiration per leaf area" = "TranspirationPerLeaf",
@@ -342,6 +354,7 @@
   else if(type=="WaterBalancePerLeaf") ylab = expression(paste("Water balance per leaf area ",(L%.%m^{-2})))
   else if(type=="PlantLAI") ylab = expression(paste("Leaf area index ",(m^{-2}%.%m^{-2})))
   else if(type=="PlantLAIlive") ylab = expression(paste("(Live) leaf area index ",(m^{-2}%.%m^{-2})))
+  else if(type=="Phenology") ylab = "Phenological status"
   else if(type=="AbsorbedSWRPerLeaf") ylab = expression(paste("Absorbed SWR per leaf area ",(MJ%.%m^{-2}%.%d^{-1})))
   else if(type=="AbsorbedPARPerLeaf") ylab = expression(paste("Absorbed PAR per leaf area ",(MJ%.%m^{-2}%.%d^{-1})))
   else if(type=="LeafLAI") ylab = expression(paste("Leaf area index ",(m^{-2}%.%m^{-2})))
@@ -384,7 +397,7 @@
   else if(type=="MortalityRate") ylab = expression(paste("Mortality rate ",(ind %.% d^{-1})))
   else if(type=="LeafPI0")  ylab = expression(paste("Leaf osmotic potential at full turgor  ",(MPa)))
   else if(type=="StemPI0")  ylab = expression(paste("Stem osmotic potential at full turgor  ",(MPa)))
-  else if(type=="LeafPLC") ylab = "Percent loss conductance in leaves [%]"
+  else if(type=="LeafPLC") ylab = "Percent loss conductance in leaf apoplasm [%]"
   else if(type=="StemPLC") ylab = "Percent loss conductance in stem [%]"
   else if(type=="StemRWC") ylab = "Relative water content in stem [%]"
   else if(type=="StemSympRWC") ylab = "Relative water content in stem symplasm [%]"
@@ -394,7 +407,7 @@
   else if(type=="LeafSympRWC") ylab = "Relative water content in leaf symplasm [%]"
   else if(type=="LeafSympPsi") ylab = "Leaf symplastic water potential (MPa)"
   else if(type=="PlantPsi") ylab = "Plant water potential (MPa)"
-  else if(type=="PlantStress") ylab = "Drought stress [%]"
+  else if(type=="PlantStress") ylab = "Whole-plant drought stress (conductance reduction) [%]"
   else if(type=="StemPsi") ylab = "Stem water potential (MPa)"
   else if(type=="RootPsi") ylab = "Root crown water potential (MPa)"
   else if(type=="LeafPsiAverage") ylab = "Average leaf water potential (MPa)"
@@ -441,6 +454,13 @@
   else if(type=="CohortLAI") ylab = expression(paste("Cohort leaf area index ",(m^{-2}%.%m^{-2})))
   else if(type=="CohortDensity") ylab = expression(paste("Cohort tree density ",(ind%.%ha^{-1})))
   else if(type=="CohortShrubCover") ylab = expression(paste("Shrub cover by cohort (%)"))
+  else if(type=="FuelLoading") ylab  = expression(paste("Fuel loading ",(kg%.%m^{-2})))
+  else if(type=="FuelMoisture") ylab  = expression(paste("Fuel moisture (%)"))
+  else if(type=="RateOfSpread") ylab  = expression(paste("Rate of spread ",(m%.%min^{-1})))
+  else if(type=="FirelineIntensity") ylab  = expression(paste("Byram's fireline intensity ",(kW%.%m^{-1})))
+  else if(type=="FlameLength") ylab  = expression(paste("Flame length ",(m)))
+  else if(type=="ResidenceTime") ylab  = expression(paste("Residence time ",(s)))
+  else if(type=="FirePotential") ylab  = expression(paste("Fire potential [0-9] "))
   return(ylab)
 }
 
@@ -626,6 +646,41 @@
     return(g)
   } 
 }
+
+.plot_fire_hazard <- function(FireHazard, type,
+                              dates = NULL, 
+                              xlim = NULL, ylim=NULL, xlab=NULL, ylab=NULL, 
+                              summary.freq = NULL, ...) {
+  if(is.null(ylab)) ylab = .getYLab(type)
+  if(type=="FuelLoading") {
+    df = FireHazard[,c("Loading_understory","Loading_overstory")]
+    names(df)<- c("Understory", "Overstory")
+  } else if(type=="FuelMoisture") {
+    df = FireHazard[,c("CFMC_understory","CFMC_overstory", "DFMC")]
+    names(df)<- c("Understory CFMC", "Overstory CFMC", "Downed DFMC")
+  } else if(type=="RateOfSpread") {
+    df = FireHazard[,c("ROS_surface","ROS_crown")]
+    names(df)<- c("Surface fire", "Crown fire")
+  } else if(type=="FirelineIntensity") {
+    df = FireHazard[,c("I_b_surface","I_b_crown")]
+    names(df)<- c("Surface fire", "Crown fire")
+  } else if(type=="FlameLength") {
+    df = FireHazard[,c("FL_surface","FL_crown")]
+    names(df)<- c("Surface fire", "Crown fire")
+  } else if(type=="ResidenceTime") {
+    df = FireHazard[,c("t_r_surface","t_r_crown")]
+    names(df)<- c("Surface fire", "Crown fire")
+  } else if(type=="FirePotential") {
+    df = FireHazard[,c("SFP","CFP")]
+    names(df)<- c("Surface fire", "Crown fire")
+  }
+  
+  if(!is.null(dates)) df = df[row.names(df) %in% as.character(dates),,drop = FALSE]
+  if(!is.null(summary.freq)) {
+    df = .temporalSummary(df, summary.freq, mean, na.rm=TRUE)
+  }
+  return(.multiple_dynamics(as.matrix(df), ylab = ylab, ylim = ylim))
+}
 .plot_soil<-function(Soil, input_soil, input_control, type,  
                      dates = NULL, 
                      xlim = NULL, ylim=NULL, xlab=NULL, ylab=NULL, 
@@ -716,6 +771,38 @@
     if(!is.null(summary.freq)) df = .temporalSummary(df, summary.freq, mean, na.rm=TRUE)
     return(.multiple_dynamics(as.matrix(df), ylab = ylab, ylim = ylim))
   } 
+}
+.mode <- function(x, na.rm = TRUE, ...) {
+  if(na.rm) x <- x[!is.na(x)]
+  freq <- table(x)
+  return(names(freq)[which.max(freq)])
+}
+.plot_plant_phenology<-function(OM,
+                                type,
+                                dates = NULL, 
+                                xlim = NULL, ylim=NULL, xlab=NULL, ylab=NULL, 
+                                summary.freq = NULL, ...) {
+  OM = as.data.frame(OM)
+  OM[OM=="0"] <- "Leaves unfolded"
+  OM[OM=="1"] <- "Bud dormancy"
+  OM[OM=="2"] <- "Leaf senescence"
+  OM[OM=="3"] <- "Bud dormancy / leaf senescence"
+  OM[OM=="4"] <- "Leaf growth"
+  OM[OM=="5"] <- "Leaf growth / bud dormancy"
+  OM[OM=="6"] <- "Leaf growth / leaf senescence"
+  OM[OM=="7"] <- "Leaf growth / leaf senescence / bud dormancy"
+  OM[OM=="8"] <- "Bud formation"
+  OM[OM=="9"] <- "Bud formation / bud dormancy"
+  OM[OM=="10"] <- "Bud formation / leaf senescence"
+  OM[OM=="11"] <- "Leaf growth / bud dormancy / bud formation"
+  OM[OM=="12"] <- "Bud formation / leaf growth"
+  OM[OM=="13"] <- "Bud formation / leaf growth / bud dormancy"
+  OM[OM=="14"] <- "Bud formation / leaf growth / leaf senescence"
+  OM[OM=="15"] <- "Bud formation / leaf growth / leaf senescence / bud dormancy"
+  if(!is.null(dates)) OM = OM[row.names(OM) %in% as.character(dates),,drop =FALSE]
+  if(!is.null(summary.freq)) OM = .temporalSummary(OM, summary.freq, .mode, na.rm=TRUE)
+  if(is.null(ylab)) ylab = .getYLab(type)
+  return(.multiple_heatmap(as.matrix(OM),  xlab = xlab, ylab = ylab, ylim = ylim, legendLabel = "Status"))
 }
 .plot_plant_om<-function(OM, PlantsLAIlive, spnames,
                          type,  bySpecies = FALSE,
@@ -957,7 +1044,7 @@
     if(is.null(ylab)) ylab = .getYLab(type)
     return(.multiple_dynamics_subdaily(m,  xlab = xlab, ylab = ylab, ylim = ylim))
   } 
-  else if(type %in% c("StemPsi", "RootPsi", "LeafSympPsi", "StemSympPsi")) {
+  else if(type %in% c("StemPsi", "RootPsi", "LeafSympPsi", "StemSympPsi", "LFMC")) {
     m = .extractSubdaily(x, type, dates)[,c("datetime", cohorts), drop=FALSE]
     if(is.null(ylab)) ylab = .getYLab(type)
     return(.multiple_dynamics_subdaily(m,  xlab = xlab, ylab = ylab, ylim = ylim))

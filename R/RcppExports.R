@@ -33,9 +33,9 @@ aspwbInput <- function(crop_factor, control, soil) {
 #' @param meteovec A named numerical vector with weather data. See variable names in parameter \code{meteo} of \code{\link{spwb}}.
 #' @param latitude Latitude (in degrees).
 #' @param elevation,slope,aspect Elevation above sea level (in m), slope (in degrees) and aspect (in degrees from North). 
-#' @param runon Surface water amount running on the target area from upslope (in mm).
+#' @param runon A single value or a vector (with length equal to the number of rows in meteo) of daily runon values (in mm). Conceptually, runon can also represent an irrigation term.
 #' @param lateralFlows Lateral source/sink terms for each soil layer (interflow/to from adjacent locations) as mm/day.
-#' @param waterTableDepth Water table depth (in mm). When not missing, capillarity rise will be allowed if lower than total soil depth.
+#' @param waterTableDepth A single value or a vector (with length equal to the number of rows in meteo) of daily water table depth values (in mm). When not missing, capillarity rise will be allowed if lower than total soil depth.
 #' @param modifyInput Boolean flag to indicate that the input \code{x} object is allowed to be modified during the simulation.
 #' @param waterTableDepth Water table depth (in mm). When not missing, capillarity rise will be allowed if lower than total soil depth.
 #'   
@@ -66,8 +66,8 @@ aspwbInput <- function(crop_factor, control, soil) {
 #' 
 #' @name aspwb
 #' @keywords internal
-aspwb <- function(x, meteo, latitude, elevation, slope = NA_real_, aspect = NA_real_, waterTableDepth = NA_real_) {
-    .Call(`_medfate_aspwb`, x, meteo, latitude, elevation, slope, aspect, waterTableDepth)
+aspwb <- function(x, meteo, latitude, elevation, slope = NA_real_, aspect = NA_real_, runon = numeric(0), waterTableDepth = numeric(0)) {
+    .Call(`_medfate_aspwb`, x, meteo, latitude, elevation, slope, aspect, runon, waterTableDepth)
 }
 
 #' Physical and biophysical utility functions
@@ -1301,7 +1301,8 @@ fuel_FCCS <- function(object, SpParams, cohortFMC = as.numeric( c()), loadingOff
 #' @param latitude Latitude (in degrees).
 #' @param elevation,slope,aspect Elevation above sea level (in m), slope (in degrees) and aspect (in degrees from North). 
 #' @param CO2ByYear A named numeric vector with years as names and atmospheric CO2 concentration (in ppm) as values. Used to specify annual changes in CO2 concentration along the simulation (as an alternative to specifying daily values in \code{meteo}).
-#' @param waterTableDepth Water table depth (in mm). When not missing, capillarity rise will be allowed if lower than total soil depth.
+#' @param runon A single value or a vector (with length equal to the number of rows in meteo) of daily runon values (in mm). Conceptually, runon can also represent an irrigation term.
+#' @param waterTableDepth A single value or a vector (with length equal to the number of rows in meteo) of daily water table depth values (in mm). When not missing, capillarity rise will be allowed if lower than total soil depth.
 #' 
 #' @details
 #' Detailed model description is available in the medfate book. 
@@ -1428,8 +1429,8 @@ fuel_FCCS <- function(object, SpParams, cohortFMC = as.numeric( c()), loadingOff
 #' G3 <-growth(x3, examplemeteo, latitude = 41.82592, elevation = 100)
 #' }
 #'       
-growth <- function(x, meteo, latitude, elevation, slope = NA_real_, aspect = NA_real_, CO2ByYear = numeric(0), waterTableDepth = NA_real_) {
-    .Call(`_medfate_growth`, x, meteo, latitude, elevation, slope, aspect, CO2ByYear, waterTableDepth)
+growth <- function(x, meteo, latitude, elevation, slope = NA_real_, aspect = NA_real_, CO2ByYear = numeric(0), runon = numeric(0), waterTableDepth = numeric(0)) {
+    .Call(`_medfate_growth`, x, meteo, latitude, elevation, slope, aspect, CO2ByYear, runon, waterTableDepth)
 }
 
 #' Single-day forest growth
@@ -2265,6 +2266,7 @@ hydrology_agricultureWaterInputs <- function(x, prec, tday, rad, elevation, Lgro
 #' @param soilDomains Either "buckets" (multi-bucket domain), "single" (for single-domain Richards) or "dual" (for dual-permeability model).
 #' @param nsteps Number of time steps per day
 #' @param max_nsubsteps Maximum number of substeps per time step
+#' @param richards_tolerance Error tolerance for Richards solving (in mm)
 #' @param modifySoil Boolean flag to indicate that the input \code{soil} object should be modified during the simulation.
 #' 
 #' @seealso  \code{\link{spwb}}, \code{\link{hydrology_waterInputs}}, \code{\link{hydrology_infiltration}}
@@ -2305,6 +2307,7 @@ hydrology_agricultureWaterInputs <- function(x, prec, tday, rad, elevation, Lgro
 #'   \itemize{
 #'     \item{\code{Correction}: Amount of water (mm) added to deep drainage to correct the water balance.}
 #'     \item{\code{VolumeChange}: Change in soil water volume (mm).}
+#'     \item{\code{FlowBalance}: Balance of water fluxes, to be compared with volume change (mm).}
 #'     \item{\code{Substep}: Time step of the moisture solving (seconds).}
 #'   }
 #'  If \code{soilDomains == "dual"} the named vector contains the following additional elements:
@@ -2350,8 +2353,8 @@ hydrology_agricultureWaterInputs <- function(x, prec, tday, rad, elevation, Lgro
 #'   
 #' @name hydrology_soilWaterBalance
 #' @keywords internal
-hydrology_soilWaterBalance <- function(soil, soilFunctions, rainfallInput, rainfallIntensity, snowmelt, sourceSink, runon = 0.0, lateralFlows = NULL, waterTableDepth = NA_real_, infiltrationMode = "GreenAmpt1911", infiltrationCorrection = 5.0, soilDomains = "buckets", nsteps = 24L, max_nsubsteps = 3600L, modifySoil = TRUE) {
-    .Call(`_medfate_soilWaterBalance`, soil, soilFunctions, rainfallInput, rainfallIntensity, snowmelt, sourceSink, runon, lateralFlows, waterTableDepth, infiltrationMode, infiltrationCorrection, soilDomains, nsteps, max_nsubsteps, modifySoil)
+hydrology_soilWaterBalance <- function(soil, soilFunctions, rainfallInput, rainfallIntensity, snowmelt, sourceSink, runon = 0.0, lateralFlows = NULL, waterTableDepth = NA_real_, infiltrationMode = "GreenAmpt1911", infiltrationCorrection = 5.0, soilDomains = "buckets", nsteps = 24L, max_nsubsteps = 3600L, richards_tolerance = 0.001, modifySoil = TRUE) {
+    .Call(`_medfate_soilWaterBalance`, soil, soilFunctions, rainfallInput, rainfallIntensity, snowmelt, sourceSink, runon, lateralFlows, waterTableDepth, infiltrationMode, infiltrationCorrection, soilDomains, nsteps, max_nsubsteps, richards_tolerance, modifySoil)
 }
 
 #' @rdname hydrology_soilEvaporation
@@ -2769,15 +2772,26 @@ light_cohortAbsorbedSWRFraction <- function(z, x, SpParams, gdd = NA_real_) {
 #'         \item{\code{RhizoPsi}: A matrix with the water potential around the rhizosphere of each cohort (in rows) in each soil layer (in columns).}
 #'       }
 #'     }
-#'     \item{\code{paramsPhenology}: A data frame with leaf phenology parameters:
+#'     \item{\code{paramsPhenology}: A data frame with leaf phenology parameters (some are only relevant for \code{\link{growth}} simulations):
 #'       \itemize{
 #'         \item{\code{PhenologyType}: Leaf phenology type.}
+#'         \item{\code{SenescencePeriod}: Leaf senescence period ("whole-year", "spring" or "autumn").}
+#'         \item{\code{GrowthPeriod}: Leaf growth period ("whole-year" or "spring").}
+#'         \item{\code{GrowthDeterminacy}: Primary growth determinacy type ("determinate", "indeterminate" or "intermediate").}
 #'         \item{\code{LeafDuration}: Leaf duration (in years).}
-#'         \item{\code{Sgdd}: Degree days needed for leaf budburst (for winter decideous species).}
+#'         \item{\code{BudFormationDays}: Number of days required to complete bud formation.}
+#'         \item{\code{t0gdd}: Date to start the accumulation of growth degree days.}
 #'         \item{\code{Tbgdd}: Base temperature for the calculation of degree days to leaf budburst.}
-#'         \item{\code{Ssen}: Degree days corresponding to leaf senescence.}
+#'         \item{\code{Sgdd}: Degree days needed for leaf budburst.}
+#'         \item{\code{Ugdd}: Degree days needed to complete leaf unfolding.} 
+#'         \item{\code{Ssen}: Degree days corresponding to leaf senescence (pigment degradation and nutrient translocation).}
 #'         \item{\code{Phsen}: Photoperiod corresponding to start counting senescence degree-days.}
 #'         \item{\code{Tbsen}: Base temperature for the calculation of degree days to leaf senescence.}
+#'         \item{\code{xsen, ysen}: Discrete values, to allow for any absent/proportional/more than proportional effects of photoperiod  on senescence.}
+#'         \item{\code{Fsen}: Degree days required to for leaves to be ready for abscission.}
+#'         \item{\code{LeafPLCCrit}: Leaf PLC (a proportion) associated to cavitation-induced leaf senescence.}
+#'         \item{\code{BudPLCCrit}: Stem PLC (a proportion) associated to cavitation-induced bud (branch) senescence.}
+#'         \item{\code{LeafTSCrit}: Critical leaf temperature associated to heat-induced leaf senescence.}
 #'       }
 #'     }
 #'     \item{\code{paramsAnatomy}: A data frame with plant anatomy parameters for each cohort:
@@ -2891,7 +2905,7 @@ light_cohortAbsorbedSWRFraction <- function(z, x, SpParams, gdd = NA_real_) {
 #'       \item{\code{CCleaf}: Leaf construction costs (in g gluc·g dry-1).}
 #'       \item{\code{CCsapwood}: Sapwood construction costs (in g gluc·g dry-1).}
 #'       \item{\code{CCfineroot}: Fine root construction costs (in g gluc·g dry-1).}
-#'       \item{\code{RGRleafmax}: Maximum leaf relative growth rate (in m2·cm-2·day-1).}
+#'       \item{\code{RGRleafmax}: Maximum leaf relative growth (expansion) rate (in m2·cm-2·day-1).}
 #'       \item{\code{RGRsapwoodmax}: Maximum sapwood relative growth rate (in cm2·cm-2·day-1).}
 #'       \item{\code{RGRfinerootmax}: Maximum fine root relative growth rate (in g dry·g dry-1·day-1).}
 #'       \item{\code{SRsapwood}: Sapwood daily senescence rate (in day-1).}
@@ -2927,10 +2941,13 @@ light_cohortAbsorbedSWRFraction <- function(z, x, SpParams, gdd = NA_real_) {
 #'   \item {\code{internalAllocation}: A data frame with internal allocation variables for each cohort:
 #'     \itemize{
 #'       \item{\code{allocationTarget}: Value of the allocation target variable.}
-#'       \item{\code{leafAreaTarget}: Target leaf area (m2) per individual.}
+#'       \item{\code{leafAreaTarget}: Target leaf area (m2) per individual, assuming a fully-developed crown.}
+#'       \item{\code{leafOrganogenesisEfficiency}: For species with separated phases of leaf organogenesis and leaf expansion, proportion of the target leaf area that is preformed in buds, after accounting for crown bud availability and environmental effects in organogenesis.}
+#'       \item{\code{leafAreaPreformed}: For species with separated phases of leaf organogenesis and expansion, preformed (in buds) leaf area (m2) per individual, to be expanded.}
+#'       \item{\code{leafAreaSenescence}: Leaf area (m2) that is programmed to enter senescence.}
 #'       \item{\code{sapwoodAreaTarget}: Target sapwood area (cm2) per individual.}
 #'       \item{\code{fineRootBiomassTarget}: Target fine root biomass (g dry) per individual.}
-#'       \item{\code{crownBudPercent}: Percentage of the crown with buds.}
+#'       \item{\code{crownBudPercent}: Percentage of the crown with buds available, related to availability of branches and dormant buds.}
 #'     }
 #'   }
 #'   \item{\code{internalCarbon}: A data frame with the concentration (mol·gluc·l-1) of metabolic and storage carbon compartments for leaves and sapwood.}
@@ -3042,6 +3059,10 @@ resetInputs <- function(x) {
     .Call(`_medfate_speciesNumericParameterFromIndex`, SP, SpParams, parName)
 }
 
+.speciesIntegerParameterFromSpIndex <- function(SP, SpParams, parName) {
+    .Call(`_medfate_speciesIntegerParameterFromIndex`, SP, SpParams, parName)
+}
+
 .speciesCharacterParameterFromSpIndex <- function(SP, SpParams, parName) {
     .Call(`_medfate_speciesCharacterParameterFromIndex`, SP, SpParams, parName)
 }
@@ -3076,9 +3097,9 @@ plant_parameter <- function(x, SpParams, parName, fillMissing = TRUE, fillWithGe
 #' Function \code{pheno_leafSenescenceStatus} returns the 0/1 senescence status of leaves according to the one-phase senescence model of Delpierre et al. (2009) on the basis of photoperiod and temperature.
 #' Function \code{pheno_updateLeaves} updates the status of expanded leaves and dead leaves of object \code{x} given the photoperiod, temperature and wind of a given day. It applies the development model for 1 < doy < 180 and the senescence model for 181 > doy > 365.
 #' 
-#' @param Sgdd Degree days required for leaf budburst (in Celsius).
 #' @param gdd Cumulative degree days (in Celsius)
-#' @param unfoldingDD Degree-days for complete leaf unfolding after budburst has occurred.
+#' @param Sgdd Degree days required for leaf budburst (in Celsius).
+#' @param Ugdd Degree-days for complete leaf unfolding after budburst has occurred (in Celsius).
 #' 
 #' @return Function \code{pheno_leafDevelopmentStatus} returns a vector of values between 0 and 1, 
 #' whereas function \code{pheno_leafSenescenceStatus} returns a vector of 0 (senescent) and 1 (expanded) values. 
@@ -3097,8 +3118,8 @@ plant_parameter <- function(x, SpParams, parName, fillMissing = TRUE, fillWithGe
 #' 
 #' @name pheno_updateLeaves
 #' @keywords internal
-pheno_leafDevelopmentStatus <- function(Sgdd, gdd, unfoldingDD = 300.0) {
-    .Call(`_medfate_leafDevelopmentStatus`, Sgdd, gdd, unfoldingDD)
+pheno_leafDevelopmentStatus <- function(gdd, Sgdd, Ugdd = 300.0) {
+    .Call(`_medfate_leafDevelopmentStatus`, gdd, Sgdd, Ugdd)
 }
 
 #' @param Ssen Threshold to start leaf senescence.
@@ -3913,7 +3934,8 @@ soil_temperatureGradient <- function(gradTemp, widths, Temp) {
 #' @param latitude Latitude (in degrees).
 #' @param elevation,slope,aspect Elevation above sea level (in m), slope (in degrees) and aspect (in degrees from North).
 #' @param CO2ByYear A named numeric vector with years as names and atmospheric CO2 concentration (in ppm) as values. Used to specify annual changes in CO2 concentration along the simulation (as an alternative to specifying daily values in \code{meteo}).
-#' @param waterTableDepth Water table depth (in mm). When not missing, capillarity rise will be allowed if lower than total soil depth.
+#' @param runon A single value or a vector (with length equal to the number of rows in meteo) of daily runon values (in mm). Conceptually, runon can also represent an irrigation term.
+#' @param waterTableDepth A single value or a vector (with length equal to the number of rows in meteo) of daily water table depth values (in mm). When not missing, capillarity rise will be allowed if lower than total soil depth.
 #' 
 #' @details 
 #' Detailed model description is available in the medfate book. 
@@ -4008,6 +4030,7 @@ soil_temperatureGradient <- function(gradTemp, widths, Temp) {
 #'   \itemize{
 #'     \item{\code{"LAI"}: A data frame with the daily leaf area index for each plant cohort.}
 #'     \item{\code{"LAIlive"}: A data frame with the daily leaf area index for each plant cohort, assuming all leaves are unfolded (in m2/m2).}
+#'     \item{\code{"Phenology"}: A data frame with the daily phenological status for each plant cohort, codified into an integer value.}
 #'     \item{\code{"FPAR"}: A data frame with the fraction of PAR at the canopy level of each plant cohort. }
 #'     \item{\code{"AbsorbedSWRFraction"}: A data frame with the fraction of SWR absorbed by each plant cohort. }
 #'     \item{\code{"Transpiration"}: A data frame with the amount of daily transpiration (in mm) for each plant cohort.}
@@ -4025,6 +4048,7 @@ soil_temperatureGradient <- function(gradTemp, widths, Temp) {
 #'   \itemize{
 #'     \item{\code{"LAI"}: A data frame with the daily leaf area index for each plant cohort.}
 #'     \item{\code{"LAIlive"}: A data frame with the daily leaf area index for each plant cohort, assuming all leaves are unfolded (in m2/m2).}
+#'     \item{\code{"Phenology"}: A data frame with the daily phenological status for each plant cohort, codified into an integer value.}
 #'     \item{\code{"FPAR"}: A data frame with the fraction of PAR at the canopy level of each plant cohort. }
 #'     \item{\code{"AbsorbedSWR"}: A data frame with the daily SWR absorbed by each plant cohort.}
 #'     \item{\code{"NetLWR"}: A data frame with the daily net LWR by each plant cohort.}
@@ -4039,7 +4063,7 @@ soil_temperatureGradient <- function(gradTemp, widths, Temp) {
 #'     \item{\code{"StemRWC"}: A data frame with the average daily stem relative water content of each plant (in percent). }
 #'     \item{\code{"LFMC"}: A data frame with the daily live fuel moisture content (in percent of dry weight).}
 #'     \item{\code{"StemPsi"}: A data frame with the minimum daily stem water potential of each plant (in MPa). }
-#'     \item{\code{"LeafPLC"}: A data frame with the average daily proportion of leaf conductance loss of each plant (\[0-1\]).}
+#'     \item{\code{"LeafPLC"}: A data frame with the average daily proportion of leaf apoplasmic conductance loss of each plant (\[0-1\]).}
 #'     \item{\code{"StemPLC"}: A data frame with the average daily proportion of stem conductance loss of each plant (\[0-1\]).}
 #'     \item{\code{"RootPsi"}: A data frame with the minimum daily root water potential of each plant (in MPa). }
 #'     \item{\code{"RhizoPsi"}: A list of data frames (one per plant cohort) with the minimum daily root water potential of each plant (in MPa).}
@@ -4140,8 +4164,8 @@ soil_temperatureGradient <- function(gradTemp, widths, Temp) {
 #' }
 #'                 
 #' @name spwb
-spwb <- function(x, meteo, latitude, elevation, slope = NA_real_, aspect = NA_real_, CO2ByYear = numeric(0), waterTableDepth = NA_real_) {
-    .Call(`_medfate_spwb`, x, meteo, latitude, elevation, slope, aspect, CO2ByYear, waterTableDepth)
+spwb <- function(x, meteo, latitude, elevation, slope = NA_real_, aspect = NA_real_, CO2ByYear = numeric(0), runon = numeric(0), waterTableDepth = numeric(0)) {
+    .Call(`_medfate_spwb`, x, meteo, latitude, elevation, slope, aspect, CO2ByYear, runon, waterTableDepth)
 }
 
 #' Plant water balance
@@ -4206,7 +4230,7 @@ pwb <- function(x, meteo, W, latitude, elevation, slope = NA_real_, aspect = NA_
 #' @param meteovec A named numerical vector with weather data. See variable names in parameter \code{meteo} of \code{\link{spwb}}.
 #' @param latitude Latitude (in degrees).
 #' @param elevation,slope,aspect Elevation above sea level (in m), slope (in degrees) and aspect (in degrees from North). 
-#' @param runon Surface water amount running on the target area from upslope (in mm).
+#' @param runon Surface water amount running on the target area from upslope (in mm). Conceptually, runon can also represent an irrigation term.
 #' @param lateralFlows Lateral source/sink terms for each soil layer (interflow/to from adjacent locations) as mm/day.
 #' @param waterTableDepth Water table depth (in mm). When not missing, capillarity rise will be allowed if lower than total soil depth.
 #' @param modifyInput Boolean flag to indicate that the input \code{x} object is allowed to be modified during the simulation.
@@ -4497,6 +4521,7 @@ transp_transpirationSureau <- function(x, meteo, day, latitude, elevation, slope
 #'     \itemize{
 #'       \item{\code{"LAI"}: Leaf area index of the plant cohort.}
 #'       \item{\code{"LAIlive"}: Leaf area index of the plant cohort, assuming all leaves are unfolded.}
+#'       \item{\code{"Phenology"}: Phenological status of each plant cohort, codified into an integer value.}
 #'       \item{\code{"AbsorbedSWRFraction"}: Fraction of SWR absorbed by each cohort.}
 #'       \item{\code{"Transpiration"}: Transpirated water (in mm) corresponding to each cohort.}
 #'       \item{\code{"GrossPhotosynthesis"}: Gross photosynthesis (in gC/m2) corresponding to each cohort.}
@@ -4507,6 +4532,7 @@ transp_transpirationSureau <- function(x, meteo, day, latitude, elevation, slope
 #'     \itemize{
 #'       \item{\code{"LAI"}: Leaf area index of the plant cohort.}
 #'       \item{\code{"LAIlive"}: Leaf area index of the plant cohort, assuming all leaves are unfolded.}
+#'       \item{\code{"Phenology"}: Phenological status of each plant cohort, codified into an integer value.}
 #'       \item{\code{"Extraction"}: Water extracted from the soil (in mm) for each cohort.}
 #'       \item{\code{"Transpiration"}: Transpirated water (in mm) corresponding to each cohort.}
 #'       \item{\code{"GrossPhotosynthesis"}: Gross photosynthesis (in gC/m2) corresponding to each cohort.}
